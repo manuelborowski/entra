@@ -37,7 +37,8 @@ def get_students_from_wisa_database(local_file=None, max=0):
                     today = datetime.date(today.year, 9, 1)
             werkdatum = str(today)
             url = f'{base_url}/{query}?werkdatum={werkdatum}&_username_={login}&_password_={password}&format=json'
-            response_text = requests.get(url).text
+            response = requests.get(url)
+            response_text = response.text.encode("iso-8859-1").decode("utf-8")
         # The query returns with the keys in uppercase.  Convert to lowercase first
         keys = mstudent.get_columns()
         for key in keys:
@@ -182,7 +183,8 @@ def get_staff_from_wisa_database(local_file=None, max=0):
         query = msettings.get_configuration_setting('wisa-staff-query')
         werkdatum = str(datetime.date.today())
         url = f'{base_url}/{query}?werkdatum={werkdatum}&_username_={login}&_password_={password}&format=json'
-        response_text = requests.get(url).text
+        response = requests.get(url)
+        response_text = response.text.encode("iso-8859-1").decode("utf-8")
         # The query returns with the keys in uppercase.  Convert to lowercase first
         keys = mstaff.get_columns()
         for key in keys:

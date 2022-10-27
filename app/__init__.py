@@ -80,10 +80,11 @@ flask_app.config.from_pyfile('config.py')
 # 0.58: bugfix settings of type json.  Added code to get the computer name from AD
 # 0.59: update get computers from AD and bugfix json settings
 # 0.60: small update
+# 0.61: wisa changed its epxort encoding
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V0.60', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V0.61', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 #  enable logging
