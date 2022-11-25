@@ -1,4 +1,5 @@
 from app.presentation.view import false, true, null
+from app.application.settings import get_configuration_setting
 
 update_password = \
     {
@@ -169,4 +170,6 @@ database_integrity_check = \
     }
   ]
 }
+
+user_password_form = get_configuration_setting("user-formio-template")
 

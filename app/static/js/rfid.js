@@ -80,8 +80,8 @@ async function rfid_to_server(id, rfid, update_endpoint) {
     }
 }
 
-async function check_rfid(item, update_endpoint) {
-    let person = get_data_of_row(item_ids[0]);
+async function check_rfid(ids, update_endpoint) {
+    let person = get_data_of_row(ids[0]);
     bootbox.prompt({
         title: `Scan de badge van ${person.voornaam} ${person.naam} <br> Of laat leeg om te wissen`,
         callback: result => {

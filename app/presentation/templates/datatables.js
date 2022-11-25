@@ -91,10 +91,6 @@ function button_pushed(action) {
                     const id = chbx.value;
 
                     get_form('care.get_form', id);
-
-
-                    // const data = table.row(`#${id}`).data();
-                    // generate_pdf(pdf_template, data);
                 });
             }
             break
@@ -135,8 +131,12 @@ function clear_filter_setting() {
     location.reload();
 }
 
-$(document).ready(function () {
+function reload_table() {
+    table.ajax.reload();
+}
 
+
+$(document).ready(function () {
     //if a filter is changed, then the filter is applied by simulating a click on the filter button
     $(".table-filter").change(function () {
         store_filter_settings();

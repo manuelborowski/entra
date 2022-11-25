@@ -24,7 +24,7 @@ def add_user(data):
 
 def update_user(data):
     try:
-        user = muser.user.get_first_user({'id': data['id']})
+        user = muser.get_first_user({'id': data['id']})
         if user:
             del data['id']
             user = muser.update_user(user, data)
@@ -36,6 +36,26 @@ def update_user(data):
                 log.info(f"Update user: {data}")
                 return {"status": True, "data": {'id': user.id}}
         return {"status": False, "data": "Er is iets fout gegaan"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        log.error(data)
+        return {"status": False, "data": f'generic error {e}'}
+
+
+def delete_user(data):
+    try:
+        muser.delete_users(data)
+        return {"status": True, "data": "Gebruikers zijn verwijderd"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        log.error(data)
+        return {"status": False, "data": f'generic error {e}'}
+
+
+def get_user(data):
+    try:
+        user = muser.get_first_user({'id': data['id']})
+        return {"status": True, "data": user.to_dict()}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         log.error(data)
@@ -68,4 +88,13 @@ def prepare_edit_registration_form(id):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         raise e
 
+
+############ user overview list #########
+def format_data(db_list, total_count=None, filtered_count=None):
+    out = []
+    for i in db_list:
+        em = i.to_dict()
+        em.update({"row_action": i.id, "DT_RowId": i.id})
+        out.append(em)
+    return  total_count, filtered_count, out
 

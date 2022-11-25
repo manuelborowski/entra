@@ -1,2 +1,2 @@
-subscribe_right_click('check-rfid', item => check_rfid(item, 'api.update_staff'));
-subscribe_right_click('update-password', item => update_password(item, 'api.update_staff', popups['update-password']));
+subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.update_staff'));
+subscribe_right_click('update-password', (item, ids) => update_password(ids, 'api.update_staff', popups['update-password']));

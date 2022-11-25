@@ -25,7 +25,7 @@ const database_popup_callback = (action, opaque, data=null) => {
 }
 
 
-async function database_integrity_check(item, endpoint, popup) {
+async function database_integrity_check(endpoint, popup) {
     await formio_popup_create(popup, {}, database_popup_callback, endpoint, '1500px');
     await formio_popup_subscribe_event('event-start-integrity-check', database_popup_callback, endpoint);
     await formio_popup_subscribe_event('event-update-database', database_popup_callback, endpoint);

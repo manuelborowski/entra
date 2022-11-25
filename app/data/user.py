@@ -8,6 +8,10 @@ from sqlalchemy_serializer import SerializerMixin
 class User(UserMixin, db.Model, SerializerMixin):
     __tablename__ = 'users'
 
+    date_format = '%d/%m/%Y'
+    datetime_format = '%d/%m/%Y %H:%M'
+    serialize_rules = ("-password_hash",)
+
     class USER_TYPE:
         LOCAL = 'local'
         OAUTH = 'oauth'
@@ -90,14 +94,6 @@ class User(UserMixin, db.Model, SerializerMixin):
 
     def log(self):
         return '<User: {}/{}>'.format(self.id, self.username)
-
-    def ret_dict(self):
-        return {'id': self.id, 'DT_RowId': self.id, 'email': self.email, 'username': self.username,
-                'first_name': self.first_name,
-                'last_name': self.last_name,
-                'level': User.LEVEL.i2s(self.level), 'user_type': self.user_type, 'last_login': self.last_login,
-                'chbx': ''}
-
 
 
 def add_user(data = {}):
@@ -190,11 +186,11 @@ def load_user(user_id):
     return user
 
 
-def pre_filter():
+def pre_sql_query():
     return db.session.query(User)
 
 
-def search_data(search_string):
+def pre_sql_search(search_string):
     search_constraints = []
     search_constraints.append(User.username.like(search_string))
     search_constraints.append(User.first_name.like(search_string))
@@ -202,12 +198,4 @@ def search_data(search_string):
     search_constraints.append(User.email.like(search_string))
     return search_constraints
 
-
-def format_data(db_list):
-    out = []
-    for i in db_list:
-        em = i.ret_dict()
-        em['row_action'] = f"{i.id}"
-        out.append(em)
-    return out
 

@@ -158,7 +158,7 @@ def new_rfid_to_database_cron_task(opaque=None):
     check_for_new_rfid()
 
 ############ badges overview list #########
-def format_data(db_list):
+def format_data(db_list, total_count=None, filtered_count=None):
     out = []
     for item in db_list:
         em = item.to_dict()
@@ -167,7 +167,7 @@ def format_data(db_list):
             'DT_RowId': item.id
         })
         out.append(em)
-    return out
+    return total_count, filtered_count, out
 
 
 

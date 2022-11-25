@@ -191,15 +191,15 @@ def update_staff(staff, data={}):
 
 
 ############ staff overview list #########
-def pre_filter():
+def pre_sql_query():
     return db.session.query(Staff).filter(Staff.active == True)
 
 
-def filter_data(query, filter):
+def pre_sql_filter(query, filter):
     return query
 
 
-def search_data(search_string):
+def pre_sql_search(search_string):
     search_constraints = []
     search_constraints.append(Staff.naam.like(search_string))
     search_constraints.append(Staff.voornaam.like(search_string))

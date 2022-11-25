@@ -2,6 +2,7 @@ from . import staff
 from app import log
 from flask import redirect, url_for, request
 from flask_login import login_required, current_user
+from app.data.datatables import DatatableConfig, pre_sql_standard_order
 from app.presentation.view import datatables
 from app.application import socketio as msocketio
 from app.presentation.view.formio_popups import update_password
@@ -13,11 +14,10 @@ import app.application.staff
 @login_required
 def show():
     # start = datetime.datetime.now()
-    datatables.update(table_configuration)
     popups = {
         'update-password': update_password
     }
-    ret = datatables.show(table_configuration, template='staff/staff.html', popups=popups)
+    ret = datatables.show(table_config, template='staff/staff.html', popups=popups)
     # print('staff.show', datetime.datetime.now() - start)
     return ret
 
@@ -26,8 +26,7 @@ def show():
 @login_required
 def table_ajax():
     # start = datetime.datetime.now()
-    datatables.update(table_configuration)
-    ret =  datatables.ajax(table_configuration)
+    ret =  datatables.ajax(table_config)
     # print('staff.table_ajax', datetime.datetime.now() - start)
     return ret
 
@@ -54,13 +53,6 @@ def right_click():
     return {"message": "iets is fout gelopen"}
 
 
-def get_filters():
-    return []
-
-
-def get_info():
-    return []
-
 def get_right_click_settings():
     settings = {
         'endpoint': 'staff.right_click',
@@ -76,19 +68,24 @@ def get_right_click_settings():
         ])
     return settings
 
+class Config(DatatableConfig):
+    def pre_sql_query(self):
+        return app.data.staff.pre_sql_query()
 
-table_configuration = {
-    'view': 'staff',
-    'title': 'Personeelsleden',
-    'buttons': [],
-    'get_filters': get_filters,
-    'get_show_info': get_info,
-    'href': [],
-    'pre_filter': app.data.staff.pre_filter,
-    'format_data': app.application.staff.format_data,
-    'filter_data': app.data.staff.filter_data,
-    'search_data': app.data.staff.search_data,
-    'default_order': (1, 'asc'),
-    'get_right_click': get_right_click_settings,
-}
+    def pre_sql_filter(self, q, filter):
+        return app.data.staff.pre_sql_filter(q, filter)
 
+    def pre_sql_search(self, search):
+        return app.data.staff.pre_sql_search(search)
+
+    def pre_sql_order(self, q, on, direction):
+        return pre_sql_standard_order(q, on, direction)
+
+    def format_data(self, l, total_count, filtered_count):
+        return app.application.staff.format_data(l, total_count, filtered_count)
+
+    def get_right_click(self):
+        return get_right_click_settings()
+
+
+table_config = Config("staff", "Overzicht Leerkrachten")

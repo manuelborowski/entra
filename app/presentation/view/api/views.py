@@ -37,6 +37,22 @@ def user_update():
     return(json.dumps(ret))
 
 
+@api.route('/api/user/delete', methods=['POST'])
+@key_required
+def user_delete():
+    data = json.loads(request.data)
+    ret = muser.delete_user(data)
+    return(json.dumps(ret))
+
+
+@api.route('/api/user/get', methods=['GET'])
+@key_required
+def user_get():
+    options = request.args
+    ret = muser.get_user(options)
+    return(json.dumps(ret))
+
+
 @api.route('/api/photo/get/<int:id>', methods=['GET'])
 @key_required
 def photo_get(id):

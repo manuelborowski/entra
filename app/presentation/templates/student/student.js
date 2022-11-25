@@ -1,9 +1,5 @@
 async function update_vsk_numbers(start) {
-    const ret = await fetch(Flask.url_for('api.update_vsk_number'), {
-        headers: {'x-api-key': api_key,},
-        method: 'POST',
-        body: JSON.stringify({start}),
-    });
+    const ret = await fetch(Flask.url_for('api.update_vsk_number'), {headers: {'x-api-key': api_key,}, method: 'POST', body: JSON.stringify({start}),});
     const status = await ret.json();
     if (status.status) {
         bootbox.alert(`Er zijn ${status.data} nieuwe nummers toegekend`)
@@ -13,10 +9,7 @@ async function update_vsk_numbers(start) {
 }
 
 async function clear_vsk_numbers() {
-    const ret = await fetch(Flask.url_for('api.clear_vsk_numbers'), {
-        headers: {'x-api-key': api_key,},
-        method: 'POST'
-    });
+    const ret = await fetch(Flask.url_for('api.clear_vsk_numbers'), {headers: {'x-api-key': api_key,}, method: 'POST'});
     const status = await ret.json();
     if (status.status) {
         bootbox.alert(`Alle nummers (${status.data}) zijn gewist`)
@@ -25,7 +18,7 @@ async function clear_vsk_numbers() {
     }
 }
 
-async function new_vsk_numbers(item) {
+async function new_vsk_numbers() {
     const ret = await fetch(Flask.url_for('api.get_last_vsk_number'), {headers: {'x-api-key': api_key,}})
     const data = await ret.json();
     if (data.status) {
@@ -72,9 +65,7 @@ async function new_vsk_numbers(item) {
     }
 }
 
-subscribe_right_click('new-vsk-numbers', new_vsk_numbers);
-
-
-subscribe_right_click('check-rfid', item => check_rfid(item, 'api.update_student'));
-subscribe_right_click('update-password', item => update_password(item, 'api.update_student', popups['update-password']));
-subscribe_right_click('database-integrity-check', item => database_integrity_check(item, 'api.database_integrity_check', popups['database-integrity-check']));
+subscribe_right_click('new-vsk-numbers', (item, ids) => new_vsk_numbers());
+subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.update_student'));
+subscribe_right_click('update-password', (item, ids) => update_password(ids,'api.update_student', popups['update-password']));
+subscribe_right_click('database-integrity-check', (item, ids) => database_integrity_check('api.database_integrity_check', popups['database-integrity-check']));

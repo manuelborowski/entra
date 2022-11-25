@@ -81,10 +81,12 @@ flask_app.config.from_pyfile('config.py')
 # 0.59: update get computers from AD and bugfix json settings
 # 0.60: small update
 # 0.61: wisa changed its epxort encoding
+# 0.62: datatables update: use objects. Users: use popups to add/delete/update users
+
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V0.61', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V0.62', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 #  enable logging

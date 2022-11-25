@@ -160,7 +160,7 @@ def prepare_view_form(id, read_only=False):
 
 
 ############ datatables: student overview list #########
-def format_data(db_list):
+def format_data(db_list, total_count=None, filtered_count=None):
     out = []
     for student in db_list:
         em = student.to_dict()
@@ -171,7 +171,7 @@ def format_data(db_list):
             'DT_RowId': student.id
         })
         out.append(em)
-    return out
+    return total_count, filtered_count, out
 
 
 def get_nbr_photo_not_found():

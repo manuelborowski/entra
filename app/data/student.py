@@ -257,11 +257,11 @@ def get_first_student(data={}):
 
 
 ############ student overview list #########
-def pre_filter():
+def pre_sql_query():
     return db.session.query(Student).filter(Student.active == True)
 
 
-def filter_data(query, filter):
+def pre_sql_filter(query, filter):
     for f in filter:
         if f['name'] == 'photo-not-found':
             if f['value'] == 'not-found':
@@ -272,7 +272,7 @@ def filter_data(query, filter):
     return query
 
 
-def search_data(search_string):
+def pre_sql_search(search_string):
     search_constraints = []
     search_constraints.append(Student.naam.like(search_string))
     search_constraints.append(Student.voornaam.like(search_string))
@@ -280,4 +280,3 @@ def search_data(search_string):
     search_constraints.append(Student.klascode.like(search_string))
     search_constraints.append(Student.email.like(search_string))
     return search_constraints
-

@@ -36,7 +36,7 @@ function item_clicked(item) {
     busy_indication_on();
     clear_checked_boxes();
     if (item in right_click_cbs) {
-        right_click_cbs[item](item);
+        right_click_cbs[item](item, item_ids);
         busy_indication_off();
     } else {
         $.getJSON(Flask.url_for(table_config.right_click.endpoint, {'jds': JSON.stringify({item, item_ids})}),

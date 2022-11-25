@@ -70,7 +70,7 @@ def prepare_view_form(id, read_only=False):
 
 
 ############ datatables: staff overview list #########
-def format_data(db_list):
+def format_data(db_list, total_count=None, filtered_count=None):
     out = []
     for staff in db_list:
         em = staff.to_dict()
@@ -79,4 +79,4 @@ def format_data(db_list):
             'DT_RowId': staff.id
         })
         out.append(em)
-    return out
+    return total_count, filtered_count, out
