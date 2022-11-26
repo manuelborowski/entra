@@ -1,3 +1,5 @@
+import { get_data_of_row } from "../datatables/datatables.js"
+
 const badge_raw2hex = code => {
     const decode_caps_lock = code => {
         let out = '';
@@ -80,7 +82,7 @@ async function rfid_to_server(id, rfid, update_endpoint) {
     }
 }
 
-async function check_rfid(ids, update_endpoint) {
+export async function check_rfid(ids, update_endpoint) {
     let person = get_data_of_row(ids[0]);
     bootbox.prompt({
         title: `Scan de badge van ${person.voornaam} ${person.naam} <br> Of laat leeg om te wissen`,
@@ -88,7 +90,7 @@ async function check_rfid(ids, update_endpoint) {
             if (result === '') {
                 rfid_to_server(person.id, '', update_endpoint)
             } else if (result) {
-                res = badge_raw2hex(result);
+                let res = badge_raw2hex(result);
                 if (res.valid) {
                     bootbox.dialog({
                         title: 'Nieuwe RFID code?',

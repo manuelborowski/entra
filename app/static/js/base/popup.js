@@ -91,7 +91,7 @@ const create_p_element = (text) => {
 }
 
 var formio_popup_form = null;
-const formio_popup_create = async (template, defaults = null, cb = null, opaque = null, width = null) => {
+export const formio_popup_create = async (template, defaults = null, cb = null, opaque = null, width = null) => {
         const form_options = {sanitizeConfig: {addTags: ['iframe'], addAttr: ['allow'], ALLOWED_TAGS: ['iframe'], ALLOWED_ATTR: ['allow']},/* noAlerts: true,*/}
     //Render and display form
     $('#formio-popup').modal("show");
@@ -121,7 +121,7 @@ const formio_popup_create = async (template, defaults = null, cb = null, opaque 
     });
 }
 
-const formio_popup_subscribe_event = (event, cb, opaque) => {
+export const formio_popup_subscribe_event = (event, cb, opaque) => {
     formio_popup_form.on(event, async submitted => {
         cb(event, opaque, submitted);
     });

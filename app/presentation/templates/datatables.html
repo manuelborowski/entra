@@ -8,9 +8,11 @@
         .column-invisible-a {
             border-color: orange;
         }
+
         .column-visible-a {
             border-color: greenyellow;
         }
+
         .column-visible-div p {
             border-style: solid;
             border-radius: 1rem;
@@ -22,6 +24,7 @@
 
 {% block body %}
     {{ super() }}
+
     {% if table_config %}
         <div class="container-fluid">
             <div class="center">
@@ -100,27 +103,27 @@
     {% endif %}
 
     {% if table_config.right_click %}
-    <div class="right-click-wrapper">
-        <div class="content">
-            <ul class="menu">
-                {%  for item in table_config.right_click.menu %}
-                    {% if item.item == "horizontal-line" %}
-                        <li class="item">
-                            <span>---------------------</span>
-                        </li>
-                    {%  else %}
-                        <li class="item" onclick=item_clicked("{{ item.item }}")>
-                            {% if 'iconscout' in item %}
-                                <i class="uil uil-{{ item.iconscout }}"></i>
-                            {%  endif %}
-                            <span>{{ item.label }}</span>
-                        </li>
-                    {% endif %}
-            {% endfor %}
-            </ul>
+        <div class="right-click-wrapper">
+            <div class="content">
+                <ul class="menu">
+                    {% for item in table_config.right_click.menu %}
+                        {% if item.item == "horizontal-line" %}
+                            <li class="item">
+                                <span>---------------------</span>
+                            </li>
+                        {% else %}
+                            <li class="item" onclick=item_clicked("{{ item.item }}")>
+                                {% if 'iconscout' in item %}
+                                    <i class="uil uil-{{ item.iconscout }}"></i>
+                                {% endif %}
+                                <span>{{ item.label }}</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+            </div>
         </div>
-    </div>
-    {%  endif %}
+    {% endif %}
     <div class="modal fade" id="popup" tabindex="-1" aria-labelledby="popup-label" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -147,31 +150,29 @@
         </div>
     </div>
 
-        <div id="formio-form"></div>
+    <div id="formio-form"></div>
+
 {% endblock %}
 
 {% block scripts %}
     {{ super() }}
     {% if table_config %}
-        <script>
-            var filters = {{ (filters or []) | tojson }}
-            var pdf_template = {{ (pdf_template or []) | tojson }}
-            var table_config = {{ (table_config or []) | tojson }}
-            var popups = {{ (popups or {}) | tojson }}
-            var config_columns ={{ table_config.template | tojson }}
-            var api_key = {{ (api_key or '') | tojson }}
-             {% if 'cell_color' in table_config %}
-                var cell_to_color = {{ (table_config.cell_color.color_keys or null) | tojson}}
-                var suppress_cell_content = {{(table_config.cell_color.supress_cell_content or false) | tojson}}
-            {% else %}
-                var cell_to_color = null
-                var suppress_cell_content = null
-            {% endif %}
-            var current_user_is_at_least_admin = {{ current_user.is_at_least_admin | tojson }}
+        <script type="module">
+            import {item_clicked} from "/static/js/base/right_click.js";
+            window.item_clicked = item_clicked;
         </script>
-        <script type="text/javascript"> {% include "datatables.js" %}</script>
+
+        <script>
+            const table_config = {{ (table_config or []) | tojson }};
+            const filters = {{ (filters or []) | tojson }};
+            const popups = {{ (popups or {}) | tojson }};
+            const api_key = {{ (api_key or '') | tojson }};
+            const current_user_is_at_least_admin = {{ current_user.is_at_least_admin | tojson }};
+
+        </script>
+        <script type="module" src="/static/js/datatables/datatables.js"></script>
     {% endif %}
-    {% if table_config.right_click %}
-        <script type="text/javascript" src="{{ url_for('static', filename='js/right_click.js') }}"></script>
-    {% endif %}
+    {#    {% if table_config.right_click %}#}
+    {#        <script type="text/javascript" src="/static/js/right_click.js"></script>#}
+    {#    {% endif %}#}
 {% endblock %}

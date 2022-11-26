@@ -17,7 +17,7 @@
  * For details please refer to: http://www.datatables.net
  */
 
-class MakeCellsToggleable {
+export class MakeCellsToggleable {
     constructor(table, settings) {
         this.table = table.table();
         this.settings = settings;

@@ -1,3 +1,6 @@
+import { get_id_of_checked_boxes, clear_checked_boxes } from "../datatables/datatables.js";
+import {busy_indication_off, busy_indication_on } from "./base.js";
+
 const context_menu = document.querySelector(".right-click-wrapper");
 const share_menu = context_menu.querySelector(".right-click-wrapper .share-menu");
 const datatable = document.querySelector("#datatable");
@@ -32,7 +35,7 @@ datatable.addEventListener("contextmenu", e => {
     context_menu.style.visibility = "visible";
 });
 
-function item_clicked(item) {
+export function item_clicked(item) {
     busy_indication_on();
     clear_checked_boxes();
     if (item in right_click_cbs) {
@@ -68,7 +71,7 @@ function item_clicked(item) {
 }
 
 var right_click_cbs = {};
-function subscribe_right_click(item, cb) {
+export function subscribe_right_click(item, cb) {
     right_click_cbs[item] = cb;
 }
 

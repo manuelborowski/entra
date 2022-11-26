@@ -1,3 +1,6 @@
+import { formio_popup_create, formio_popup_subscribe_event } from "../base/popup.js"
+
+
 async function server_database_integrity_check(endpoint, event, databases) {
     busy_indication_on();
     const ret = await fetch(Flask.url_for(endpoint), {
@@ -25,7 +28,7 @@ const database_popup_callback = (action, opaque, data=null) => {
 }
 
 
-async function database_integrity_check(endpoint, popup) {
+export async function database_integrity_check(endpoint, popup) {
     await formio_popup_create(popup, {}, database_popup_callback, endpoint, '1500px');
     await formio_popup_subscribe_event('event-start-integrity-check', database_popup_callback, endpoint);
     await formio_popup_subscribe_event('event-update-database', database_popup_callback, endpoint);

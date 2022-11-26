@@ -58,13 +58,9 @@ $.fn.dataTable.render.multi = function(renderArray) {
  *    } );
  */
 
-jQuery.fn.dataTable.render.ellipsis = function ( cutoff, wordbreak, escapeHtml ) {
+export const return_render_ellipsis = ( cutoff, wordbreak, escapeHtml ) => {
 	var esc = function ( t ) {
-		return t
-			.replace( /&/g, '&amp;' )
-			.replace( /</g, '&lt;' )
-			.replace( />/g, '&gt;' )
-			.replace( /"/g, '&quot;' );
+		return t.replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' ).replace( /"/g, '&quot;' );
 	};
 
 	return function ( d, type, row ) {
