@@ -1,3 +1,8 @@
+import { subscribe_right_click } from "../base/right_click.js";
+import { check_rfid } from "./rfid.js";
+import { update_password } from "./password.js";
+import { database_integrity_check } from "./database.js";
+
 async function update_vsk_numbers(start) {
     const ret = await fetch(Flask.url_for('api.update_vsk_number'), {headers: {'x-api-key': api_key,}, method: 'POST', body: JSON.stringify({start}),});
     const status = await ret.json();

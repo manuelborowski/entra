@@ -1,4 +1,5 @@
 import { formio_popup_create } from "../base/popup.js"
+import { subscribe_right_click } from "../base/right_click.js";
 
 const user_add = async () => {
     formio_popup_create(popups.user_password_form, {"new_password": true}, async (action, opaque, data = null) => {

@@ -1,9 +1,11 @@
 {% extends "datatables.html" %}
 
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="/static/css/popup.css">
+{% endblock %}
+
 {% block scripts %}
     {{ super() }}
-    <script type="text/javascript"> {% include "staff/staff.js" %}</script>
-    <script type="text/javascript" src="{{ url_for('static', filename='js/rfid.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='js/popup.js') }}"></script>
-    <script type="text/javascript" src="{{ url_for('static', filename='js/password.js') }}"></script>
+    <script type="module" src="/static/js/project/staff.js"></script>
 {% endblock %}
