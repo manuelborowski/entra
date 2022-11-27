@@ -40,8 +40,5 @@ class Socketio {
     }
 }
 
-var socketio
-$(function () { // same as $(document).ready()
-    socketio = new Socketio();
-});
+export const socketio = new Socketio();
 

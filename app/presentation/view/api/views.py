@@ -1,28 +1,46 @@
 from flask import request
 from . import api
-from app.application import  student as mstudent, user as muser, photo as mphoto, staff as mstaff
-from app.data import settings as msettings
-from app import flask_app, log
-import json, sys, html
+from app.application import  student as mstudent, user as muser, photo as mphoto, staff as mstaff, settings as msettings, cardpresso as mcardpresso
+from app import log
+import json, sys, html, itertools
 from functools import wraps
 
 
-def key_required(func):
-    @wraps(func)
-    def decorator(*args, **kwargs):
-        try:
-            keys = msettings.get_configuration_setting('api-keys')
-            if request.headers.get('x-api-key') in keys:
-                return func(*args, **kwargs)
-        except Exception as e:
-            log.error(f'{sys._getframe().f_code.co_name}: {e}')
-            return json.dumps({"status": False, "data": e})
-        return json.dumps({"status": False, "data": f'API key not valid'})
-    return decorator
+def key_required_core(level, func, *args, **kwargs):
+    try:
+        all_keys = msettings.get_configuration_setting('api-keys')
+        keys = list(itertools.chain.from_iterable(all_keys[(level-1)::]))
+        if request.headers.get('x-api-key') in keys:
+            return func(*args, **kwargs)
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return json.dumps({"status": False, "data": e})
+    return json.dumps({"status": False, "data": f'API key not valid'})
+
+
+def user_key_required(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return key_required_core(muser.UserLevel.USER, func, *args, **kwargs)
+        return wrapper
+
+
+def supervisor_key_required(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return key_required_core(muser.UserLevel.SUPERVISOR, func, *args, **kwargs)
+        return wrapper
+
+
+def admin_key_required(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return key_required_core(muser.UserLevel.ADMIN, func, *args, **kwargs)
+        return wrapper
 
 
 @api.route('/api/user/add', methods=['POST'])
-@key_required
+@admin_key_required
 def user_add():
     data = json.loads(request.data)
     ret = muser.add_user(data)
@@ -30,7 +48,7 @@ def user_add():
 
 
 @api.route('/api/user/update', methods=['POST'])
-@key_required
+@admin_key_required
 def user_update():
     data = json.loads(request.data)
     ret = muser.update_user(data)
@@ -38,7 +56,7 @@ def user_update():
 
 
 @api.route('/api/user/delete', methods=['POST'])
-@key_required
+@admin_key_required
 def user_delete():
     data = json.loads(request.data)
     ret = muser.delete_user(data)
@@ -46,7 +64,7 @@ def user_delete():
 
 
 @api.route('/api/user/get', methods=['GET'])
-@key_required
+@admin_key_required
 def user_get():
     options = request.args
     ret = muser.get_user(options)
@@ -54,21 +72,21 @@ def user_get():
 
 
 @api.route('/api/photo/get/<int:id>', methods=['GET'])
-@key_required
+@user_key_required
 def photo_get(id):
     ret = mphoto.get_photo(id)
     return ret
 
 
 @api.route('/api/vsknumber/get', methods=['GET'])
-@key_required
+@user_key_required
 def get_last_vsk_number():
     ret = mstudent.get_next_vsk_number()
     return json.dumps(ret)
 
 
 @api.route('/api/vsknumber/update', methods=['POST'])
-@key_required
+@admin_key_required
 def update_vsk_number():
     data = json.loads(request.data)
     ret = mstudent.update_vsk_numbers(int(data['start']))
@@ -76,7 +94,7 @@ def update_vsk_number():
 
 
 @api.route('/api/vsknumber/clear', methods=['POST'])
-@key_required
+@admin_key_required
 def clear_vsk_numbers():
     ret = mstudent.clear_vsk_numbers()
     return json.dumps(ret)
@@ -84,7 +102,7 @@ def clear_vsk_numbers():
 
 @api.route('/api/fields/', methods=['GET'])
 @api.route('/api/fields/<string:table>', methods=['GET'])
-@key_required
+@user_key_required
 def get_fields(table=''):
     try:
         ret = {"status": True, "data": "Command not understood"}
@@ -101,7 +119,7 @@ def get_fields(table=''):
 
 
 @api.route('/api/students/', methods=['GET'])
-@key_required
+@user_key_required
 def get_students():
     try:
         options = request.args
@@ -111,8 +129,9 @@ def get_students():
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return json.dumps({"status": False, "data": html.escape(str(e))})
 
+
 @api.route('/api/student/update', methods=['POST'])
-@key_required
+@admin_key_required
 def update_student():
     try:
         data = json.loads(request.data)
@@ -124,7 +143,7 @@ def update_student():
 
 
 @api.route('/api/staffs/', methods=['GET'])
-@key_required
+@user_key_required
 def get_staffs():
     try:
         options = request.args
@@ -136,7 +155,7 @@ def get_staffs():
 
 
 @api.route('/api/staff/update', methods=['POST'])
-@key_required
+@admin_key_required
 def update_staff():
     try:
         data = json.loads(request.data)
@@ -148,7 +167,7 @@ def update_staff():
 
 
 @api.route('/api/admin/dic', methods=['POST'])
-@key_required
+@admin_key_required
 def database_integrity_check():
     try:
         data = json.loads(request.data)
@@ -157,6 +176,15 @@ def database_integrity_check():
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return json.dumps({"status": False, "data": html.escape(str(e))})
+
+
+@api.route('/api/cardpresso/delete', methods=['POST'])
+@supervisor_key_required
+def carpresso_delete():
+    data = json.loads(request.data)
+    ret = mcardpresso.delete_badges(data)
+    return(json.dumps(ret))
+
 
 
 

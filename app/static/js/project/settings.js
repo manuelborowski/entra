@@ -1,3 +1,6 @@
+import { socketio } from "../base/socketio.js";
+import { busy_indication_on, busy_indication_off } from "../base/base.js";
+
 var _form = null;
 $(document).ready(function () {
     socketio.start(null, null);

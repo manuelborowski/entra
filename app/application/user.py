@@ -3,6 +3,11 @@ from app.application import formio as mformio
 from app.data import user as muser, settings as msettings
 import sys
 
+
+class UserLevel(muser.User.LEVEL):
+    pass
+
+
 def add_user(data):
     try:
         user = muser.get_first_user({'username': data['username']})

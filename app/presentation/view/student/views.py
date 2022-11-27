@@ -1,12 +1,12 @@
 from . import student
-from app import log, supervisor_required, flask_app
+from app import log
 from flask import redirect, url_for, request, render_template
 from flask_login import login_required, current_user
 from app.data.datatables import DatatableConfig, pre_sql_standard_order
 from app.presentation.view import datatables
 from app.application import socketio as msocketio, settings as msettings, cardpresso as mcardpresso
 from app.presentation.view.formio_popups import update_password, database_integrity_check
-import sys, json
+import json
 import app.data
 import app.application.student
 
@@ -15,10 +15,7 @@ import app.application.student
 @login_required
 def show():
     # start = datetime.datetime.now()
-    popups = {
-        'update-password': update_password,
-        'database-integrity-check': database_integrity_check
-    }
+    popups = {'update-password': update_password, 'database-integrity-check': database_integrity_check}
     ret = datatables.show(table_config, template='student/student.html', popups=popups)
     # print('student.show', datetime.datetime.now() - start)
     return ret
@@ -45,9 +42,6 @@ def table_action(action, ids=None):
     return redirect(url_for('student.show'))
 
 
-item_common = {'post_data_endpoint': 'api.student_update', 'submit_endpoint': 'student.show', 'cancel_endpoint': 'student.show', 'api_key': flask_app.config['API_KEY']}
-
-
 def item_view(ids=None):
     try:
         if ids == None:
@@ -59,7 +53,6 @@ def item_view(ids=None):
         else:
             id = ids[0]
             data = app.application.student.prepare_view_form(id)
-            data.update(item_common)
             data.update({'title': f"{data['defaults']['naam']} {data['defaults']['voornaam']}"})
             return render_template('formio.html', data=data)
     except Exception as e:

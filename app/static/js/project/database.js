@@ -1,10 +1,11 @@
 import { formio_popup_create, formio_popup_subscribe_event } from "../base/popup.js"
+import { ctx } from "../datatables/datatables.js"
 
 
 async function server_database_integrity_check(endpoint, event, databases) {
     busy_indication_on();
     const ret = await fetch(Flask.url_for(endpoint), {
-        headers: {'x-api-key': api_key,},
+        headers: {'x-api-key': ctx.api_key,},
         method: 'POST',
         body: JSON.stringify({event, databases}),
     });

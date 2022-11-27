@@ -1,10 +1,11 @@
 import { get_data_of_row } from "../datatables/datatables.js"
 import { formio_popup_create } from "../base/popup.js"
+import { ctx } from "../datatables/datatables.js"
 
 
 async function password_to_server(id, password_data, update_endpoint) {
     const ret = await fetch(Flask.url_for(update_endpoint), {
-        headers: {'x-api-key': api_key,},
+        headers: {'x-api-key': ctx.api_key,},
         method: 'POST',
         body: JSON.stringify({id, password_data}),
     });

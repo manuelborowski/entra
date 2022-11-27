@@ -1,0 +1,11 @@
+{% extends "datatables.html" %}
+
+{% block styles %}
+    {{ super() }}
+    <link rel="stylesheet" href="/static/css/popup.css">
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script type="module" src="/static/js/project/cardpresso.js"></script>
+{% endblock %}

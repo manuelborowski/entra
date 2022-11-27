@@ -39,7 +39,7 @@ const create_select_element = (label, id, name, options, attributes={}) => {
     select_element.id = id;
     for (const [k, v] of Object.entries(attributes)) {select_element.setAttribute(k, v);}
     select_element.size = 1;
-    options_html = ''
+    let options_html = ''
     options.forEach(([v, l]) => {
         options_html += `<option value="${v}">${l}</option>`
     })

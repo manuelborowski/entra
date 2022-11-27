@@ -168,11 +168,7 @@
             const popups = {{ (popups or {}) | tojson }};
             const api_key = {{ (api_key or '') | tojson }};
             const current_user_is_at_least_admin = {{ current_user.is_at_least_admin | tojson }};
-
         </script>
         <script type="module" src="/static/js/datatables/datatables.js"></script>
     {% endif %}
-    {#    {% if table_config.right_click %}#}
-    {#        <script type="text/javascript" src="/static/js/right_click.js"></script>#}
-    {#    {% endif %}#}
 {% endblock %}

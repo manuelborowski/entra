@@ -7,8 +7,13 @@ import sys, json, datetime
 # remark; for contactless operations (RFID), use Springcard crazywriter Contactless 0 as encoder
 
 def delete_badges(ids):
-    mcardpresso.delete_badges(ids)
-    log.info(f"done deleting badges: {ids}")
+    try:
+        mcardpresso.delete_badges(ids)
+        log.info(f"done deleting badges: {ids}")
+        return {"status": True, "data": "Studenten (-badges) zijn verwijderd"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": f'generic error {e}'}
 
 
 # indicates which badge property is required
