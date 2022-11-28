@@ -1,25 +1,20 @@
-import datetime
-
-from flask import render_template, redirect, url_for, request
+from flask import redirect, url_for
 from flask_login import login_required
-from app import log, admin_required, data, flask_app
+from app import admin_required, data
 from . import user
 from app.application import user as muser
-from app.presentation.layout.utils import flash_plus
 from app.presentation.view import datatables
-import json, sys
 from app.data.datatables import DatatableConfig, pre_sql_standard_order
 import app.data.user
 import app.application.user
-from app.presentation.view.formio_popups import user_password_form
-from sqlalchemy import or_, desc
+from app.application.settings import get_configuration_setting
 
 @user.route('/user', methods=['GET', 'POST'])
 @admin_required
 @login_required
 def show():
     # start = datetime.datetime.now()
-    popups = {"user_password_form": user_password_form}
+    popups = {"user_password_form": get_configuration_setting("popup-new-update-user")}
     ret = datatables.show(table_configuration, template="user/user.html", popups=popups)
     # print('student.show', datetime.datetime.now() - start)
     return ret

@@ -99,7 +99,6 @@ default_configuration_settings = {
     'sdh-current-schoolyear': ('', Settings.SETTING_TYPE.E_STRING),
     'sdh-schoolyear-changed': (False, Settings.SETTING_TYPE.E_BOOL),
 
-    'user-formio-template': ({}, Settings.SETTING_TYPE.E_JSON),
     'user-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
 
     'student-formio-template': ({}, Settings.SETTING_TYPE.E_JSON),
@@ -188,6 +187,11 @@ default_configuration_settings = {
     'test-wisa-json-list': ('', Settings.SETTING_TYPE.E_STRING),
     'test-wisa-current-json': ('', Settings.SETTING_TYPE.E_STRING),
     'test-rfid-start-code': ('', Settings.SETTING_TYPE.E_STRING),
+
+    'popup-new-update-user': ({}, Settings.SETTING_TYPE.E_JSON),
+    'popup-student-teacher-update-password': ({}, Settings.SETTING_TYPE.E_JSON),
+    'popup-database-integrity-check': ({}, Settings.SETTING_TYPE.E_JSON),
+
 }
 
 

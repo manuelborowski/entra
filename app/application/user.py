@@ -74,7 +74,7 @@ def delete_users(ids):
 ############## formio forms #############
 def prepare_add_registration_form():
     try:
-        template = msettings.get_configuration_setting('user-formio-template')
+        template = msettings.get_configuration_setting('popup-new-update-user')
         return {'template': template,
                 'defaults': {'new_password': True}}
     except Exception as e:
@@ -85,7 +85,7 @@ def prepare_add_registration_form():
 def prepare_edit_registration_form(id):
     try:
         user = muser.get_first_user({"id": id})
-        template = msettings.get_configuration_setting('user-formio-template')
+        template = msettings.get_configuration_setting('popup-new-update-user')
         template = mformio.prepare_for_edit(template, user.to_dict())
         return {'template': template,
                 'defaults': user.to_dict()}

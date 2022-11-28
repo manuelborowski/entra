@@ -5,17 +5,18 @@ from flask_login import login_required, current_user
 from app.data.datatables import DatatableConfig, pre_sql_standard_order
 from app.presentation.view import datatables
 from app.application import socketio as msocketio, settings as msettings, cardpresso as mcardpresso
-from app.presentation.view.formio_popups import update_password, database_integrity_check
 import json
 import app.data
 import app.application.student
+from app.application.settings import get_configuration_setting
 
 
 @student.route('/student/student', methods=['POST', 'GET'])
 @login_required
 def show():
     # start = datetime.datetime.now()
-    popups = {'update-password': update_password, 'database-integrity-check': database_integrity_check}
+    popups = {'update-password': get_configuration_setting("popup-student-teacher-update-password"),
+              'database-integrity-check': get_configuration_setting("popup-database-integrity-check")}
     ret = datatables.show(table_config, template='student/student.html', popups=popups)
     # print('student.show', datetime.datetime.now() - start)
     return ret

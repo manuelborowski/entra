@@ -123,14 +123,6 @@ settings_formio = \
                     "saveOnEnter": false
                   },
                   {
-                    "label": "Detail template (formio)",
-                    "autoExpand": false,
-                    "tableView": true,
-                    "key": "user-formio-template",
-                    "type": "textarea",
-                    "input": true
-                  },
-                  {
                     "label": "Lijst template (JSON)",
                     "autoExpand": false,
                     "tableView": true,
@@ -255,6 +247,62 @@ settings_formio = \
             "label": "templates-cardpresso",
             "tableView": false,
             "key": "templates-cardpresso",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "Popups",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "RegistratieTemplate1",
+                "type": "panel",
+                "label": "Studenten",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Opslaan",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "input": true,
+                    "saveOnEnter": false
+                  },
+                  {
+                    "label": "Student/Leerkracht paswoord update",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "popup-student-teacher-update-password",
+                    "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Database integriteits controle",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "popup-database-integrity-check",
+                    "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Nieuwe gebruiker / gebruiker aanpassen",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "popup-new-update-user",
+                    "type": "textarea",
+                    "input": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "templates-pop-ups",
+            "tableView": false,
+            "key": "templates-pop-ups",
             "type": "container",
             "input": true,
             "components": [

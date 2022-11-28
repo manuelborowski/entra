@@ -5,7 +5,8 @@ from flask_login import login_required, current_user
 from app.data.datatables import DatatableConfig, pre_sql_standard_order
 from app.presentation.view import datatables
 from app.application import socketio as msocketio
-from app.presentation.view.formio_popups import update_password
+from app.application.settings import get_configuration_setting
+
 import json
 import app.application.staff
 
@@ -15,7 +16,7 @@ import app.application.staff
 def show():
     # start = datetime.datetime.now()
     popups = {
-        'update-password': update_password
+        'update-password': get_configuration_setting("popup-student-teacher-update-password")
     }
     ret = datatables.show(table_config, template='staff/staff.html', popups=popups)
     # print('staff.show', datetime.datetime.now() - start)
