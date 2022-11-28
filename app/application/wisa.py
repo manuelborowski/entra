@@ -211,8 +211,20 @@ def get_staff_from_wisa_database(local_file=None, max=0):
             if wisa_item['rijksregisternummer'] in already_processed:
                 continue
             wisa_item['geboortedatum'] = datetime.datetime.strptime(wisa_item['geboortedatum'].split(' ')[0], '%Y-%m-%d').date()
-            if not 'campussintursula.be' in wisa_item['email']:
+
+            email = wisa_item['email'] if 'campussintursula.be' in wisa_item['email'] else wisa_item['prive_email'] if 'campussintursula.be' in wisa_item['prive_email'] else ""
+            if 'campussintursula.be' not in wisa_item['email'] and wisa_item["email"] != "":
+                prive_email = wisa_item['email']
+            elif 'campussintursula.be' not in wisa_item['prive_email'] and wisa_item["prive_email"] != "":
+                prive_email = wisa_item['prive_email']
+            else:
+                prive_email = ''
+            if email != "":
+                wisa_item['email'] = email
+            else:
                 wisa_item['email'] = f"{wisa_item['voornaam'].translate(normalize_letters).lower()}.{wisa_item['naam'].translate(normalize_letters).lower()}@campussintursula.be"
+            wisa_item["prive_email"] = prive_email
+
             if wisa_item['rijksregisternummer'] in saved_staff:
                 # staff-member already exists in database
                 # check if a staff-member has updated properties

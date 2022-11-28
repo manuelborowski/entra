@@ -22,6 +22,7 @@ class Staff(db.Model, SerializerMixin):
     geboorteplaats = db.Column(db.String(256), default='')
     instellingsnummer = db.Column(db.String(256), default='')
     email = db.Column(db.String(256), default='')
+    prive_email = db.Column(db.String(256), default='')
     rfid = db.Column(db.String(256))
 
     timestamp = db.Column(db.DateTime)

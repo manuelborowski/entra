@@ -85,11 +85,12 @@ flask_app.config.from_pyfile('config.py')
 # 0.63: students: moved from js-script to module. Moved js to static folder.  User: add/delete/update handled via popups.
 # 0.64: moved remaining views to modules
 # 0.65: small updates.  Implemented cardpresso-delete as users-delete.  Datatables: introduced context (ctx).  Api-key: introduced levels
+# 0.66: add staff-prive-email
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V0.65', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V0.66', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 #  enable logging
