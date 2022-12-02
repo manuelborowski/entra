@@ -42,6 +42,20 @@ def table_action(action, ids=None):
     return redirect(url_for('staff.show'))
 
 
+
+def update_cell_changed(msg, client_sid=None):
+  try:
+    data = msg['data']
+    settings = json.loads(data['value'])
+    msocketio.broadcast_message({'type': 'settings', 'data': {'status': True}})
+  except Exception as e:
+    msocketio.broadcast_message({'type': 'settings', 'data': {'status': False, 'message': str(e)}})
+
+
+msocketio.subscribe_on_type('staff_socketio_cell_changed', update_cell_changed)
+
+
+
 @staff.route('/staff/right_click/', methods=['POST', 'GET'])
 @login_required
 def right_click():
@@ -87,6 +101,8 @@ class Config(DatatableConfig):
 
     def get_right_click(self):
         return get_right_click_settings()
+
+    socketio_endpoint = "staff_socketio_cell_changed"
 
 
 table_config = Config("staff", "Overzicht Leerkrachten")

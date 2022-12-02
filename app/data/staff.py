@@ -24,6 +24,7 @@ class Staff(db.Model, SerializerMixin):
     email = db.Column(db.String(256), default='')
     prive_email = db.Column(db.String(256), default='')
     rfid = db.Column(db.String(256))
+    extra = db.Column(db.String(256), default='')
 
     timestamp = db.Column(db.DateTime)
 

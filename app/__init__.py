@@ -88,11 +88,12 @@ flask_app.config.from_pyfile('config.py')
 # 0.66: add staff-prive-email
 # 0.67: moved popups to settings so that they can be changed dynamically
 # 0.68: first steps with azure
+# 0.69: staff: added extra field.  Adding functionality to edit field inline.
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V0.68', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V0.69', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 #  enable logging

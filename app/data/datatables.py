@@ -13,6 +13,7 @@ class DatatableConfig:
     enable_column_visible_selector = True
     enable_persistent_filter_settings = True
     default_order = [2, "asc"]
+    socketio_endpoint = None
 
     def show_filter_elements(self):
         return []
@@ -72,7 +73,8 @@ class DatatableConfig:
             "cell_to_color": self.cell_to_color,
             "suppress_cell_content": self.suppress_cell_content,
             "default_order": self.default_order,
-            "title": self.title
+            "title": self.title,
+            "socketio_endpoint": self.socketio_endpoint
         }
 
 

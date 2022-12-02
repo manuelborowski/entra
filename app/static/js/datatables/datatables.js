@@ -1,6 +1,7 @@
 import {return_render_ellipsis} from "./dataTables.ellipsis.js";
 import {MakeCellsToggleable} from "./dataTables.cellToggle.js";
 import {busy_indication_on, busy_indication_off} from "../base/base.js";
+import { socketio } from "../base/socketio.js";
 
 let filter_settings = [];
 let column_name_to_index = {};
@@ -461,7 +462,7 @@ $(document).ready(function () {
         });
     }
 
-    var cell_toggle = new MakeCellsToggleable(ctx.table, {
+    let cell_toggle = new MakeCellsToggleable(ctx.table, {
         onUpdate: cell_toggle_changed_cb,
         columns: celltoggle_columns
     })

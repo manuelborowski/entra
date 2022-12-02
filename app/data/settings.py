@@ -107,6 +107,7 @@ default_configuration_settings = {
 
     'staff-formio-template': ({}, Settings.SETTING_TYPE.E_JSON),
     'staff-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
+    'staff-new-staff-email-template': ('', Settings.SETTING_TYPE.E_STRING),
 
     'cardpresso-formio-template': ({}, Settings.SETTING_TYPE.E_JSON),
     'cardpresso-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
@@ -189,6 +190,10 @@ default_configuration_settings = {
     'test-wisa-json-list': ('', Settings.SETTING_TYPE.E_STRING),
     'test-wisa-current-json': ('', Settings.SETTING_TYPE.E_STRING),
     'test-rfid-start-code': ('', Settings.SETTING_TYPE.E_STRING),
+    'test-staff-prepare': (False, Settings.SETTING_TYPE.E_BOOL),
+    'test-staff-wisa-json-list': ('', Settings.SETTING_TYPE.E_STRING),
+    'test-staff-wisa-current-json': ('', Settings.SETTING_TYPE.E_STRING),
+    'test-staff-rfid-start-code': ('', Settings.SETTING_TYPE.E_STRING),
 
     'popup-new-update-user': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-student-teacher-update-password': ({}, Settings.SETTING_TYPE.E_JSON),

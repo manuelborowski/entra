@@ -155,36 +155,21 @@ def get_students_from_wisa_database(local_file=None, max=0):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
-def wisa_get_student_cron_task(opaque=None):
-    with flask_app.app_context():
-        wisa_files = msettings.get_list('test-wisa-json-list')
-        if wisa_files:  # test with wisa files
-            current_wisa_file = msettings.get_configuration_setting('test-wisa-current-json')
-            if current_wisa_file == '' or current_wisa_file not in wisa_files:
-                current_wisa_file = wisa_files[0]
-            else:
-                new_index = wisa_files.index(current_wisa_file) + 1
-                if new_index >= len(wisa_files):
-                    new_index = 0
-                current_wisa_file = wisa_files[new_index]
-            msettings.set_configuration_setting('test-wisa-current-json', current_wisa_file)
-            get_students_from_wisa_database(local_file=current_wisa_file)
-        else:
-            # read_from_wisa_database(max=10)
-            get_students_from_wisa_database()
-
-
 def get_staff_from_wisa_database(local_file=None, max=0):
     try:
         log.info('start staff import from wisa')
-        login = msettings.get_configuration_setting('wisa-login')
-        password = msettings.get_configuration_setting('wisa-password')
-        base_url = msettings.get_configuration_setting('wisa-url')
-        query = msettings.get_configuration_setting('wisa-staff-query')
-        werkdatum = str(datetime.date.today())
-        url = f'{base_url}/{query}?werkdatum={werkdatum}&_username_={login}&_password_={password}&format=json'
-        response = requests.get(url)
-        response_text = response.text.encode("iso-8859-1").decode("utf-8")
+        if local_file:
+            log.info(f'Reading from local file {local_file}')
+            response_text = open(local_file).read()
+        else:
+            login = msettings.get_configuration_setting('wisa-login')
+            password = msettings.get_configuration_setting('wisa-password')
+            base_url = msettings.get_configuration_setting('wisa-url')
+            query = msettings.get_configuration_setting('wisa-staff-query')
+            werkdatum = str(datetime.date.today())
+            url = f'{base_url}/{query}?werkdatum={werkdatum}&_username_={login}&_password_={password}&format=json'
+            response = requests.get(url)
+            response_text = response.text.encode("iso-8859-1").decode("utf-8")
         # The query returns with the keys in uppercase.  Convert to lowercase first
         keys = mstaff.get_columns()
         for key in keys:
@@ -263,8 +248,42 @@ def get_staff_from_wisa_database(local_file=None, max=0):
         log.error(f'{sys._getframe().f_code.co_name}, {e}')
 
 
+def wisa_get_student_cron_task(opaque=None):
+    with flask_app.app_context():
+        wisa_files = msettings.get_list('test-wisa-json-list')
+        if wisa_files:  # test with wisa files
+            current_wisa_file = msettings.get_configuration_setting('test-wisa-current-json')
+            if current_wisa_file == '' or current_wisa_file not in wisa_files:
+                current_wisa_file = wisa_files[0]
+            else:
+                new_index = wisa_files.index(current_wisa_file) + 1
+                if new_index >= len(wisa_files):
+                    new_index = 0
+                current_wisa_file = wisa_files[new_index]
+            msettings.set_configuration_setting('test-wisa-current-json', current_wisa_file)
+            get_students_from_wisa_database(local_file=current_wisa_file)
+        else:
+            # read_from_wisa_database(max=10)
+            get_students_from_wisa_database()
+
+
 def wisa_get_staff_cron_task(opaque=None):
     with flask_app.app_context():
-        get_staff_from_wisa_database()
+        wisa_files = msettings.get_list('test-staff-wisa-json-list')
+        if wisa_files:  # test with wisa files
+            current_wisa_file = msettings.get_configuration_setting('test-staff-wisa-current-json')
+            if current_wisa_file == '' or current_wisa_file not in wisa_files:
+                current_wisa_file = wisa_files[0]
+            else:
+                new_index = wisa_files.index(current_wisa_file) + 1
+                if new_index >= len(wisa_files):
+                    new_index = 0
+                current_wisa_file = wisa_files[new_index]
+            msettings.set_configuration_setting('test-staff-wisa-current-json', current_wisa_file)
+            get_staff_from_wisa_database(local_file=current_wisa_file)
+
+        else:
+            get_staff_from_wisa_database()
+
 
 

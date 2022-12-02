@@ -238,6 +238,14 @@ settings_formio = \
                     "key": "staff-datatables-template",
                     "type": "textarea",
                     "input": true
+                  },
+                  {
+                    "label": "Email naar nieuw personeelslid (html) template",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "staff-new-staff-email-template",
+                    "type": "textarea",
+                    "input": true
                   }
                 ]
               }
@@ -1461,12 +1469,12 @@ settings_formio = \
           {
             "label": "Test",
             "tableView": false,
-            "key": "test",
+            "key": "test-students",
             "type": "container",
             "input": true,
             "components": [
               {
-                "title": "Test instellingen",
+                "title": "Test instellingen voor leerlingen",
                 "theme": "primary",
                 "collapsible": true,
                 "key": "test",
@@ -1518,6 +1526,73 @@ settings_formio = \
                     "tooltip": "hex code in the form '113ABC'\nIf the code is valid and there is no #, then this code is used as dummy RFID in the badges\nEach time the code is read, it is incremented by one",
                     "tableView": true,
                     "key": "test-rfid-start-code",
+                    "type": "textfield",
+                    "input": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Test staff",
+            "tableView": false,
+            "key": "test-staff",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "Test instellingen voor personeelsleden",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "test",
+                "type": "panel",
+                "label": "E-mail server settings",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Submit",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "input": true
+                  },
+                  {
+                    "label": "Test voorbereiden.  OPGELET, database wordt leeg gemaakt!!!",
+                    "tooltip": "Maak de database leeg, wis huidig en vorig schooljaar,...",
+                    "tableView": false,
+                    "defaultValue": false,
+                    "key": "test-staff-prepare",
+                    "type": "checkbox",
+                    "input": true
+                  },
+                  {
+                    "label": "Wisa testbestanden",
+                    "tooltip": "Als de croncyclus wordt uitgevoerd, haal de wisa data uit onderstaande bestanden\nEen regel met # wordt genegeerd",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "test-staff-wisa-json-list",
+                    "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Huidig wisa test bestand",
+                    "labelPosition": "left-left",
+                    "tooltip": "Bovenstaande lijst wordt continu van boven naar beneden doorlopen.\nHier wordt het huidige wisa testbestand weergegeven.",
+                    "tableView": true,
+                    "key": "test-staff-wisa-current-json",
+                    "type": "textfield",
+                    "input": true
+                  },
+                  {
+                    "label": "RFID start code",
+                    "labelPosition": "left-left",
+                    "tooltip": "hex code in the form '113ABC'\nIf the code is valid and there is no #, then this code is used as dummy RFID in the badges\nEach time the code is read, it is incremented by one",
+                    "tableView": true,
+                    "key": "test-staff-rfid-start-code",
                     "type": "textfield",
                     "input": true
                   }
