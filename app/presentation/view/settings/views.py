@@ -475,19 +475,20 @@ settings_formio = \
             ]
           },
           {
-            "label": "Cron",
+            "label": "Cron-generic",
             "tableView": false,
-            "key": "cron",
+            "key": "cron-generic",
             "type": "container",
             "input": true,
             "components": [
               {
-                "title": "Cron",
+                "title": "Cron: generiek",
                 "theme": "primary",
                 "collapsible": true,
-                "key": "RegistratieTemplate3",
+                "key": "cron-generic",
                 "type": "panel",
                 "label": "Smartschool",
+                "collapsed": true,
                 "input": false,
                 "tableView": false,
                 "components": [
@@ -542,7 +543,7 @@ settings_formio = \
                             "key": "button-start-cron-cycle",
                             "conditional": {
                               "show": true,
-                              "when": "cron.check-start-cron-cycle",
+                              "when": "cron-generic.check-start-cron-cycle",
                               "eq": "true"
                             },
                             "type": "button",
@@ -571,8 +572,109 @@ settings_formio = \
                     "input": true,
                     "components": []
                   }
-                ],
-                "collapsed": true
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Cron-veyon",
+            "tableView": false,
+            "key": "cron-veyon",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "Cron: veyon specifiek",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "cron-generic",
+                "type": "panel",
+                "label": "Smartschool",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Opslaan ",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "input": true
+                  },
+                  {
+                    "label": "Cron template",
+                    "labelPosition": "left-left",
+                    "tooltip": "Check https://crontab.guru/ voor de layout van de cron template",
+                    "tableView": true,
+                    "persistent": false,
+                    "key": "cron-veyon-scheduler-template",
+                    "type": "textfield",
+                    "labelWidth": 20,
+                    "input": true
+                  },
+                  {
+                    "label": "Columns",
+                    "columns": [
+                      {
+                        "components": [
+                          {
+                            "label": "Start cron cyclus",
+                            "tableView": false,
+                            "defaultValue": false,
+                            "key": "check-start-cron-cycle",
+                            "type": "checkbox",
+                            "input": true
+                          }
+                        ],
+                        "width": 3,
+                        "offset": 0,
+                        "push": 0,
+                        "pull": 0,
+                        "size": "md",
+                        "currentWidth": 3
+                      },
+                      {
+                        "components": [
+                          {
+                            "label": "Start cron cyclus",
+                            "showValidations": false,
+                            "theme": "danger",
+                            "tableView": false,
+                            "key": "button-start-veyon-cron-cycle",
+                            "conditional": {
+                              "show": true,
+                              "when": "cron-veyon.check-start-cron-cycle",
+                              "eq": "true"
+                            },
+                            "type": "button",
+                            "saveOnEnter": false,
+                            "input": true
+                          }
+                        ],
+                        "width": 6,
+                        "offset": 0,
+                        "push": 0,
+                        "pull": 0,
+                        "size": "md",
+                        "currentWidth": 6
+                      }
+                    ],
+                    "key": "columns",
+                    "type": "columns",
+                    "input": false,
+                    "tableView": false
+                  },
+                  {
+                    "label": "Container",
+                    "tableView": false,
+                    "key": "cron-enable-modules",
+                    "type": "container",
+                    "input": true,
+                    "components": []
+                  }
+                ]
               }
             ]
           },

@@ -125,6 +125,8 @@ default_configuration_settings = {
     'cron-clear-changed-year-flag': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-enable-modules': ({}, Settings.SETTING_TYPE.E_JSON),
 
+    'cron-veyon-scheduler-template': ('', Settings.SETTING_TYPE.E_STRING),
+
     'smartschool-scheduler-cron': ('', Settings.SETTING_TYPE.E_STRING),
     'smartschool-teacher-group': ('', Settings.SETTING_TYPE.E_STRING),
     'smartschool-api-url': ('', Settings.SETTING_TYPE.E_STRING),
@@ -191,6 +193,7 @@ default_configuration_settings = {
     'popup-new-update-user': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-student-teacher-update-password': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-database-integrity-check': ({}, Settings.SETTING_TYPE.E_JSON),
+    'popup-student-new-update': ({}, Settings.SETTING_TYPE.E_JSON),
 
 }
 

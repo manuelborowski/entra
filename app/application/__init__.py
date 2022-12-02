@@ -1,4 +1,4 @@
-__all__ = ['tables', 'datatables', 'socketio', 'settings', 'warning', 'wisa', 'cron', 'cardpresso', 'photo', 'student', 'ad', 'test', 'staff']
+__all__ = ['tables', 'datatables', 'socketio', 'settings', 'warning', 'wisa', 'cron', 'cardpresso', 'photo', 'student', 'ad', 'test', 'staff', "azure"]
 
 
 from app.application.photo import photo_cron_task
@@ -28,3 +28,5 @@ cron_table = [
     ('SDH-MARKED-STAFF', deactivate_deleted_staff_cron_task, 'NAAR centrale database, verwijder gemarkeerde personeelsleden', 'personeelsleden die gemarkeerd zijn als delete worden uit de database verwijderd.  CHECK om de goede werking te verzekeren'),
     ('SDH-SCHOOLYEAR-CHANGED', clear_schoolyear_changed_flag_cron_task, 'NAAR centrale database, wis schooljaar-is-veranderd-vlag', ''),
 ]
+
+import app.application.azure
