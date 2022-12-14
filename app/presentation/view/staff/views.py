@@ -2,9 +2,9 @@ from . import staff
 from app import log
 from flask import redirect, url_for, request
 from flask_login import login_required, current_user
-from app.data.datatables import DatatableConfig, pre_sql_standard_order
+from app.data.datatables import DatatableConfig
 from app.presentation.view import datatables
-from app.application import socketio as msocketio
+from app.application import socketio as msocketio, staff as mstaff
 from app.application.settings import get_configuration_setting
 
 import json
@@ -15,8 +15,10 @@ import app.application.staff
 @login_required
 def show():
     # start = datetime.datetime.now()
+
     popups = {
-        'update-password': get_configuration_setting("popup-student-teacher-update-password")
+        'update-password': get_configuration_setting("popup-student-teacher-update-password"),
+        'new_update_staff': mstaff.prepare_new_update_staff_form(get_configuration_setting("popup-new-update-staff"))
     }
     ret = datatables.show(table_config, template='staff/staff.html', popups=popups)
     # print('staff.show', datetime.datetime.now() - start)
@@ -46,7 +48,7 @@ def table_action(action, ids=None):
 def update_cell_changed(msg, client_sid=None):
   try:
     data = msg['data']
-    settings = json.loads(data['value'])
+    mstaff.api_staff_update({"id": data["id"], data["column"]: data["value"]})
     msocketio.broadcast_message({'type': 'settings', 'data': {'status': True}})
   except Exception as e:
     msocketio.broadcast_message({'type': 'settings', 'data': {'status': False, 'message': str(e)}})
@@ -76,9 +78,14 @@ def get_right_click_settings():
     if current_user.is_at_least_supervisor:
         settings['menu'].extend([
             {'label': 'RFID code aanpassen', 'item': 'check-rfid', 'iconscout': 'wifi'},
+            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
+            {'label': 'Nieuw personeelslid', 'item': 'add', 'iconscout': 'plus-circle'},
+            {'label': 'Personeelslid aanpassen', 'item': 'edit', 'iconscout': 'pen'},
         ])
     if current_user.is_at_least_admin:
         settings['menu'].extend([
+            {'label': 'Personeelslid(eden) verwijderen', 'item': 'delete', 'iconscout': 'trash-alt', 'ack': 'Bent u zeker dat u dit personeelslid/deze personeelsleden wilt verwijderen?'},
+            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
             {'label': 'Paswoord aanpassen', 'item': 'update-password', 'iconscout': 'key-skeleton'},
         ])
     return settings
@@ -94,10 +101,13 @@ class Config(DatatableConfig):
         return app.data.staff.pre_sql_search(search)
 
     def pre_sql_order(self, q, on, direction):
-        return pre_sql_standard_order(q, on, direction)
+        return self.pre_sql_standard_order(q, on, direction)
 
     def format_data(self, l, total_count, filtered_count):
         return app.application.staff.format_data(l, total_count, filtered_count)
+
+    def post_sql_order(self, l, on, direction):
+        return app.application.staff.post_sql_order(l, on, direction)
 
     def get_right_click(self):
         return get_right_click_settings()

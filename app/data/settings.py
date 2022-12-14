@@ -120,6 +120,7 @@ default_configuration_settings = {
     'cron-enable-update-student-badge': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-enable-update-student-rfid': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-enable-update-student-ad': (False, Settings.SETTING_TYPE.E_BOOL),
+    'cron-enable-update-staff-ad': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-enable-update-student-smartschool': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-deactivate-deleted-students': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-deactivate-deleted-staff': (False, Settings.SETTING_TYPE.E_BOOL),
@@ -152,6 +153,7 @@ default_configuration_settings = {
     'ad-reset-student-password': (False, Settings.SETTING_TYPE.E_BOOL),
     'ad-verbose-logging': (False, Settings.SETTING_TYPE.E_BOOL),
     'ad-deactivate-deleled-student': (False, Settings.SETTING_TYPE.E_BOOL),
+    'ad-staff-profiles': ({}, Settings.SETTING_TYPE.E_JSON),
 
     'papercut-url': ('', Settings.SETTING_TYPE.E_STRING),
     'papercut-login': ('', Settings.SETTING_TYPE.E_STRING),
@@ -199,7 +201,7 @@ default_configuration_settings = {
     'popup-student-teacher-update-password': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-database-integrity-check': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-student-new-update': ({}, Settings.SETTING_TYPE.E_JSON),
-
+    'popup-new-update-staff': ({}, Settings.SETTING_TYPE.E_JSON),
 }
 
 

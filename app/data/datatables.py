@@ -77,7 +77,6 @@ class DatatableConfig:
             "socketio_endpoint": self.socketio_endpoint
         }
 
-
-def pre_sql_standard_order(q, on, direction):
-    return q.order_by(desc(text(on))) if direction == 'desc' else q.order_by(text(on))
+    def pre_sql_standard_order(self, q, on, direction):
+        return q.order_by(desc(text(on))) if direction == 'desc' else q.order_by(text(on))
 

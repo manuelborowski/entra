@@ -1,4 +1,5 @@
 from app import log
+from app.application.formio import iterate_components_cb
 from app.data import student as mstudent, settings as msettings, photo as mphoto
 import app.data.settings
 from app.application import formio as mformio, email as memail, util as mutil, ad as mad, papercut as mpapercut
@@ -133,11 +134,13 @@ def update_student(data):
                 rfids = [r[0] for r in mstudent.get_students(fields=['rfid'])]
                 if rfid in set(rfids):
                     student = mstudent.get_first_student({'rfid': rfid})
-                    raise Exception(f'rfid {rfid} bestaat al voor {student.voornaam} {student.naam}')
-            mad.update_student(student, {'rfid': rfid})
+                    raise Exception(f'RFID {rfid} bestaat al voor {student.voornaam} {student.naam}')
+            if not mad.student_update(student, {'rfid': rfid}):
+                return {"status": False, "data": f'Kan RFID niet aanpassen in AD'}
             mpapercut.update_student(student, {'rfid': rfid})
         if 'password_data' in data:
-            mad.update_student(student, {'password': data['password_data']['password'], 'must_update_password': data['password_data']['must_update']})
+            if not mad.student_update(student, {'password': data['password_data']['password'], 'must_update_password': data['password_data']['must_update']}):
+                return {"status": False, "data": f'Kan PASWOORD niet aanpassen in AD'}
         mstudent.update_student(student, data)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
@@ -145,13 +148,18 @@ def update_student(data):
 
 
 ############## formio #########################
+def prepare_view_cb(component, opaque):
+        if component['key'] == 'photo':
+            component['attrs'][0]['value'] = component['attrs'][0]['value'] + str(opaque['photo'])
+
+
 def prepare_view_form(id, read_only=False):
     try:
         student = mstudent.get_first_student({"id": id})
         template = app.data.settings.get_configuration_setting('student-formio-template')
         photo = mphoto.get_first_photo({'filename': student.foto})
         data = {"photo": base64.b64encode(photo.photo).decode('utf-8') if photo else ''}
-        template = mformio.prepare_for_edit(template, data)
+        iterate_components_cb(template, prepare_view_cb, data)
         return {'template': template,
                 'defaults': student.to_dict()}
     except Exception as e:
@@ -177,3 +185,12 @@ def format_data(db_list, total_count=None, filtered_count=None):
 def get_nbr_photo_not_found():
     nbr_students_no_photo = mstudent.get_students({'foto_id': -1}, count=True)
     return nbr_students_no_photo
+
+
+def prepare_for_edit(form, flat={}, unfold=False):
+    def cb(component):
+        if component['key'] == 'photo':
+            component['attrs'][0]['value'] = component['attrs'][0]['value'] + str(flat['photo'])
+
+    iterate_components_cb(form, cb)
+    return form

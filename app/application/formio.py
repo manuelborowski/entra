@@ -1,121 +1,69 @@
-import re, datetime
+import re, datetime, sys
+from app import log
 # noinspection PyUnresolvedReferences
 from bleach.sanitizer import Cleaner
-
-
-# iterate over the container, if a component contains a html or content property, replace the TAG(...) with
-# the data provided by 'tag'
-def fill_in_tags(component, flat):
-    if component['type'] == 'container':
-        for sub_component in component['components']:
-            fill_in_tags(sub_component, flat)
-    for key in ['html', 'content']:
-        if key in component:
-            all_tags = re.findall('TAG\([^(]*\)', component[key])
-            for tag in all_tags:
-                field = tag.split('(')[1].split(')')[0]
-                link = None
-                if '|' in field:
-                    link, field = field.split('|')
-                if field in flat:
-                    if link:
-                        component[key] = component[key].replace(tag, f"<a href='{str(flat[field])}'>{link}</a>")
-                    else:
-                        component[key] = component[key].replace(tag, str(flat[field]))
-
-
-# find the given sub-component and update its tags.  Return the form because it is used to render the webpage
-def prepare_sub_component(form, key, item ={}, additional_fields = {}):
-    extract_sub_component(form, key, item, additional_fields)
-    return form
-
-
-# find the given sub-component and update its tags.  Return the component because it is used to send an email
-def extract_sub_component(form, key, item ={}, additional_fields = {}):
-    component = search_component(form, key)
-    flat = item.flat() if item else {}
-    flat.update(additional_fields)
-    fill_in_tags(component, flat)
-    component['hidden'] = False
-    return component
-
-
-def prepare_for_edit(form, flat={}, unfold=False):
-    def cb(component):
-        if component['key'] == 'photo':
-            component['attrs'][0]['value'] = component['attrs'][0]['value'] + str(flat['photo'])
-
-    iterate_components_cb(form, cb)
-    return form
-
-
-# update the register-form:
-# -hide the 'header'
-# -unhide additional components
-# -make all components 'not required'
-def prepare_for_add(form):
-    def cb(component):
-        if component['key'] == 'header':
-            component['hidden'] = True
-        if component['key'] == 'mail-confirm':
-            component['hidden'] = True
-            component['disabled'] = True
-        if 'validate' in component and 'required' in component['validate']:
-            component['validate']['required'] = False
-        if 'tags' in component and 'show-when-edit' in component['tags']:
-            component['hidden'] = False
-
-    iterate_components_cb(form, cb)
-    return form
-
-
-def update_available_timeslots(timeslots, form, key):
-    components = form['components']
-    for component in components:
-        if 'key' in component and component['key'] == key:
-            values = []
-            # component['components'] = []
-            for timeslot in timeslots:
-                if timeslot['available'] <= 0:
-                    continue
-                new = {
-                    'label': timeslot['label'],
-                    'value': timeslot['value'],
-                    'shortcut': '',
-                }
-                values.append(new)
-                if timeslot['default']:
-                    component['defaultValue'] = timeslot['value']
-            component['values'] = values
-            return
-        if 'components' in component:
-            update_available_timeslots(timeslots, component, key)
-    return
+from app.application.util import deepcopy
 
 
 # search, in a given hierarchical tree of components, for a component with the given 'key'
 def search_component(form, key):
-    components = form['components']
-    for component in components:
-        if 'key' in component and component['key'] == key:
-            return component
-        if 'components' in component:
-            found_component = search_component(component, key)
-            if found_component: return found_component
+    components = None
+    if 'components' in form:
+        components = form['components']
+    elif 'columns' in form:
+        components = form['columns']
+    if components:
+        for component in components:
+            if 'key' in component and component['key'] == key:
+                return component
+            if 'components' in component or 'columns' in component:
+                found_component = search_component(component, key)
+                if found_component: return found_component
     return None
 
 
+# template is a formio component (with subcomponents, if needed)
+# data is a list of structures.  Each entry creates a new component (from template) and the relevant properties are filled in (found via key)
+def create_components(template, data):
+    try:
+        out = []
+        for component_info in data:
+            new_component = deepcopy(template)
+            new_component["key"] = component_info["key"]
+            for property in component_info['properties']:
+                sub_component = search_component(new_component, property['key'])
+                if sub_component:
+                    if property['name'] == "attrs":
+                        if "attrs" in sub_component:
+                            for i, attr in enumerate(sub_component['attrs']):
+                                if attr['attr'] in property["value"]:
+                                    sub_component["attrs"][i] = {"attr": attr["attr"], "value": property["value"][attr["attr"]]}
+                                    del property["value"][attr["attr"]]
+                        else:
+                            sub_component['attrs'] = []
+                        for k, v in property["value"].items():
+                            sub_component["attrs"].append({"attr": k, "value": v})
+                    else:
+                        sub_component[property['name']] = property['value']
+            out.append(new_component)
+        return out
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+
 #in a form, iterate over all components and execute callback for each component
-def iterate_components_cb(form, cb):
-    c_iter = iterate_components(form)
+def iterate_components_cb(form, cb, opaque=None):
+    component_iter = iterate_components(form)
     try:
         while True:
-            c = next(c_iter)
-            cb(c)
+            component = next(component_iter)
+            if "key" in component:
+                cb(component, opaque)
     except StopIteration as e:
         pass
 
-
+# iterate over all components.
+# If a component is a container (i.e. contains a list of components, such as type container or columns), iterate first over de child-components
 def iterate_components(form):
     components = []
     if 'components' in form:
@@ -123,17 +71,15 @@ def iterate_components(form):
     elif 'columns' in form:
         components = form['columns']
     for component in components:
+        yield component
         if 'components' in component or 'columns' in component or 'rows' in component:
             yield from iterate_components(component)
-        else:
-            yield component
     if 'rows' in form:
         for row in form['rows']:
             for column in row:
+                yield column
                 if 'components' in column or 'columns' in column or 'rows' in column:
                     yield from iterate_components(column)
-                else:
-                    yield column
 
 
 def datetimestring_to_datetime(date_in, seconds=False):

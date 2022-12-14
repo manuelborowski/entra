@@ -4,7 +4,7 @@ from app import admin_required, data
 from . import user
 from app.application import user as muser
 from app.presentation.view import datatables
-from app.data.datatables import DatatableConfig, pre_sql_standard_order
+from app.data.datatables import DatatableConfig
 import app.data.user
 import app.application.user
 from app.application.settings import get_configuration_setting
@@ -46,7 +46,7 @@ class UserConfig(DatatableConfig):
         return data.user.pre_sql_search(search)
 
     def pre_sql_order(self, q, on, direction):
-        return pre_sql_standard_order(q, on, direction)
+        return self.pre_sql_standard_order(q, on, direction)
 
     def format_data(self, l, total_count, filtered_count):
         return app.application.user.format_data(l, total_count, filtered_count)

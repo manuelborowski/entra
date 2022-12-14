@@ -64,7 +64,7 @@ def prepare_data_for_ajax(table_config, paginate=True):
         if "orderable" in template[order_column_nbr] and template[order_column_nbr]["orderable"]:
             order_on = template[order_column_nbr]['data']
             order_direction = check_string_in_form('order[0][dir]', request.values)
-        if order_on:
+        if order_on and "post_order" not in template[order_column_nbr]:
             sql_query = table_config.pre_sql_order(sql_query, order_on, order_direction)
 
         paginate_start = paginate_length = None
@@ -73,7 +73,9 @@ def prepare_data_for_ajax(table_config, paginate=True):
             if paginate_start:
                 paginate_length = int(check_value_in_form('length', request.values))
                 paginate_start = int(paginate_start)
-                sql_query = table_config.pre_sql_paginate(sql_query, paginate_start, paginate_start + paginate_length)
+
+        if paginate and paginate_length > 0 and "post_order" not in template[order_column_nbr]:
+            sql_query = table_config.pre_sql_paginate(sql_query, paginate_start, paginate_start + paginate_length)
 
         db_data = sql_query.all()
 
@@ -85,10 +87,10 @@ def prepare_data_for_ajax(table_config, paginate=True):
         if search_value:
             filtered_count, formatted_data = table_config.post_sql_search(formatted_data, search_value, filtered_count)
 
-        if order_on:
+        if order_on and "post_order" in template[order_column_nbr]:
             formatted_data = table_config.post_sql_order(formatted_data, order_on, order_direction)
 
-        if paginate and paginate_length > 0:
+        if paginate and paginate_length > 0 and "post_order" in template[order_column_nbr]:
             formatted_data = table_config.post_sql_paginate(formatted_data, paginate_start, paginate_start + paginate_length)
 
     except Exception as e:

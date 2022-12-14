@@ -1,4 +1,6 @@
 import sys, json
+
+import app.data.models
 from app import log, db
 from sqlalchemy import text, func, desc
 from sqlalchemy_serializer import SerializerMixin
@@ -104,54 +106,32 @@ def get_columns():
 
 
 def commit():
-    try:
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+    return app.data.models.commit()
 
 
 def add_student(data = {}, commit=True):
-    try:
-        student = Student()
-        for k, v in data.items():
-            if hasattr(student, k):
-                if getattr(Student, k).expression.type.python_type == type(v):
-                    setattr(student, k, v.strip() if isinstance(v, str) else v)
-        db.session.add(student)
-        if commit:
-            db.session.commit()
-        return student
-    except Exception as e:
-        db.session.rollback()
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+    return app.data.models.add_single(Student, data, commit)
 
 
 def add_students(data = []):
-    try:
-        for d in data:
-            add_student(d, commit=False)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+    return app.data.models.add_multiple(Student, data)
 
 
 def update_student(student, data={}, commit=True):
-    try:
-        for k, v in data.items():
-            if hasattr(student, k):
-                if getattr(Student, k).expression.type.python_type == type(v):
-                    setattr(student, k, v.strip() if isinstance(v, str) else v)
-        if commit:
-            db.session.commit()
-        return student
-    except Exception as e:
-        db.session.rollback()
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+    return app.data.models.update_single(Student, data, commit)
+
+
+def delete_students(ids=[], students=[]):
+    return app.data.models.delete_multiple(ids, students)
+
+
+def get_students(data={}, fields=[], order_by=None, first=False, count=False, active=True):
+    return app.data.models.get_multiple(Student, data=data, fields=fields, order_by=order_by, first=first, count=count, active=active)
+
+
+def get_first_student(data={}):
+    return app.data.models.get_first_single(Student, data)
+
 
 
 # data is a list, with:
@@ -199,62 +179,6 @@ def flag_students(data=[]):
         db.session.rollback()
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
     return None
-
-
-def delete_students(ids=[], students=[]):
-    try:
-        for id in ids:
-            student = get_first_student({"id": id})
-            db.session.delete(student)
-        for student in students:
-            db.session.delete(student)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
-
-
-def get_students(data={}, fields=[], order_by=None, first=False, count=False, active=True):
-    try:
-        entities = [text(f'students.{f}') for f in fields]
-        if entities:
-            q = Student.query.with_entities(*entities)
-        else:
-            q = Student.query
-        for k, v in data.items():
-            if k[0] == '-':
-                if hasattr(Student, k[1::]):
-                    q = q.filter(getattr(Student, k[1::]) != v)
-            else:
-                if hasattr(Student, k):
-                    q = q.filter(getattr(Student, k) == v)
-        if order_by:
-            if order_by[0] == '-':
-                q = q.order_by(desc(getattr(Student, order_by[1::])))
-            else:
-                q = q.order_by(getattr(Student, order_by))
-        q = q.filter(Student.active == active)
-        if first:
-            item = q.first()
-            return item
-        if count:
-            return q.count()
-        items = q.all()
-        return items
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
-
-
-def get_first_student(data={}):
-    try:
-        user = get_students(data, first=True)
-        return user
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
-
 
 
 ############ student overview list #########

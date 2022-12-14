@@ -4,7 +4,7 @@ import {busy_indication_off, busy_indication_on } from "./base.js";
 const context_menu = document.querySelector(".right-click-wrapper");
 const share_menu = context_menu.querySelector(".right-click-wrapper .share-menu");
 const datatable = document.querySelector("#datatable");
-var item_ids = 0;
+let item_ids = 0;
 
 datatable.addEventListener("contextmenu", e => {
     e.preventDefault();

@@ -15,7 +15,7 @@ def get_photo(id):
 # in app/static, add a symlink to the the mounted windows share.  It is assumed all photo's are in the folder 'huidig'
 # photo's are copied to the 'photos' folder when a photo does not exist or it's size changed
 # wsl: sudo mount -t drvfs //10.10.0.211/sec /mnt/sec
-# debian: sudo mount -t cifs -o username=xxxx //10.10.0.211/sec /mnt/sec
+# debian: sudo mount -t cifs -o username=xxxx //xxx.xxx.xxx.xxx/sec /mnt/sec
 
 mapped_photos_path = 'app/static/mapped_photos/huidig'
 

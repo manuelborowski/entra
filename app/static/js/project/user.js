@@ -3,7 +3,7 @@ import { subscribe_right_click } from "../base/right_click.js";
 import { ctx } from "../datatables/datatables.js"
 
 const user_add = async () => {
-    formio_popup_create(ctx.popups.user_password_form, {"new_password": true}, async (action, opaque, data = null) => {
+    formio_popup_create(ctx.popups.user_password_form, async (action, opaque, data = null) => {
         if (action === 'submit') {
             const ret = await fetch(Flask.url_for('api.user_add'), {headers: {'x-api-key': ctx.api_key,}, method: 'POST', body: JSON.stringify(data),});
             const status = await ret.json();
@@ -14,14 +14,14 @@ const user_add = async () => {
                 bootbox.alert(status.data)
             }
         }
-    })
+    }, {"new_password": true})
 }
 
 const user_update = async (item, ids) => {
     const ret = await fetch(Flask.url_for('api.user_get', {id: ids[0]}), {headers: {'x-api-key': ctx.api_key,}});
     const status = await ret.json();
     if (status.status) {
-        formio_popup_create(ctx.popups.user_password_form, status.data, async (action, opaque, data = null) => {
+        formio_popup_create(ctx.popups.user_password_form, async (action, opaque, data = null) => {
             if (action === 'submit') {
                 const ret = await fetch(Flask.url_for('api.user_update'), {headers: {'x-api-key': ctx.api_key,}, method: 'POST', body: JSON.stringify(data),});
                 const status = await ret.json();
@@ -32,7 +32,7 @@ const user_update = async (item, ids) => {
                     bootbox.alert(status.data)
                 }
             }
-        })
+        }, status.data)
     } else {
         bootbox.alert(status.data)
     }

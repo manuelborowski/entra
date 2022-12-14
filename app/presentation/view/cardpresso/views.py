@@ -1,7 +1,7 @@
 from . import cardpresso
 from flask import redirect, url_for
 from flask_login import login_required
-from app.data.datatables import DatatableConfig, pre_sql_standard_order
+from app.data.datatables import DatatableConfig
 from app.presentation.view import datatables
 from app.application import socketio as msocketio
 import app.data
@@ -52,7 +52,7 @@ class Config(DatatableConfig):
         return app.data.cardpresso.search_data(search)
 
     def pre_sql_order(self, q, on, direction):
-        return pre_sql_standard_order(q, on, direction)
+        return self.pre_sql_standard_order(q, on, direction)
 
     def format_data(self, l, total_count, filtered_count):
         return app.application.cardpresso.format_data(l, total_count, filtered_count)

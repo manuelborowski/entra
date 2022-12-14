@@ -41,19 +41,37 @@ from app import log
 from app.data import student as mstudent
 from app.data import settings as msettings
 import ldap3, json, sys
+from functools import wraps
 from app.application.util import get_student_voornaam
 
-KLAS_LOCATION_TOPLEVEL = 'OU=Klassen,OU=Groepen,DC=SU,DC=local'
-STUDENT_LOCATION_TOPLEVEL = 'OU=Leerlingen,OU=Accounts,DC=SU,DC=local'
-TEACHER_LOCATION_TOPLEVEL = 'OU=Leerkrachten,OU=Accounts,DC=SU,DC=local'
-STAFF_LOCATION_TOPLEVEL = 'OU=Secretariaat,DC=SU,DC=local'
+
+TOP_OU = 'DC=SU,DC=local'
+
+def __handle_ldap_response(ctx, obj, res, info):
+    try:
+        if res:
+            if ctx.verbose_logging:
+                log.info(f'{sys._getframe().f_code.co_name}, {ctx.user_type}, {ctx.get_user_id(obj)}, {info}')
+        else:
+            log.error(f'{sys._getframe().f_code.co_name}, {ctx.user_type}, {ctx.get_user_id(obj)}, ERROR COULD NOT {info}, {ctx.ldap.result}')
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
-class Context:
+###############################################################
+############    Student specific cron task     ################
+###############################################################
+
+
+KLAS_OU = 'OU=Klassen,OU=Groepen,DC=SU,DC=local'
+STUDENT_OU = 'OU=Leerlingen,OU=Accounts,DC=SU,DC=local'
+
+
+class StudentContext:
     def __init__(self):
         self.check_properties_changed = ['naam', 'voornaam', 'klascode', 'schooljaar', 'rfid', 'computer', 'roepnaam', 'email']
-        self.student_location_toplevel = STUDENT_LOCATION_TOPLEVEL
-        self.klas_location_toplevel = KLAS_LOCATION_TOPLEVEL
+        self.student_ou = STUDENT_OU
+        self.klas_ou = KLAS_OU
         self.leerlingen_group = 'CN=Leerlingen,OU=Groepen,DC=SU,DC=local'
         self.veyon_group = 'CN=Veyon-Leerling-Groeperingen,OU=Speciaal,OU=Groepen,DC=SU,DC=local'
         self.email_domain = '@lln.campussintursula.be'
@@ -75,6 +93,12 @@ class Context:
         if self.changed_schoolyear:  # keep a local copy of changed-schoolyear
             msettings.set_configuration_setting('ad-schoolyear-changed', True)
         self.changed_schoolyear = msettings.get_configuration_setting('ad-schoolyear-changed')
+        self.user_type = "STUDENT"
+        self.verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
+
+    def get_user_id(self, obj):
+        return f"{obj.username}"
+
 
 
 # translate a list of leerlingnummers to AD-DN's   If a leerlingnummer is not found in the local cache (not active) try to find in AD
@@ -84,7 +108,7 @@ def __leerlingnummers_to_ad_dn(ctx, leerlingnummers):
         if leerlingnummer in ctx.ad_active_students_leerlingnummer:
             student_dns.append(ctx.ad_active_students_leerlingnummer[leerlingnummer]['dn'])
         else:
-            res = ctx.ldap.search(STUDENT_LOCATION_TOPLEVEL, f'(&(objectclass=user)(wwwhomepage={leerlingnummer}))', ldap3.SUBTREE)
+            res = ctx.ldap.search(STUDENT_OU, f'(&(objectclass=user)(wwwhomepage={leerlingnummer}))', ldap3.SUBTREE)
             if res:
                 student_dn = ctx.ldap.response[0]['dn']
                 student_dns.append(student_dn)
@@ -94,17 +118,6 @@ def __leerlingnummers_to_ad_dn(ctx, leerlingnummers):
     return student_dns
 
 
-def __handle_student_ldap_response(ctx, student, res, info, verbose_logging=True):
-    try:
-        if res:
-            if verbose_logging:
-                log.info(f'student {student.naam} {student.voornaam}, {student.leerlingnummer}, {info}')
-        else:
-            log.error(f'student {student.naam} {student.voornaam}, {student.leerlingnummer}, COULD NOT {info}, {ctx.ldap.result}')
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-
-
 # do the update of the klassen in the AD
 # create sdh_klas_cache: {klas#1: [leerlingnummer#1, leerlingnummer#2,...], klas#2: [...]}
 # create ad_klas_cache: {klas#1: [leerlingnummer#1, leerlingnummer#2,...], klas#2: [...]}
@@ -112,7 +125,7 @@ def __handle_student_ldap_response(ctx, student, res, info, verbose_logging=True
 # leerlingen present in sdh and ad: ok
 # leerlingen present in sdh but not in ad: add to add
 # leerlingen present in ad but not in sdh: delete
-def klas_put_students_in_correct_klas(ctx):
+def __klas_put_students_in_correct_klas(ctx):
     try:
         log.info(f'{sys._getframe().f_code.co_name}, start')
         verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
@@ -126,7 +139,7 @@ def klas_put_students_in_correct_klas(ctx):
                 sdh_klas_cache[student.klascode] = [student.leerlingnummer]
         # Create AD klas cache
         ad_klas_cache = {}
-        res = ctx.ldap.search(ctx.klas_location_toplevel, '(objectclass=group)', ldap3.SUBTREE, attributes=['member', 'cn'])
+        res = ctx.ldap.search(ctx.klas_ou, '(objectclass=group)', ldap3.SUBTREE, attributes=['member', 'cn'])
         if res:
             for klas in ctx.ldap.response:
                 klascode = klas['attributes']['cn']
@@ -137,7 +150,7 @@ def klas_put_students_in_correct_klas(ctx):
                     else:
                         log.info(f'{sys._getframe().f_code.co_name}, student {member}, klas {klascode} not found in cache')
             for klascode, sdh_leerlingnummers in sdh_klas_cache.items():
-                klas_dn = f'CN={klascode},{ctx.klas_location_toplevel}'
+                klas_dn = f'CN={klascode},{ctx.klas_ou}'
                 if klascode not in ad_klas_cache:
                     # create new klas and add memebers
                     members = __leerlingnummers_to_ad_dn(ctx, sdh_leerlingnummers)
@@ -182,7 +195,7 @@ def klas_put_students_in_correct_klas(ctx):
             log.error(f'AD: could not create ad_klas_cache, {e}')
             return
         # remove empty klassen
-        res = ctx.ldap.search(ctx.klas_location_toplevel, '(&(objectclass=group)(!(member=*)))', attributes=['cn'])
+        res = ctx.ldap.search(ctx.klas_ou, '(&(objectclass=group)(!(member=*)))', attributes=['cn'])
         if res:
             ad_klassen = ctx.ldap.response
             for klas in ad_klassen:
@@ -196,20 +209,22 @@ def klas_put_students_in_correct_klas(ctx):
             log.info(f'AD, could not find empty klassen, {ctx.ldap.result}')
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
 # do the update of the students to the group leerlingen in the AD
-def students_do_to_group_leerlingen(ctx):
+def __students_do_to_group_leerlingen(ctx):
     try:
         for student in ctx.students_to_leerlingen_group:
             dn = ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['dn']
             res = ctx.ldap.modify(ctx.leerlingen_group, {'member': [(ldap3.MODIFY_ADD, dn)]})
-            __handle_student_ldap_response(ctx, student, res, f'already-present-in-AD, add to group {ctx.leerlingen_group}')
+            __handle_ldap_response(ctx, student, res, f'already-present-in-AD, add to group {ctx.leerlingen_group}')
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
-def ldap_init(ctx):
+def __ldap_init(ctx):
     try:
         ad_host = msettings.get_configuration_setting('ad-url')
         ad_login = msettings.get_configuration_setting('ad-login')
@@ -218,12 +233,22 @@ def ldap_init(ctx):
         ctx.ldap = ldap3.Connection(ldap_server, ad_login, ad_password, auto_bind=True, authentication=ldap3.NTLM)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
-def students_cache_init(ctx):
+def __ldap_deinit(ctx):
+    try:
+        if ctx.ldap:
+            ctx.ldap.unbind()
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
+
+
+def __students_cache_init(ctx):
     try:
         # Create student caches
-        res = ctx.ldap.search(ctx.student_location_toplevel, f'(&(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))', ldap3.SUBTREE,
+        res = ctx.ldap.search(ctx.student_ou, f'(&(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))', ldap3.SUBTREE,
                               attributes=['cn', 'wwwhomepage', 'userAccountControl', 'mail', 'l', 'sn', 'givenname', 'pager', 'displayname', 'postOfficeBox'])
         if res:
             ctx.ad_active_students_leerlingnummer = {s['attributes']['wwwhomepage']: s for s in ctx.ldap.response if s['attributes']['wwwhomepage'] != []}
@@ -235,12 +260,13 @@ def students_cache_init(ctx):
             log.error(f'AD: could not create active-students-caches, {e}')
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
-def klas_cache_init(ctx):
+def __klas_cache_init(ctx):
     try:
         # Create klas caches
-        res = ctx.ldap.search(ctx.klas_location_toplevel, '(objectclass=group)', ldap3.SUBTREE, attributes=['member', 'cn'])
+        res = ctx.ldap.search(ctx.klas_ou, '(objectclass=group)', ldap3.SUBTREE, attributes=['member', 'cn'])
         if res:
             for klas in ctx.ldap.response:
                 ctx.ad_klassen.append(klas['attributes']['cn'])
@@ -251,36 +277,31 @@ def klas_cache_init(ctx):
             log.error(f'AD: could not create student-to-leerlingnummer-cache, {e}')
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
-def ldap_deinit(ctx):
-    try:
-        ctx.ldap.unbind()
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-
-
-def create_current_year_ou(ctx):
+def __create_current_year_ou(ctx):
     try:
         # check if OU current year exists.  If not, create
         log.info(f"{sys._getframe().f_code.co_name}, START")
-        find_current_year_ou = ctx.ldap.search(ctx.student_location_toplevel, f'(&(objectclass=organizationalunit)(name={ctx.current_year}))', ldap3.SUBTREE)
+        find_current_year_ou = ctx.ldap.search(ctx.student_ou, f'(&(objectclass=organizationalunit)(name={ctx.current_year}))', ldap3.SUBTREE)
         if not find_current_year_ou:
-            res = ctx.ldap.add(f'OU={ctx.current_year},{ctx.student_location_toplevel}', 'organizationalunit')
+            res = ctx.ldap.add(f'OU={ctx.current_year},{ctx.student_ou}', 'organizationalunit')
             if res:
                 log.info(f'AD: added new OU: {ctx.current_year}')
             else:
                 log.error(f'AD error: could not add OU {ctx.current_year}, aborting...')
                 return False
-        ctx.student_ou_current_year = f'OU={ctx.current_year},{ctx.student_location_toplevel}'
+        ctx.student_ou_current_year = f'OU={ctx.current_year},{ctx.student_ou}'
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
 
         return True
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
-def students_new(ctx):
+def __students_new(ctx):
     try:
         # check if new student already exists in AD (student left school and came back)
         # if so, activate and put in current OU
@@ -292,14 +313,14 @@ def students_new(ctx):
         verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
         log.info('AD: new students: if student is already in AD: activate and put in current year OU')
         for student in new_students:
-            res = ctx.ldap.search(ctx.student_location_toplevel, f'(&(objectclass=user)(wwwhomepage={student.leerlingnummer}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail'])
+            res = ctx.ldap.search(ctx.student_ou, f'(&(objectclass=user)(wwwhomepage={student.leerlingnummer}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail'])
             if res:  # student already in AD, but inactive and probably in wrong OU and wrong klas
                 ad_student = ctx.ldap.response[0]
                 dn = ad_student['dn']  # old OU
                 account_control = ad_student['attributes']['userAccountControl']  # to activate
                 ctx.students_move_to_current_year_ou.append(student)
                 if reset_student_password:
-                    ctx.students_must_update_password.append(student)
+                    ctx.__students_must_update_password.append(student)
                 account_control &= ~2  # clear bit 2 to activate
                 changes = {
                     'userAccountControl': [(ldap3.MODIFY_REPLACE, [account_control])],
@@ -311,10 +332,10 @@ def students_new(ctx):
                 if student.rfid and student.rfid != '':
                     changes.update({'pager': [ldap3.MODIFY_REPLACE, (student.rfid)]})
                 res = ctx.ldap.modify(dn, changes)
-                __handle_student_ldap_response(ctx, student, res, f'already-present-in-AD, changed {changes}', verbose_logging=verbose_logging)
+                __handle_ldap_response(ctx, student, res, f'already-present-in-AD, changed {changes}')
                 if reset_student_password:
                     res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, dn, default_password, None)  # reset the password to default
-                    __handle_student_ldap_response(ctx, student, res, f'set default password', verbose_logging=verbose_logging)
+                    __handle_ldap_response(ctx, student, res, f'set default password')
                 if student.email != ad_student['attributes']['mail']:
                     mstudent.update_student(student, {'email': ad_student['attributes']['mail']})
                     if verbose_logging:
@@ -356,19 +377,20 @@ def students_new(ctx):
             if student.rfid and student.rfid != '':
                 attributes['pager'] = student.rfid
             res = ctx.ldap.add(dn, object_class, attributes)
-            __handle_student_ldap_response(ctx, student, res, f'new-in-AD, changed {attributes}', verbose_logging=verbose_logging)
-            res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, dn, default_password, None)  # reset the password to empty
-            __handle_student_ldap_response(ctx, student, res, 'set standard password', verbose_logging=verbose_logging)
+            __handle_ldap_response(ctx, student, res, f'new-in-AD, changed {attributes}')
+            res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, dn, default_password, None)  # reset the password to xxx
+            __handle_ldap_response(ctx, student, res, 'set standard password')
             ad_student = {'dn': dn, 'attributes': {'cn': cn}}
             ctx.ad_active_students_leerlingnummer[student.leerlingnummer] = ad_student
             ctx.students_to_leerlingen_group.append(student)
-            ctx.students_must_update_password.append(student)
+            ctx.__students_must_update_password.append(student)
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
-def students_changed(ctx):
+def __students_changed(ctx):
     try:
         # check if there are students with valid, changed attributes.  If so, update the attributes
         # if required, move the students to the current OU
@@ -400,7 +422,7 @@ def students_changed(ctx):
                                  'l': [ldap3.MODIFY_REPLACE, (student.klascode)],
                                  'physicalDeliveryOfficeName': [ldap3.MODIFY_REPLACE, (student.klascode)]})
                         res = ctx.ldap.modify(ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['dn'], changes)
-                        __handle_student_ldap_response(ctx, student, res, f'already-present-in-AD, changed {changes}', verbose_logging=verbose_logging)
+                        __handle_ldap_response(ctx, student, res, f'already-present-in-AD, changed {changes}')
                         if 'schooljaar' in changed:  # move to new OU
                             ctx.students_move_to_current_year_ou.append(student)
                     else:
@@ -408,9 +430,10 @@ def students_changed(ctx):
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
-def students_deleted(ctx):
+def __students_deleted(ctx):
     try:
         log.info(f"{sys._getframe().f_code.co_name}, START")
         deleted_students = mstudent.get_students({"delete": True})
@@ -425,10 +448,11 @@ def students_deleted(ctx):
                     account_control |= 2  # set bit 2 to deactivate
                     changes = {'userAccountControl': [(ldap3.MODIFY_REPLACE, [account_control])]}
                     res = ctx.ldap.modify(dn, changes)
-                    __handle_student_ldap_response(ctx, student, res, 'deactive', verbose_logging=verbose_logging)
+                    __handle_ldap_response(ctx, student, res, 'deactive')
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
 # These tasks are done last because they alter the DN, which is used to identify the students in the AD.
@@ -441,7 +465,7 @@ def students_process_postponed_tasks(ctx):
             dn = ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['dn']
             cn = f"CN={ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['attributes']['cn']}"
             res = ctx.ldap.modify_dn(dn, cn, new_superior=ctx.student_ou_current_year)
-            __handle_student_ldap_response(ctx, student, res, f'moved to OU {ctx.student_ou_current_year}', verbose_logging=verbose_logging)
+            __handle_ldap_response(ctx, student, res, f'moved to OU {ctx.student_ou_current_year}')
         log.info(f"{sys._getframe().f_code.co_name}, START update CN (student has name changed)")
         for student in ctx.students_change_cn:
             old_cn = ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['attributes']['cn']
@@ -452,46 +476,48 @@ def students_process_postponed_tasks(ctx):
                 leerlingnummer_suffix = str(student.leerlingnummer)[-2:]
                 new_cn = f'{new_cn} {leerlingnummer_suffix}'
             res = ctx.ldap.modify_dn(old_dn, new_cn, new_superior=ctx.student_ou_current_year)
-            __handle_student_ldap_response(ctx, student, res, f'updated CN {new_cn}', verbose_logging=verbose_logging)
+            __handle_ldap_response(ctx, student, res, f'updated CN {new_cn}')
         log.info(f"{sys._getframe().f_code.co_name}, START update password")
-        for student in ctx.students_must_update_password:
+        for student in ctx.__students_must_update_password:
             cn = f"CN={ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['attributes']['cn']}"
             dn = f'{cn},{ctx.student_ou_current_year}'
             changes = {"pwdLastSet": [(ldap3.MODIFY_REPLACE, [0])]}  # student must update password at first login
             res = ctx.ldap.modify(dn, changes)
-            __handle_student_ldap_response(ctx, student, res, f'changed {changes}', verbose_logging=verbose_logging)
+            __handle_ldap_response(ctx, student, res, f'changed {changes}')
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
-def students_must_update_password(ctx):
+def __students_must_update_password(ctx):
     try:
         log.info(f"{sys._getframe().f_code.co_name}, START")
         verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
-        for student in ctx.students_must_update_password:
+        for student in ctx.__students_must_update_password:
             cn = f"CN={ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['attributes']['cn']}"
             dn = f'{cn},{ctx.student_ou_current_year}'
             changes = {"pwdLastSet": [(ldap3.MODIFY_REPLACE, [0])]}  # student must update password at first login
             res = ctx.ldap.modify(dn, changes)
-            __handle_student_ldap_response(ctx, student, res, f'changed {changes}', verbose_logging=verbose_logging)
+            __handle_ldap_response(ctx, student, res, f'changed {changes}')
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
 # check if a student is in 2 or more classes,  If so, remove from all but in 'kantoor' (i.e. l-property)
-def klas_check_if_student_is_in_one_klas(ctx):
+def __klas_check_if_student_is_in_one_klas(ctx):
     try:
         log.info(f"{sys._getframe().f_code.co_name}, START")
         remove_students_from_klas = {}
         verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
         # re-create student cache.  Students may have an updated klas
-        res = ctx.ldap.search(ctx.student_location_toplevel, f'(&(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))', ldap3.SUBTREE, attributes=['cn', 'wwwhomepage', 'l'])
+        res = ctx.ldap.search(ctx.student_ou, f'(&(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))', ldap3.SUBTREE, attributes=['cn', 'wwwhomepage', 'l'])
         if res:
             ad_active_students_cn = {s['dn']: s for s in ctx.ldap.response if s['attributes']['wwwhomepage'] != []}
             # re-create klas cache, students may have an update klas
-            res = ctx.ldap.search(ctx.klas_location_toplevel, '(objectclass=group)', ldap3.SUBTREE, attributes=['member', 'cn'])
+            res = ctx.ldap.search(ctx.klas_ou, '(objectclass=group)', ldap3.SUBTREE, attributes=['member', 'cn'])
             if res:
                 for klas in ctx.ldap.response:
                     for member in klas['attributes']['member']:
@@ -519,6 +545,7 @@ def klas_check_if_student_is_in_one_klas(ctx):
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
 # should be executed once to update the usernames in SDH from AD
@@ -532,7 +559,7 @@ def get_usernames_from_ad():
         ldap_server = ldap3.Server(ad_host, use_ssl=True)
         ldap = ldap3.Connection(ldap_server, ad_login, ad_password, auto_bind=True, authentication=ldap3.NTLM)
         # Create student caches
-        res = ldap.search(STUDENT_LOCATION_TOPLEVEL, f'(&(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))', ldap3.SUBTREE, attributes=['wwwhomepage', 'samaccountname'])
+        res = ldap.search(STUDENT_OU, f'(&(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))', ldap3.SUBTREE, attributes=['wwwhomepage', 'samaccountname'])
         if res:
             ad_leerlingnummer_to_username = {s['attributes']['wwwhomepage']: s['attributes']['samaccountname'] for s in ldap.response if s['attributes']['wwwhomepage'] != []}
             log.info(f'AD: create ad_leerlingnummer_to_username cache, {len(ad_leerlingnummer_to_username)} entries')
@@ -552,16 +579,17 @@ def get_usernames_from_ad():
         log.info(f'{sys._getframe().f_code.co_name}, Update usernames from AD, updated {nbr_students} students')
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
 # should be executed once to set the displayname in ad correct (first-name last name) and the cn (last-name first-name)
 def update_ad_cn_and_displayname():
     try:
-        ctx = Context()
-        ldap_init(ctx)
-        students_cache_init(ctx)
-        if not create_current_year_ou(ctx):
-            ldap_deinit(ctx)
+        ctx = StudentContext()
+        __ldap_init(ctx)
+        __students_cache_init(ctx)
+        if not __create_current_year_ou(ctx):
+            __ldap_deinit(ctx)
             return
 
         log.info('update CN and displayname')
@@ -592,29 +620,30 @@ def update_ad_cn_and_displayname():
 
             else:
                 log.error(f'Student {student.naam} {student.voornaam}, {student.leerlingnummer} not found in AD')
-        ldap_deinit(ctx)
+        __ldap_deinit(ctx)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
 
 
 def cron_ad_student_task(opaque=None):
     try:
         log.info(f"{sys._getframe().f_code.co_name}, START")
-        ctx = Context()
-        ldap_init(ctx)
-        students_cache_init(ctx)
-        if not create_current_year_ou(ctx):
-            ldap_deinit(ctx)
+        ctx = StudentContext()
+        __ldap_init(ctx)
+        __students_cache_init(ctx)
+        if not __create_current_year_ou(ctx):
+            __ldap_deinit(ctx)
             return {"status": False, "data": "Kan huidig-jaar-ou niet aanmaken"}
-        students_new(ctx)
-        students_changed(ctx)
-        students_deleted(ctx)
-        klas_cache_init(ctx)
-        klas_put_students_in_correct_klas(ctx)  # put all students in the correct klas in AD
-        students_do_to_group_leerlingen(ctx) # then put the new students in the group leerlingen
+        __students_new(ctx)
+        __students_changed(ctx)
+        __students_deleted(ctx)
+        __klas_cache_init(ctx)
+        __klas_put_students_in_correct_klas(ctx)  # put all students in the correct klas in AD
+        __students_do_to_group_leerlingen(ctx) # then put the new students in the group leerlingen
         students_process_postponed_tasks(ctx) # then move the students to the current schoolyear OU
-        klas_check_if_student_is_in_one_klas(ctx)
-        ldap_deinit(ctx)
+        __klas_check_if_student_is_in_one_klas(ctx)
+        __ldap_deinit(ctx)
 
         # only once and then comment out
         # get_usernames_from_ad()
@@ -633,9 +662,9 @@ def cron_ad_get_student_computer_task(opaque=None):
     try:
         log.info(f"{sys._getframe().f_code.co_name}, START")
         verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
-        ctx = Context()
-        ldap_init(ctx)
-        students_cache_init(ctx)
+        ctx = StudentContext()
+        __ldap_init(ctx)
+        __students_cache_init(ctx)
         students = mstudent.get_students()
         for student in students:
             if student.leerlingnummer in ctx.ad_active_students_leerlingnummer:
@@ -647,73 +676,232 @@ def cron_ad_get_student_computer_task(opaque=None):
             else:
                 log.error(f'Student {student.naam} {student.voornaam}, {student.leerlingnummer}, not found in AD')
         mstudent.commit()
+        __ldap_deinit(ctx)
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
+        __ldap_deinit(ctx)
         log.info(f"{sys._getframe().f_code.co_name}, {e}")
 
 
+###############################################################
+############    Staff specific cron task     ##################
+###############################################################
 
 
-def update_student(student, data):
+TEACHER_OU = 'OU=Leerkrachten,OU=Accounts,DC=SU,DC=local'
+SEC_OU = 'OU=Secretariaat,DC=SU,DC=local'
+STAFF_OU = 'OU=Personeel,OU=Accounts,DC=SU,DC=local'
+INACTIVE_OU = 'OU=Inactief,OU=Accounts,DC=SU,DC=local'
+
+
+class StaffContext:
+    def __init__(self):
+        self.check_properties_changed = ['naam', 'voornaam', 'klascode', 'schooljaar', 'rfid', 'computer', 'roepnaam', 'email']
+        self.email_domain = '@campussintursula.be'
+        self.ldap = None
+        self.user_type = "STAFF"
+        self.verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
+
+    def get_user_id(self, obj):
+        return f"{obj.code}"
+
+
+def cron_ad_staff_task(opaque=None):
     try:
-        update_property([STUDENT_LOCATION_TOPLEVEL], student.username, data)
+        log.info(f"{sys._getframe().f_code.co_name}, START")
+        ctx = StudentContext()
+        __ldap_init(ctx)
+        __students_cache_init(ctx)
+        if not __create_current_year_ou(ctx):
+            __ldap_deinit(ctx)
+            return {"status": False, "data": "Kan huidig-jaar-ou niet aanmaken"}
+        __students_new(ctx)
+        __students_changed(ctx)
+        __students_deleted(ctx)
+        __klas_cache_init(ctx)
+        __klas_put_students_in_correct_klas(ctx)  # put all students in the correct klas in AD
+        __students_do_to_group_leerlingen(ctx) # then put the new students in the group leerlingen
+        students_process_postponed_tasks(ctx) # then move the students to the current schoolyear OU
+        __klas_check_if_student_is_in_one_klas(ctx)
+        __ldap_deinit(ctx)
+
+        # only once and then comment out
+        # get_usernames_from_ad()
+        # only once and then comment out
+        # update_ad_cn_and_displayname()
+
+        msettings.set_configuration_setting('ad-schoolyear-changed', False)
+        log.info(f"{sys._getframe().f_code.co_name}, STOP")
+        return {"status": True, "data": "AD sync is ok"}
     except Exception as e:
-        raise e
+        log.error(f'update to AD error: {e}')
+        return {"status": False, "data": e}
 
 
-def update_staff(staff, data):
-    try:
-        update_property([STAFF_LOCATION_TOPLEVEL, TEACHER_LOCATION_TOPLEVEL], staff.code, data)
-    except Exception as e:
-        raise e
+###############################################################
+############    Direct access to AD          ##################
+###############################################################
 
 
-def update_property(ous, username, data):
-    try:
-        ad_host = msettings.get_configuration_setting('ad-url')
-        ad_login = msettings.get_configuration_setting('ad-login')
-        ad_password = msettings.get_configuration_setting('ad-password')
-        ldap_server = ldap3.Server(ad_host, use_ssl=True)
-        ldap = ldap3.Connection(ldap_server, ad_login, ad_password, auto_bind=True, authentication=ldap3.NTLM)
-        found = False
-        for ou in ous:
-            res = ldap.search(ou, f'(&(objectclass=user)(samaccountname={username}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail', 'pager'])
-            if res:
-                found = True
-                ad_user = ldap.response[0]
-                if 'rfid' in data:
-                    if data['rfid'] == '':
-                        changes = {'pager': [ldap3.MODIFY_DELETE, ([])]}
-                    else:
-                        changes = {'pager': [ldap3.MODIFY_REPLACE, (data['rfid'])]}
-                    res = ldap.modify(ad_user['dn'], changes)
-                    if res:
-                        log.info(f'Update to AD, {username} RFID {data}')
-                    else:
-                        log.error(f'{sys._getframe().f_code.co_name}: could not update changes of {username}: {changes}')
-                        raise Exception('Kan AD niet updaten')
-                if 'password' in data:
-                    res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ldap, ad_user['dn'], data['password'], None)
-                    if res:
-                        log.info(f'Updated password of {username}')
-                    else:
-                        log.error(f'{sys._getframe().f_code.co_name}: could not update password of {username}')
-                        raise Exception('Paswoord voldoet niet aan de eisen')
-                if 'must_update_password' in data and data['must_update_password']:
-                    res = ldap.modify(ad_user['dn'], changes={"pwdLastSet": (ldap3.MODIFY_REPLACE, [0])})
-                    if res:
-                        log.info(f'{username} must set password at next login')
-                    else:
-                        log.error(f'{sys._getframe().f_code.co_name}: could not update set-password-at-next-login of {username}')
-                        raise Exception('Paswoord-opnieuw-instellen kan niet worden gezet')
-                break
-        if not found:
-            log.error(f'{sys._getframe().f_code.co_name}: could not find {username} in AD')
-            raise Exception(f'Kan {username} niet vinden in AD')
-        ldap.unbind()
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-        raise e
+def ad_core(ctx):
+    def inner_ad_core(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            try:
+                __ldap_init(ctx)
+                kwargs["ctx"] = ctx
+                return func(*args, **kwargs)
+            except Exception as e:
+                log.error(f'AD: {func.__name__}: {e}')
+                raise Exception(f'AD: {func.__name__}: {e}')
+            finally:
+                __ldap_deinit(ctx)
+        return wrapper
+    return inner_ad_core
+
+
+@ad_core(StudentContext())
+def student_update(student, data, **kwargs):
+    return __user_update(kwargs["ctx"], student, [STUDENT_OU], data)
+
+@ad_core(StaffContext())
+def staff_update(staff, data, **kwargs):
+    return __user_update(kwargs["ctx"], staff, [SEC_OU, TEACHER_OU, STAFF_OU], data)
+
+
+def __user_update(ctx, user_obj, ous_to_check, data):
+    found = False
+    user_id = ctx.get_user_id(user_obj)
+    for ou in ous_to_check:
+        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={user_id}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail', 'pager'])
+        if res:
+            found = True
+            ad_user = ctx.ldap.response[0]
+            if 'rfid' in data:
+                if data['rfid'] == '':
+                    changes = {'pager': [ldap3.MODIFY_DELETE, ([])]}
+                else:
+                    changes = {'pager': [ldap3.MODIFY_REPLACE, (data['rfid'])]}
+                res = ctx.ldap.modify(ad_user['dn'], changes)
+                __handle_ldap_response(ctx, user_obj, res, f'update RFID {data}')
+                return res
+            if 'password' in data:
+                res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, ad_user['dn'], data['password'], None)
+                __handle_ldap_response(ctx, user_obj, res, f'update PASSWORD')
+                return res
+            if 'must_update_password' in data and data['must_update_password']:
+                res = ctx.ldap.modify(ad_user['dn'], changes={"pwdLastSet": (ldap3.MODIFY_REPLACE, [0])})
+                __handle_ldap_response(ctx, user_obj, res, f'set user-must-set-password-at-next-login')
+                return res
+            if 'groepen' in data:
+                current_ad_groups = set()
+                res = ctx.ldap.search(TOP_OU, f'(&(objectclass=group)(member={ad_user["dn"]}))', ldap3.SUBTREE)
+                if res:
+                    current_ad_groups = {i["dn"] for i in ctx.ldap.response if "dn" in i}
+                    new_groups = set(data["groepen"])
+                    groups_to_remove = current_ad_groups - new_groups
+                    groups_to_add = new_groups - current_ad_groups
+                    for group in groups_to_add:
+                        res = ctx.ldap.modify(group, {'member': [(ldap3.MODIFY_ADD, ad_user['dn'])]})
+                        __handle_ldap_response(ctx, user_obj, res, f'add to group {group}')
+                    for group in groups_to_remove:
+                        res = ctx.ldap.modify(group, {'member': [(ldap3.MODIFY_DELETE, ad_user['dn'])]})
+                        __handle_ldap_response(ctx, user_obj, res, f'Delete from group {group}')
+            break
+    if not found:
+        log.error(f'{sys._getframe().f_code.co_name}: could not find {user_id} in AD')
+    return found
+
+
+# required fields in data: code, profiel, naam, voornaam
+@ad_core(StaffContext())
+def staff_add(staff, **kwargs):
+    ctx = kwargs["ctx"]
+    for ou in [SEC_OU, TEACHER_OU, STAFF_OU]:
+        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={staff.code}))', ldap3.SUBTREE)
+        if res:
+            # staff already present
+            log.error(f'{sys._getframe().f_code.co_name}: staff already present: {staff.code}')
+            return False
+    default_password = msettings.get_configuration_setting('generic-standard-password')
+    verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
+    object_class = ['top', 'person', 'organizationalPerson', 'user']
+    cn = f'{staff.code}'
+    dn = f'CN={cn},{STAFF_OU}'
+    attributes = {'samaccountname': staff.code,
+                  'userprincipalname': f'{staff.code}{ctx.email_domain}',
+                  "physicalDeliveryOfficeName": staff.profiel,
+                  'cn': cn, 'useraccountcontrol': 0X220,  # password not required, normal account, account active
+                  "name": f'{staff.naam} {staff.voornaam}', "sn": staff.naam, "givenname": staff.voornaam}
+    if staff.email != "":
+        attributes["mail"] = staff.email
+    if staff.rfid != "":
+        attributes["pager"] = staff.rfid
+    res = ctx.ldap.add(dn, object_class, attributes)
+    __handle_ldap_response(ctx, staff, res, f'new-in-AD, attributes ({attributes})')
+    if not res:
+        return False
+    # reset the password to xxx
+    res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, dn, default_password, None)
+    __handle_ldap_response(ctx, staff, res, 'set standard password')
+    if not res:
+        return False
+    #add to appropriate group(s)
+    profiles = msettings.get_configuration_setting("ad-staff-profiles")
+    staff_profiles = staff.profiel.split(", ")
+    groepen = set()
+    for p in profiles:
+        if p[0] in staff_profiles:
+            groepen |= set(p[2])
+    for groep in groepen:
+        res = ctx.ldap.modify(groep, {'member': [(ldap3.MODIFY_ADD, dn)]})
+        __handle_ldap_response(ctx, staff, res, f' add to group {groep}')
+    return True
+
+
+# move to INACTIVE_OU and set inactive
+@ad_core(StaffContext())
+def staff_deactivate(staffs, **kwargs):
+    ctx = kwargs["ctx"]
+    nbr_deactivated = 0
+    for staff in staffs:
+        res = ctx.ldap.search(STAFF_OU, f'(&(objectclass=user)(samaccountname={staff.code}))', ldap3.SUBTREE, attributes=["userAccountControl", "cn"])
+        if not res:
+            log.error(f'{sys._getframe().f_code.co_name}: staff not found: {staff.code}')
+            continue
+        staff_ad = ctx.ldap.response[0]
+        # deactivate staff
+        account_control = staff_ad['attributes']['userAccountControl']  # to activate
+        account_control |= 2  # set bit 2 to deactivate
+        changes = {'userAccountControl': [(ldap3.MODIFY_REPLACE, [account_control])]}
+        res = ctx.ldap.modify(staff_ad["dn"], changes)
+        __handle_ldap_response(ctx, staff, res, 'deactive')
+        # move to ou inactief
+        res = ctx.ldap.modify_dn(staff_ad["dn"], f'CN={staff_ad["attributes"]["cn"]}', new_superior=INACTIVE_OU)
+        __handle_ldap_response(ctx, staff, res, f'moved to OU {INACTIVE_OU}')
+        nbr_deactivated += 1
+    return True if nbr_deactivated > 0 else False
+
+
+ACCOUNTS_OU = 'OU=Accounts,DC=SU,DC=local'
+
+
+@ad_core(StaffContext())
+def staff_get(samaccountname, **kwargs):
+    ctx = kwargs["ctx"]
+    for ou in [SEC_OU, ACCOUNTS_OU]:
+        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={samaccountname}))', ldap3.SUBTREE)
+        if res:
+            ret = ctx.ldap.response
+            __ldap_deinit(ctx)
+            return ret
+    return None
+
+
+
+###############################################################
+############    Database integrity check          #############
+###############################################################
 
 
 # if return_log is True, return the logging as a single string.
@@ -744,10 +932,10 @@ def database_integrity_check(return_log=False, mark_changes_in_db=False):
         verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
         dl = DisplayLog()
         log.info(f'{sys._getframe().f_code.co_name}: start')
-        ctx = Context()
-        ldap_init(ctx)
+        ctx = StudentContext()
+        __ldap_init(ctx)
         sdh_students = mstudent.get_students()
-        students_cache_init(ctx)
+        __students_cache_init(ctx)
         changed_students = {}
         for student in sdh_students:
             if student.leerlingnummer in ctx.ad_active_students_leerlingnummer:
@@ -766,11 +954,12 @@ def database_integrity_check(return_log=False, mark_changes_in_db=False):
         if mark_changes_in_db:
             flagged_students = [{'student': s, 'changed': json.dumps(c)} for s, c in changed_students.items()]
             mstudent.flag_students(flagged_students)
-        ldap_deinit(ctx)
+        __ldap_deinit(ctx)
         log.info(f'{sys._getframe().f_code.co_name}: end')
         return {"status": True, "data": dl.get()}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": False, "data": e}
+
 
 

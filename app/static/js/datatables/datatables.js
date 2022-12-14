@@ -11,12 +11,12 @@ export let ctx = null;
 //If not exactly one checkbox is selected, display warning and return false, else return true
 function is_exactly_one_checkbox_selected() {
     let nbr_checked = 0;
-    $(".chbx_all").each(function (i) {
+    $(".chbx_all").each(function () {
         if (this.checked) {
             nbr_checked++;
         }
     });
-    if (nbr_checked == 1) {
+    if (nbr_checked === 1) {
         return true;
     } else {
         bootbox.alert("U moet exact één item selecteren");
@@ -26,13 +26,13 @@ function is_exactly_one_checkbox_selected() {
 
 //If one or more checkboxes are checked, return true.  Else display warning and return false
 function is_at_least_one_checkbox_selected() {
-    var nbr_checked = 0;
-    $(".chbx_all").each(function (i) {
+    let nbr_checked = 0;
+    $(".chbx_all").each(function () {
         if (this.checked) {
             nbr_checked++;
         }
     });
-    if (nbr_checked == 0) {
+    if (nbr_checked === 0) {
         bootbox.alert("U hebt niets geselecteerd, probeer nogmaals");
         return false;
     } else {
@@ -51,6 +51,7 @@ export function get_id_of_checked_boxes() {
 
 export function clear_checked_boxes() {
     $(".chbx_all").prop('checked', false);
+    $("#select_all").prop('checked', false);
 }
 
 export function get_data_of_row(id) {
@@ -58,7 +59,7 @@ export function get_data_of_row(id) {
 }
 
 
-function update_cell(row_id, column_name, value) {
+export function update_cell(row_id, column_name, value) {
     let row_idx = ctx.table.row(`#${row_id}`).index();
     let column_idx = column_name_to_index[column_name];
     ctx.table.cell(row_idx, column_idx).data(value);
@@ -93,7 +94,6 @@ function button_pushed(action) {
             break
         case 'pdf':
             if (is_at_least_one_checkbox_selected()) {
-                let ids = []
                 const chbxs = document.querySelectorAll('.chbx_all:checked')
                 chbxs.forEach(chbx => {
                     const id = chbx.value;
@@ -222,8 +222,8 @@ $(document).ready(function () {
     $.each(ctx.table_config.template, function (i, v) {
         //ellipsis
         if ("ellipsis" in v) {
-            var cutoff = v.ellipsis.cutoff;
-            var wordbreak = v.ellipsis.wordbreak;
+            let cutoff = v.ellipsis.cutoff;
+            let wordbreak = v.ellipsis.wordbreak;
             v.render = return_render_ellipsis(cutoff, wordbreak, true);
         } else if ("bool" in v) {
             v.render = function (data, type, full, meta) {
@@ -260,7 +260,7 @@ $(document).ready(function () {
         }
     }
 
-    var datatable_config = {
+    let datatable_config = {
         serverSide: true,
         stateSave: true,
         ajax: {
@@ -438,8 +438,9 @@ $(document).ready(function () {
 
     function cell_edit_changed_cb(cell, row, old_value) {
         const column = cell.index().column;
-        value = ctx.table_config.template[column].celledit.type.includes('int') ? parseInt(cell.data()) : cell.data();
-        data = {id: row.data().DT_RowId, column, value}
+        let value = ctx.table_config.template[column].celledit.type.includes('int') ? parseInt(cell.data()) : cell.data();
+        let column_name = ctx.table.column(column).dataSrc()
+        let data = {id: row.data().DT_RowId, column: column_name, value}
         update_cell_changed(data);
     }
 
@@ -469,9 +470,9 @@ $(document).ready(function () {
 
     if ("row_detail" in table_config) {
         //For an extra-measure, show the associated remarks as a sub-table
-        var d_table_start = '<table cellpadding="5" cellspacing="0" border="2" style="padding-left:50px;">'
-        var d_table_stop = '</table>'
-        var d_header = '<tr><td>Datum</td><td>Leerling</td><td>LKR</td><td>KL</td><td>Les</td><td>Opmerking</td><td>Maatregel</td></tr>'
+        let d_table_start = '<table cellpadding="5" cellspacing="0" border="2" style="padding-left:50px;">'
+        let d_table_stop = '</table>'
+        let d_header = '<tr><td>Datum</td><td>Leerling</td><td>LKR</td><td>KL</td><td>Les</td><td>Opmerking</td><td>Maatregel</td></tr>'
 
         function format_row_detail(data) {
             let s = d_table_start;
@@ -495,19 +496,19 @@ $(document).ready(function () {
         }
 
         // Array to track the ids of the details displayed rows
-        var detail_rows_cache = [];
+        let detail_rows_cache = [];
 
         $('#datatable tbody').on('click', 'tr td.details-control', function () {
-            var tr = $(this).closest('tr');
-            var row = ctx.table.row(tr);
-            var idx = $.inArray(tr.attr('DT_RowId'), detail_rows_cache);
+            let tr = $(this).closest('tr');
+            let row = ctx.table.row(tr);
+            let idx = $.inArray(tr.attr('DT_RowId'), detail_rows_cache);
 
             if (row.child.isShown()) {
                 tr.removeClass('details');
                 row.child.hide();
                 detail_rows_cache.splice(idx, 1);
             } else {
-                var tx_data = {"id": row.data().DT_RowId};
+                let tx_data = {"id": row.data().DT_RowId};
                 $.getJSON(Flask.url_for('reviewed.get_row_detail', {'data': JSON.stringify(tx_data)}),
                     function (rx_data) {
                         if (rx_data.status) {

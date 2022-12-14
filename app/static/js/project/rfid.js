@@ -1,4 +1,4 @@
-import { get_data_of_row } from "../datatables/datatables.js"
+import { get_data_of_row, update_cell } from "../datatables/datatables.js"
 
 const badge_raw2hex = code => {
     const decode_caps_lock = code => {
@@ -76,7 +76,7 @@ async function rfid_to_server(id, rfid, update_endpoint) {
     });
     const status = await ret.json();
     if (status.status) {
-        update_cell(item_ids[0], 'rfid', rfid);
+        update_cell(id, 'rfid', rfid);
     } else {
         bootbox.alert(`Kan de RFID code niet aanpassen: ${status.data}`)
     }

@@ -67,10 +67,10 @@ def add_single(model, data = {}, commit=True):
     return None
 
 
-def add_multiple(data = []):
+def add_multiple(model, data = []):
     try:
         for d in data:
-            add_single(d, commit=False)
+            add_single(model, d, commit=False)
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -78,13 +78,14 @@ def add_multiple(data = []):
     return None
 
 
-def update_single(model, obj, data={}):
+def update_single(model, obj, data={}, commit=True):
     try:
         for k, v in data.items():
             if hasattr(obj, k):
                 if getattr(model, k).expression.type.python_type == type(v):
                     setattr(obj, k, v.strip() if isinstance(v, str) else v)
-        db.session.commit()
+        if commit:
+            db.session.commit()
         return obj
     except Exception as e:
         db.session.rollback()

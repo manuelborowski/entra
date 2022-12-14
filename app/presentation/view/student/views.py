@@ -2,7 +2,7 @@ from . import student
 from app import log
 from flask import redirect, url_for, request, render_template
 from flask_login import login_required, current_user
-from app.data.datatables import DatatableConfig, pre_sql_standard_order
+from app.data.datatables import DatatableConfig
 from app.presentation.view import datatables
 from app.application import socketio as msocketio, settings as msettings, cardpresso as mcardpresso
 import json
@@ -141,7 +141,7 @@ class Config(DatatableConfig):
         return app.data.student.pre_sql_search(search)
 
     def pre_sql_order(self, q, on, direction):
-        return pre_sql_standard_order(q, on, direction)
+        return self.pre_sql_standard_order(q, on, direction)
 
     def format_data(self, l, total_count, filtered_count):
         return app.application.student.format_data(l, total_count, filtered_count)

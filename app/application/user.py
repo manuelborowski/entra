@@ -1,3 +1,4 @@
+import app.application.student
 from app import log
 from app.application import formio as mformio
 from app.data import user as muser, settings as msettings
@@ -86,7 +87,7 @@ def prepare_edit_registration_form(id):
     try:
         user = muser.get_first_user({"id": id})
         template = msettings.get_configuration_setting('popup-new-update-user')
-        template = mformio.prepare_for_edit(template, user.to_dict())
+        template = app.application.student.prepare_for_edit(template, user.to_dict())
         return {'template': template,
                 'defaults': user.to_dict()}
     except Exception as e:

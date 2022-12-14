@@ -31,6 +31,6 @@ const password_popup_callback = (action, opaque, data=null) => {
 
 export async function update_password(ids, update_endpoint, popup) {
     let person = get_data_of_row(ids[0]);
-    formio_popup_create(popup, {'new-password-user-name': `${person.voornaam} ${person.naam}`}, password_popup_callback, {person, update_endpoint})
+    formio_popup_create(popup, password_popup_callback, {'new-password-user-name': `${person.voornaam} ${person.naam}`}, {person, update_endpoint})
 }
 

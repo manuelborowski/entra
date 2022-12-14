@@ -70,3 +70,23 @@ def get_student_voornaam(student):
     if student.roepnaam != '' and student.roepnaam != student.voornaam:
         return student.roepnaam
     return student.voornaam
+
+
+def deepcopy(table):
+    if type(table) == dict:
+        out = {}
+        for k, v in table.items():
+            if type(v) == list or type(v) == dict:
+                out[k] = deepcopy(v)
+            else:
+                out[k] = v
+    elif type(table) == list:
+        out = []
+        for i in table:
+            if type(i) == list or type(i) == dict:
+                out.append(deepcopy(i))
+            else:
+                out.append(i)
+    else:
+        out = table
+    return out

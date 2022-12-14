@@ -225,6 +225,7 @@ settings_formio = \
                   },
                   {
                     "label": "Detail template (formio)",
+                    "labelPosition": "left-left",
                     "autoExpand": false,
                     "tableView": true,
                     "key": "staff-formio-template",
@@ -233,6 +234,7 @@ settings_formio = \
                   },
                   {
                     "label": "Lijst template (JSON)",
+                    "labelPosition": "left-left",
                     "autoExpand": false,
                     "tableView": true,
                     "key": "staff-datatables-template",
@@ -241,6 +243,7 @@ settings_formio = \
                   },
                   {
                     "label": "Email naar nieuw personeelslid (html) template",
+                    "labelPosition": "left-left",
                     "autoExpand": false,
                     "tableView": true,
                     "key": "staff-new-staff-email-template",
@@ -300,6 +303,14 @@ settings_formio = \
                     "autoExpand": false,
                     "tableView": true,
                     "key": "popup-new-update-user",
+                    "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Nieuw personeelslid / personeelslid aanpassen",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "popup-new-update-staff",
                     "type": "textarea",
                     "input": true
                   }
@@ -1033,6 +1044,16 @@ settings_formio = \
                     "type": "checkbox",
                     "input": true,
                     "defaultValue": false
+                  },
+                  {
+                    "label": "Profielen voor personeelsleden",
+                    "labelPosition": "left-left",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "ad-staff-profiles",
+                    "type": "textarea",
+                    "rows": 5,
+                    "input": true
                   }
                 ],
                 "collapsed": true
