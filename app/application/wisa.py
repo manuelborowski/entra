@@ -1,9 +1,16 @@
-from app import log, flask_app
+from app import flask_app
 from app.data import student as mstudent, photo as mphoto, settings as msettings, staff as mstaff
 from app.data.utils import belgische_gemeenten
 from app.application import warning as mwarning
 import datetime
 import json, requests, sys
+
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
+
 
 #used to translate diacretic letters into regular letters (username, emailaddress)
 normalMap = {'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A','à': 'a', 'á': 'a', 'â': 'a', 'ã': 'a', 'ä': 'a', 'ª': 'A',
@@ -17,7 +24,7 @@ normalMap = {'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A','à': 'a', '�
 normalize_letters = str.maketrans(normalMap)
 
 
-def get_students_from_wisa_database(local_file=None, max=0):
+def student_from_wisa_to_database(local_file=None, max=0):
     try:
         log.info('start student import from wisa')
         if local_file:
@@ -106,6 +113,8 @@ def get_students_from_wisa_database(local_file=None, max=0):
                 item['schooljaar'] = item['schooljaar'].split(' ')[1]
             except:
                 pass
+            if "email" in item:
+                del(item["email"])
             if item['leerlingnummer'] in saved_students:
                 # student already exists in database
                 # check if a student has updated properties
@@ -155,7 +164,7 @@ def get_students_from_wisa_database(local_file=None, max=0):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
-def get_staff_from_wisa_database(local_file=None, max=0):
+def staff_from_wisa_to_database(local_file=None, max=0):
     try:
         log.info('start staff import from wisa')
         if local_file:
@@ -176,7 +185,7 @@ def get_staff_from_wisa_database(local_file=None, max=0):
             response_text = response_text.replace(f'"{key.upper()}"', f'"{key}"')
         wisa_data = json.loads(response_text)
         saved_staff = {} # the staff in the database
-        staff = mstaff.get_staffs()
+        staff = mstaff.staff_get_m()
         if staff:
             saved_staff = {s.rijksregisternummer: s for s in staff}
         new_list = []
@@ -238,17 +247,17 @@ def get_staff_from_wisa_database(local_file=None, max=0):
                 flag_list.append({'changed': '', 'delete': True, 'new': False, 'staff': v})
                 nbr_deleted += 1
         # add the new staff-members to the database
-        mstaff.add_staffs(new_list)
+        mstaff.staff_add_m(new_list)
         # update the changed properties of the staff-members
-        mstaff.update_staffs(changed_list, overwrite=True) # previous changes are lost
+        mstaff.staff_update_m(changed_list, overwrite=True) # previous changes are lost
         # deleted staff-members and staff-members that are not changed, set the flags correctly
-        mstaff.flag_staffs(flag_list)
+        mstaff.staff_flag_m(flag_list)
         log.info(f'{sys._getframe().f_code.co_name}, processed {nbr_processed}, new {len(new_list)}, updated {len(changed_list)}, deleted {nbr_deleted}')
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}, {e}')
 
 
-def wisa_get_student_cron_task(opaque=None):
+def cron_task_wisa_get_student(opaque=None):
     with flask_app.app_context():
         wisa_files = msettings.get_list('test-wisa-json-list')
         if wisa_files:  # test with wisa files
@@ -261,13 +270,13 @@ def wisa_get_student_cron_task(opaque=None):
                     new_index = 0
                 current_wisa_file = wisa_files[new_index]
             msettings.set_configuration_setting('test-wisa-current-json', current_wisa_file)
-            get_students_from_wisa_database(local_file=current_wisa_file)
+            student_from_wisa_to_database(local_file=current_wisa_file)
         else:
             # read_from_wisa_database(max=10)
-            get_students_from_wisa_database()
+            student_from_wisa_to_database()
 
 
-def wisa_get_staff_cron_task(opaque=None):
+def cront_task_wisa_get_staff(opaque=None):
     with flask_app.app_context():
         wisa_files = msettings.get_list('test-staff-wisa-json-list')
         if wisa_files:  # test with wisa files
@@ -280,10 +289,10 @@ def wisa_get_staff_cron_task(opaque=None):
                     new_index = 0
                 current_wisa_file = wisa_files[new_index]
             msettings.set_configuration_setting('test-staff-wisa-current-json', current_wisa_file)
-            get_staff_from_wisa_database(local_file=current_wisa_file)
+            staff_from_wisa_to_database(local_file=current_wisa_file)
 
         else:
-            get_staff_from_wisa_database()
+            staff_from_wisa_to_database()
 
 
 

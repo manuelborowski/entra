@@ -4,7 +4,7 @@ from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
 from flask_jsglue import JSGlue
 from werkzeug.routing import IntegerConverter as OrigIntegerConvertor
-import logging.handlers, os, sys
+import logging, logging.handlers, os, sys
 from functools import wraps
 from flask_socketio import SocketIO
 from flask_apscheduler import APScheduler
@@ -89,15 +89,11 @@ flask_app.config.from_pyfile('config.py')
 # 0.67: moved popups to settings so that they can be changed dynamically
 # 0.68: first steps with azure
 # 0.69: staff: added extra field.  Adding functionality to edit field inline.
-
+# 0.70: staff: add/update/delete staffs from webinterface
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V0.69', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
-
-
-#  enable logging
-log = logging.getLogger(flask_app.config['LOG_HANDLE'])
+    return dict(version='@ 2022 MB. V0.70', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 db = SQLAlchemy()
@@ -110,17 +106,19 @@ class IntegerConverter(OrigIntegerConvertor):
     num_convert = int
 
 
+# set up logging
+log_werkzeug = logging.getLogger('werkzeug')
+log_werkzeug.setLevel(flask_app.config['WERKZEUG_LOG_LEVEL'])
+# log_werkzeug.setLevel(logging.ERROR)
+
+#  enable logging
+top_log_handle = flask_app.config['LOG_HANDLE']
+log = logging.getLogger(top_log_handle)
 # support custom filtering while logging
 class MyLogFilter(logging.Filter):
     def filter(self, record):
         record.username = current_user.username if current_user and current_user.is_active else 'NONE'
         return True
-
-
-# set up logging
-log_werkzeug = logging.getLogger('werkzeug')
-log_werkzeug.setLevel(flask_app.config['WERKZEUG_LOG_LEVEL'])
-# log_werkzeug.setLevel(logging.ERROR)
 
 LOG_FILENAME = os.path.join(sys.path[0], app_config[config_name].STATIC_PATH, f'log/{flask_app.config["LOG_FILE"]}.txt')
 try:
@@ -130,7 +128,7 @@ except:
 log.setLevel(log_level)
 log.addFilter(MyLogFilter())
 log_handler = logging.handlers.RotatingFileHandler(LOG_FILENAME, maxBytes=1024 * 1024, backupCount=20)
-log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(username)s - %(message)s')
+log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(username)s - %(name)s - %(message)s')
 log_handler.setFormatter(log_formatter)
 log.addHandler(log_handler)
 

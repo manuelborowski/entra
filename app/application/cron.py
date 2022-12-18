@@ -1,9 +1,15 @@
-from app import ap_scheduler, log, flask_app
+from app import ap_scheduler, flask_app
 import datetime
 from apscheduler.triggers.cron import CronTrigger
 from app.application.settings import get_configuration_setting, subscribe_handle_button_clicked, subscribe_handle_update_setting
 from app.application.test import test_cron_task
 from . import cron_table
+
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
 
 
 CRON_TASK = 'datacollector-task'

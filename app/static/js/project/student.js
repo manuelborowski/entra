@@ -12,6 +12,7 @@ async function update_vsk_numbers(start) {
     } else {
         bootbox.alert(`Fout bij het toekennen van de nieuwe nummers: ${status.data}`)
     }
+    ctx.reload_table();
 }
 
 async function clear_vsk_numbers() {
@@ -22,6 +23,7 @@ async function clear_vsk_numbers() {
     } else {
         bootbox.alert(`Fout bij het wissen van de nummers: ${status.data}`)
     }
+    ctx.reload_table();
 }
 
 async function new_vsk_numbers() {

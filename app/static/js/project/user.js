@@ -9,10 +9,10 @@ const user_add = async () => {
             const status = await ret.json();
             if (status.status) {
                 bootbox.alert(`Gebruiker ${data.username} is toegevoegd`)
-                ctx.reload_table();
             } else {
                 bootbox.alert(status.data)
             }
+            ctx.reload_table();
         }
     }, {"new_password": true})
 }
@@ -27,10 +27,10 @@ const user_update = async (item, ids) => {
                 const status = await ret.json();
                 if (status.status) {
                     bootbox.alert(`Gebruiker ${data.username} is aangepast`)
-                    ctx.reload_table();
                 } else {
                     bootbox.alert(status.data)
                 }
+                ctx.reload_table();
             }
         }, status.data)
     } else {
@@ -46,10 +46,10 @@ const users_delete = async (item, ids) => {
                 const status = await ret.json();
                 if (status.status) {
                     bootbox.alert(`Gebruiker(s) is/zijn verwijderd.`)
-                    reload_table();
                 } else {
                     bootbox.alert(status.data)
                 }
+                ctx.reload_table();
         }
     });
 

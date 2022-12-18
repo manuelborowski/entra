@@ -100,6 +100,10 @@ class Student(db.Model, SerializerMixin):
     enable = db.Column(db.Boolean, default=True)    # short term
     changed = db.Column(db.TEXT, default='')
 
+    @property
+    def user_id(self):
+        return self.username
+
 
 def get_columns():
     return [p for p in dir(Student) if not p.startswith('_')]

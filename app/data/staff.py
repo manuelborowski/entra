@@ -8,9 +8,9 @@ from sqlalchemy_serializer import SerializerMixin
 class Staff(db.Model, SerializerMixin):
     __tablename__ = 'staff'
 
-    date_format = '%d/%m/%Y'
-    datetime_format = '%d/%m/%Y %H:%M'
-    serialize_rules = ("is_interim_text", "is_wisa_text",)
+    date_format = '%Y-%m-%d'
+    datetime_format = '%Y-%m-%d %H:%M'
+    serialize_rules = ("is_interim_to_text", "is_wisa_to_text",)
 
     id = db.Column(db.Integer(), primary_key=True)
 
@@ -39,11 +39,15 @@ class Staff(db.Model, SerializerMixin):
     enable = db.Column(db.Boolean, default=True)    # short term
     changed = db.Column(db.TEXT, default='')
 
-    def is_interim_text(self):
+    def is_interim_to_text(self):
         return "JA" if self.interim else "NEE"
 
-    def is_wisa_text(self):
-        return "JA" if self.stamboeknummer !="" else "NEE"
+    def is_wisa_to_text(self):
+        return "JA" if self.stamboeknummer != "" else "NEE"
+
+    @property
+    def user_id(self):
+        return self.code
 
 
 def get_columns():
@@ -54,29 +58,29 @@ def commit():
     return app.data.models.commit()
 
 
-def add_staff(data = {}, commit=True):
+def staff_add(data = {}, commit=True):
     data["timestamp"] = datetime.datetime.now()
     return app.data.models.add_single(Staff, data, commit)
 
 
-def add_staffs(data = []):
+def staff_add_m(data = []):
     return app.data.models.add_multiple(Staff, data)
 
 
-def update_staff(staff, data={}, commit=True):
+def staff_update(staff, data={}, commit=True):
     data["timestamp"] = datetime.datetime.now()
     return app.data.models.update_single(Staff, staff, data, commit)
 
 
-def delete_staffs(ids=[], staffs=[]):
+def staff_delete_m(ids=[], staffs=[]):
     return app.data.models.delete_multiple(ids, staffs)
 
 
-def get_staffs(data={}, fields=[], order_by=None, first=False, count=False, active=True):
+def staff_get_m(data={}, fields=[], order_by=None, first=False, count=False, active=True):
     return app.data.models.get_multiple(Staff, data=data, fields=fields, order_by=order_by, first=first, count=count, active=active)
 
 
-def get_first_staff(data={}):
+def staff_get_first(data={}):
     return app.data.models.get_first_single(Staff, data)
 
 
@@ -85,7 +89,7 @@ def get_first_staff(data={}):
 # changed: a list of properties that are changed
 # property#1: the first property changed
 # property#2: ....
-def update_staffs(data = [], overwrite=False):
+def staff_update_m(data = [], overwrite=False):
     try:
         for d in data:
             staff = d['staff']
@@ -112,7 +116,7 @@ def update_staffs(data = [], overwrite=False):
     return None
 
 
-def flag_staffs(data = []):
+def staff_flag_m(data = []):
     try:
         for d in data:
             staff = d['staff']

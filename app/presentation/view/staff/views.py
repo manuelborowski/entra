@@ -18,7 +18,7 @@ def show():
 
     popups = {
         'update-password': get_configuration_setting("popup-student-teacher-update-password"),
-        'new_update_staff': mstaff.prepare_new_update_staff_form(get_configuration_setting("popup-new-update-staff"))
+        'new_update_staff': mstaff.form_prepare_new_update_staff(get_configuration_setting("popup-new-update-staff"))
     }
     ret = datatables.show(table_config, template='staff/staff.html', popups=popups)
     # print('staff.show', datetime.datetime.now() - start)
@@ -55,7 +55,6 @@ def update_cell_changed(msg, client_sid=None):
 
 
 msocketio.subscribe_on_type('staff_socketio_cell_changed', update_cell_changed)
-
 
 
 @staff.route('/staff/right_click/', methods=['POST', 'GET'])

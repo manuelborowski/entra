@@ -1,7 +1,14 @@
-from app import email, log, flask_app
+from app import email, flask_app
 from app.data import settings as msettings
 from flask_mail import Message
 import datetime
+
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
+
 
 
 def send_email(to_list, subject, content):

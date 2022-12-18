@@ -53,7 +53,7 @@ def item_view(ids=None):
                 return redirect(url_for('student.show'))
         else:
             id = ids[0]
-            data = app.application.student.prepare_view_form(id)
+            data = app.application.student.form_prepare_for_view(id)
             data.update({'title': f"{data['defaults']['naam']} {data['defaults']['voornaam']}"})
             return render_template('formio.html', data=data)
     except Exception as e:
@@ -69,7 +69,7 @@ def right_click():
             data = json.loads(request.values['jds'])
             if 'item' in data:
                 if data['item'] == "new-badge":
-                    ret = mcardpresso.add_badges(data['item_ids'])
+                    ret = mcardpresso.badge_add(data['item_ids'])
                     return {"message": ret['data']}
                 if data['item'] == "view":
                     max_ids = msettings.get_configuration_setting('student-max-students-to-view-with-one-click')
@@ -82,7 +82,7 @@ def right_click():
 
 
 def get_filters():
-    klassen = app.application.student.get_unique_klassen()
+    klassen = app.application.student.klassen_get_unique()
     klassen = [[k, k] for k in klassen]
     klas_choices = [['default', 'Alles']] + klassen
     return [
@@ -150,7 +150,7 @@ class Config(DatatableConfig):
         return get_filters()
 
     def show_info(self):
-        return [f'Niet gevonden foto\'s: {app.application.student.get_nbr_photo_not_found()}']
+        return [f'Niet gevonden foto\'s: {app.application.student.photo_get_nbr_not_found()}']
 
     def get_right_click(self):
         return get_right_click_settings()

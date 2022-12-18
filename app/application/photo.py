@@ -1,10 +1,18 @@
-from app import log, flask_app
+from app import flask_app
 from app.data import photo as mphoto
 from app.application import settings as msettings
 import base64, glob, os, sys
 
 
-def get_photo(id):
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
+
+
+
+def photo_get(id):
     photo = mphoto.get_first_photo({"id": id})
     return base64.b64encode(photo.photo)
 
@@ -20,7 +28,7 @@ def get_photo(id):
 mapped_photos_path = 'app/static/mapped_photos/huidig'
 
 
-def photo_cron_task(opaque=None):
+def cron_task_photo(opaque=None):
     with flask_app.app_context():
         try:
             log.info("start import photo's")

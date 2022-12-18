@@ -1,8 +1,13 @@
-import re, datetime, sys
-from app import log
+import datetime, sys
 # noinspection PyUnresolvedReferences
 from bleach.sanitizer import Cleaner
 from app.application.util import deepcopy
+
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
 
 
 # search, in a given hierarchical tree of components, for a component with the given 'key'
@@ -95,6 +100,20 @@ def datestring_to_date(date_in):
     try:
         date_out = datetime.datetime.strptime(date_in, '%d/%m/%Y')
         return date_out.date()
+    except:
+        return None
+
+
+def universal_datestring_to_date(date_in):
+    try:
+        try:
+            date_in = date_in.split("T")[0]
+        except:
+            pass
+        finally:
+            date_out = datetime.datetime.strptime(date_in, '%Y-%m-%d')
+            return date_out.date()
+        return None
     except:
         return None
 

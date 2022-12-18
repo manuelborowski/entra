@@ -1,6 +1,13 @@
-from app import flask_app, log
+from app import flask_app
 from azure.identity import ClientSecretCredential
 from msgraph.core import GraphClient
+
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
+
 
 class Graph:
     client_credential: ClientSecretCredential

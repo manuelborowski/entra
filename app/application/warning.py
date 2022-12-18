@@ -1,6 +1,11 @@
-from app import log
 from app.data import warning as mwarning
 import datetime, sys
+
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
 
 
 def new_warning(message):

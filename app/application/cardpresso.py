@@ -1,12 +1,17 @@
-from app import log, flask_app
+from app import flask_app
 from app.data import student as mstudent, photo as mphoto, cardpresso as mcardpresso
 from app.application import settings as msettings, email as memail
 import sys, json, datetime
 
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
 
 # remark; for contactless operations (RFID), use Springcard crazywriter Contactless 0 as encoder
 
-def delete_badges(ids):
+def badge_delete(ids):
     try:
         mcardpresso.delete_badges(ids)
         log.info(f"done deleting badges: {ids}")
@@ -33,7 +38,7 @@ badge_properties = {
     'klascode': True
 }
 
-def add_badges(student_ids):
+def badge_add(student_ids):
     try:
         nbr_added = 0
         nbr_no_photo = 0
@@ -82,20 +87,20 @@ def add_badges(student_ids):
         return {"status": False, "data": f'generic error {e}'}
 
 
-def new_badges_cron_task(opaque=None):
-    process_new_badges()
+def cron_task_new_badges(opaque=None):
+    badge_process_new()
 
 
 check_properties_changed = ['middag', 'vsknummer', 'photo', 'schooljaar', 'klascode', 'klasgroep']
 
 
-def process_new_badges(topic=None, opaque=None):
+def badge_process_new(topic=None, opaque=None):
     try:
         with flask_app.app_context():
             new_students = mstudent.get_students({'new': True})
             if new_students:
                 ids = [student.id for student in new_students]
-                add_badges(ids)
+                badge_add(ids)
             updated_students = mstudent.get_students({'-changed': '', 'new': False})  # find students with changed property not equal to '' and not new
             if updated_students:
                 ids = []
@@ -104,7 +109,7 @@ def process_new_badges(topic=None, opaque=None):
                     if list(set(check_properties_changed).intersection(changed)):
                         ids.append(student.id)
                 if ids:
-                    add_badges(ids)
+                    badge_add(ids)
             deleted_students = mstudent.get_students({'delete': True})
             if deleted_students:
                 data = [{"leerlingnummer": s.leerlingnummer } for s in deleted_students]
@@ -115,10 +120,10 @@ def process_new_badges(topic=None, opaque=None):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
-msettings.subscribe_handle_button_clicked('button-new-badges', process_new_badges, None)
+msettings.subscribe_handle_button_clicked('button-new-badges', badge_process_new, None)
 
 
-def check_for_new_rfid():
+def rfid_check_for_new():
     try:
         changed_students = []
         deleted_badges = []
@@ -144,7 +149,7 @@ def check_for_new_rfid():
         return {"status": False, "data": f'generic error {e}'}
 
 
-def new_rfid_to_database_cron_task(opaque=None):
+def cron_task_new_rfid_to_database(opaque=None):
     rfid_code = msettings.get_configuration_setting('test-rfid-start-code')
     if rfid_code != '' and '#' not in rfid_code:
         try:
@@ -160,7 +165,7 @@ def new_rfid_to_database_cron_task(opaque=None):
         except:
             log.error(f'new_rfid_to_database_cron_task: error, not a valid hex rfid-code {rfid_code}')
             pass
-    check_for_new_rfid()
+    rfid_check_for_new()
 
 ############ badges overview list #########
 def format_data(db_list, total_count=None, filtered_count=None):

@@ -47,7 +47,7 @@ def admin_key_required(func):
 @admin_key_required
 def user_add():
     data = json.loads(request.data)
-    ret = muser.add_user(data)
+    ret = muser.api_user_add(data)
     return(json.dumps(ret))
 
 
@@ -55,7 +55,7 @@ def user_add():
 @admin_key_required
 def user_update():
     data = json.loads(request.data)
-    ret = muser.update_user(data)
+    ret = muser.api_user_update(data)
     return(json.dumps(ret))
 
 
@@ -63,7 +63,7 @@ def user_update():
 @admin_key_required
 def user_delete():
     data = json.loads(request.data)
-    ret = muser.delete_user(data)
+    ret = muser.api_user_delete(data)
     return(json.dumps(ret))
 
 
@@ -71,21 +71,21 @@ def user_delete():
 @admin_key_required
 def user_get():
     options = request.args
-    ret = muser.get_user(options)
+    ret = muser.api_user_get(options)
     return(json.dumps(ret))
 
 
 @api.route('/api/photo/get/<int:id>', methods=['GET'])
 @user_key_required
 def photo_get(id):
-    ret = mphoto.get_photo(id)
+    ret = mphoto.photo_get(id)
     return ret
 
 
 @api.route('/api/vsknumber/get', methods=['GET'])
 @user_key_required
 def get_last_vsk_number():
-    ret = mstudent.get_next_vsk_number()
+    ret = mstudent.vsk_get_next_number()
     return json.dumps(ret)
 
 
@@ -93,14 +93,14 @@ def get_last_vsk_number():
 @admin_key_required
 def update_vsk_number():
     data = json.loads(request.data)
-    ret = mstudent.update_vsk_numbers(int(data['start']))
+    ret = mstudent.vsk_update_numbers(int(data['start']))
     return json.dumps(ret)
 
 
 @api.route('/api/vsknumber/clear', methods=['POST'])
 @admin_key_required
 def clear_vsk_numbers():
-    ret = mstudent.clear_vsk_numbers()
+    ret = mstudent.vsk_clear_numbers()
     return json.dumps(ret)
 
 
@@ -110,20 +110,19 @@ def clear_vsk_numbers():
 def get_fields(table=''):
     ret = {"status": True, "data": "Command not understood"}
     if table == '':
-        ret = {"status": True, "data": ['students', 'staffs']}
-    elif table == 'students':
-        ret = {"status": True, "data": mstudent.get_fields()}
-    elif table == 'staffs':
-        ret = {"status": True, "data": mstaff.api_fields_get()}
+        ret = {"status": True, "data": ['student', 'staff']}
+    elif table == 'student':
+        ret = {"status": True, "data": mstudent.api_student_get_fields()}
+    elif table == 'staff':
+        ret = {"status": True, "data": mstaff.api_staff_get_fields()}
     return json.dumps(ret)
 
 
 @api.route('/api/student/get', methods=['GET'])
 @user_key_required
 def student_get():
-    a= 1 / 0
     options = request.args
-    ret = mstudent.api_get_students(options)
+    ret = mstudent.api_student_get(options)
     return json.dumps(ret, ensure_ascii=False)
 
 
@@ -131,7 +130,7 @@ def student_get():
 @admin_key_required
 def student_update():
     data = json.loads(request.data)
-    mstudent.update_student(data)
+    mstudent.api_student_update(data)
     return json.dumps({"status": True, "data": 'ok'})
 
 
@@ -171,7 +170,7 @@ def staff_delete():
 @admin_key_required
 def database_integrity_check():
     data = json.loads(request.data)
-    ret = mstudent.database_integrity_check(data)
+    ret = mstudent.api_database_integrity_check(data)
     return json.dumps(ret)
 
 
@@ -179,7 +178,7 @@ def database_integrity_check():
 @supervisor_key_required
 def carpresso_delete():
     data = json.loads(request.data)
-    ret = mcardpresso.delete_badges(data)
+    ret = mcardpresso.badge_delete(data)
     return(json.dumps(ret))
 
 
