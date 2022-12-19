@@ -95,9 +95,97 @@ settings_formio = \
         "tableView": false,
         "components": [
           {
-            "label": "Gebruikers",
+            "label": "Cardpresso",
             "tableView": false,
-            "key": "gebruikers",
+            "key": "cardpresso",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "Cardpresso",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "RegistratieTemplate1",
+                "type": "panel",
+                "label": "Studenten",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Opslaan",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "saveOnEnter": false,
+                    "input": true
+                  },
+                  {
+                    "label": "Detail template (formio)",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "cardpresso-formio-template",
+                    "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Lijst template (JSON)",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "cardpresso-datatables-template",
+                    "type": "textarea",
+                    "input": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Email",
+            "tableView": false,
+            "key": "email",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "Email",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "email",
+                "type": "panel",
+                "label": "Studenten",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Opslaan",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "saveOnEnter": false,
+                    "input": true
+                  },
+                  {
+                    "label": "Nieuw personeelslid (html)",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "email-new-staff-html",
+                    "type": "textarea",
+                    "input": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "label": "Users",
+            "tableView": false,
+            "key": "users",
             "type": "container",
             "input": true,
             "components": [
@@ -105,7 +193,7 @@ settings_formio = \
                 "title": "Gebruikers",
                 "theme": "primary",
                 "collapsible": true,
-                "key": "algemeen",
+                "key": "gebruikers",
                 "type": "panel",
                 "label": "Algemeen",
                 "collapsed": true,
@@ -135,70 +223,9 @@ settings_formio = \
             ]
           },
           {
-            "label": "templates-studenten",
+            "label": "Staff",
             "tableView": false,
-            "key": "templates-studenten",
-            "type": "container",
-            "input": true,
-            "components": [
-              {
-                "title": "Studenten",
-                "theme": "primary",
-                "collapsible": true,
-                "key": "RegistratieTemplate1",
-                "type": "panel",
-                "label": "Studenten",
-                "collapsed": true,
-                "input": false,
-                "tableView": false,
-                "components": [
-                  {
-                    "label": "Opslaan",
-                    "showValidations": false,
-                    "theme": "warning",
-                    "tableView": false,
-                    "key": "submit",
-                    "type": "button",
-                    "input": true,
-                    "saveOnEnter": false
-                  },
-                  {
-                    "label": "Detail template (formio)",
-                    "autoExpand": false,
-                    "tableView": true,
-                    "key": "student-formio-template",
-                    "type": "textarea",
-                    "input": true
-                  },
-                  {
-                    "label": "Lijst template (JSON)",
-                    "autoExpand": false,
-                    "tableView": true,
-                    "key": "student-datatables-template",
-                    "type": "textarea",
-                    "input": true
-                  },
-                  {
-                    "label": "Detail zicht van studenten: maximum aantal studenten te bekijken met 1 click",
-                    "labelPosition": "left-left",
-                    "mask": false,
-                    "tableView": false,
-                    "delimiter": false,
-                    "requireDecimal": false,
-                    "inputFormat": "plain",
-                    "truncateMultipleSpaces": false,
-                    "key": "student-max-students-to-view-with-one-click",
-                    "type": "number",
-                    "input": true
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "label": "templates-staff",
-            "tableView": false,
-            "key": "templates-staff",
+            "key": "staff",
             "type": "container",
             "input": true,
             "components": [
@@ -255,9 +282,9 @@ settings_formio = \
             ]
           },
           {
-            "label": "templates-cardpresso",
+            "label": "Popups",
             "tableView": false,
-            "key": "templates-cardpresso",
+            "key": "popups",
             "type": "container",
             "input": true,
             "components": [
@@ -319,14 +346,14 @@ settings_formio = \
             ]
           },
           {
-            "label": "templates-pop-ups",
+            "label": "Studenten",
             "tableView": false,
-            "key": "templates-pop-ups",
+            "key": "students",
             "type": "container",
             "input": true,
             "components": [
               {
-                "title": "Cardpresso",
+                "title": "Studenten",
                 "theme": "primary",
                 "collapsible": true,
                 "key": "RegistratieTemplate1",
@@ -350,7 +377,7 @@ settings_formio = \
                     "label": "Detail template (formio)",
                     "autoExpand": false,
                     "tableView": true,
-                    "key": "cardpresso-formio-template",
+                    "key": "student-formio-template",
                     "type": "textarea",
                     "input": true
                   },
@@ -358,8 +385,21 @@ settings_formio = \
                     "label": "Lijst template (JSON)",
                     "autoExpand": false,
                     "tableView": true,
-                    "key": "cardpresso-datatables-template",
+                    "key": "student-datatables-template",
                     "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Detail zicht van studenten: maximum aantal studenten te bekijken met 1 click",
+                    "labelPosition": "left-left",
+                    "mask": false,
+                    "tableView": false,
+                    "delimiter": false,
+                    "requireDecimal": false,
+                    "inputFormat": "plain",
+                    "truncateMultipleSpaces": false,
+                    "key": "student-max-students-to-view-with-one-click",
+                    "type": "number",
                     "input": true
                   }
                 ]

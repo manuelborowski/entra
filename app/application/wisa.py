@@ -121,7 +121,7 @@ def student_from_wisa_to_database(local_file=None, max=0):
                 changed_properties = []
                 student = saved_students[item['leerlingnummer']]
                 for k, v in item.items():
-                    if v != getattr(student, k):
+                    if hasattr(student, k) and v != getattr(student, k):
                         changed_properties.append(k)
                 if changed_properties:
                     changed_properties.extend(['delete', 'new'])  # student already present, but has changed properties
@@ -225,7 +225,7 @@ def staff_from_wisa_to_database(local_file=None, max=0):
                 changed_properties = []
                 staff = saved_staff[wisa_item['rijksregisternummer']]
                 for k, v in wisa_item.items():
-                    if v != getattr(staff, k):
+                    if hasattr(staff, k) and v != getattr(staff, k):
                         changed_properties.append(k)
                 if changed_properties:
                     changed_properties.extend(['delete', 'new'])  # staff-member already present, but has changed properties

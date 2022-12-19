@@ -69,7 +69,7 @@ def cront_task_vsk_numbers(opaque=None):
             log.error(f'vsk cron task, error: {ret["data"]}')
     else:
         log.error('vsk cron task, error: no vsk numbers available')
-        memail.compose_message('sdh-inform-emails', "SDH: Vsk nummers", "Waarschuwing, er zijn geen Vsk nummers toegekend (niet beschikbaar?)")
+        memail.send_standard_message('sdh-inform-emails', "SDH: Vsk nummers", "Waarschuwing, er zijn geen Vsk nummers toegekend (niet beschikbaar?)")
 
 
 # students that are marked as deleted are deleted from the database

@@ -1,6 +1,6 @@
 import app.application.api
 from app.data import settings as msettings, staff as mstaff
-from app.application import util as mutil, ad as mad, papercut as mpapercut
+from app.application import util as mutil, ad as mad, papercut as mpapercut, email as memail
 from app.application.formio import iterate_components_cb
 import sys, datetime
 
@@ -91,6 +91,11 @@ def api_staff_add(data):
                 papercut_ok =  mpapercut.user_add(db_staff)
         if db_ok and ad_ok and papercut_ok:
             log.info(f"Add staff: {data}")
+            # send email to staff
+            if db_staff.prive_email:
+                template = msettings.get_configuration_setting("email-new-staff-html")
+                template = mutil.find_and_replace(template, {"%%VOORNAAM%%": db_staff.voornaam, "%%WACHTWOORD%%": default_password, "%%GEBRUIKERSNAAM%%": db_staff.code})
+                memail.send_email([db_staff.prive_email], "Je nieuwe schoolaccount", template)
             return {"status": True, "data": f'Personeelslid toegevoegd: {db_staff.code}'}
         log.error(f'{sys._getframe().f_code.co_name}, error, could not add staff with {data["code"]}, DB {db_ok}, AD {ad_ok}, PAPERCUT {papercut_ok}')
         return {"status": False, "data": f'Fout bij toevoegen van personeelslid {data["code"]}: DB {db_ok}, AD {ad_ok}, PAPERCUT {papercut_ok}'}

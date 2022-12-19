@@ -35,3 +35,11 @@ def deepcopy(table):
     else:
         out = table
     return out
+
+
+# in text, find tags and replace with values
+# data: dict (tag: value, tag: value, ...)
+def find_and_replace(text, data):
+    for tag, value in data.items():
+        text = text.replace(tag, value)
+    return text

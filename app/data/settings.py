@@ -187,6 +187,7 @@ default_configuration_settings = {
     'email-send-max-retries': (2, Settings.SETTING_TYPE.E_INT),
     'email-base-url': ('localhost:5000', Settings.SETTING_TYPE.E_STRING),
     'email-enable-send-email': (False, Settings.SETTING_TYPE.E_BOOL),
+    'email-new-staff-html': ('', Settings.SETTING_TYPE.E_STRING),
 
     'test-prepare': (False, Settings.SETTING_TYPE.E_BOOL),
     'test-wisa-json-list': ('', Settings.SETTING_TYPE.E_STRING),

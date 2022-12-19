@@ -78,7 +78,8 @@ def badge_add(student_ids):
             mcardpresso.delete_badges(delete_badges)
 
         message = f"{len(student_ids)} leerlingen behandeld, {nbr_added} toegevoegd, {nbr_no_photo} hebben geen foto, {nbr_empty_propery} hebben ongeldige velden"
-        memail.compose_message('cardpresso-inform-emails', "SDH: wijziging in Cardpresso", message)
+        email_to = msettings.get_list('cardpresso-inform-emails')
+        memail.send_standard_message(email_to, "SDH: wijziging in Cardpresso", message)
         log.info(f'add_bages: {message}')
         return {"status": True, "data": message}
     except Exception as e:

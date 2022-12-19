@@ -90,10 +90,12 @@ flask_app.config.from_pyfile('config.py')
 # 0.68: first steps with azure
 # 0.69: staff: added extra field.  Adding functionality to edit field inline.
 # 0.70: staff: add/update/delete staffs from webinterface
+# 0.71: add staff: send email to new staff.  Bugfix wisa-import: exception when a field is present in the import which is not present in the Staff/Student class
+
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V0.70', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V0.71', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 db = SQLAlchemy()
@@ -137,6 +139,7 @@ log.info(f"start {flask_app.config['SITE_NAME']}")
 jsglue = JSGlue(flask_app)
 db.app = flask_app  #  hack:-(
 db.init_app(flask_app)
+
 
 socketio = SocketIO(flask_app, async_mode=flask_app.config['SOCKETIO_ASYNC_MODE'], ping_timeout=10, ping_interval=5, cors_allowed_origins=flask_app.config['SOCKETIO_CORS_ALLOWED_ORIGIN'])
 
