@@ -10,7 +10,6 @@ from flask_socketio import SocketIO
 from flask_apscheduler import APScheduler
 from flask_mail import Mail
 
-
 flask_app = Flask(__name__, instance_relative_config=True, template_folder='presentation/templates/')
 
 # Configuration files...
@@ -91,11 +90,12 @@ flask_app.config.from_pyfile('config.py')
 # 0.69: staff: added extra field.  Adding functionality to edit field inline.
 # 0.70: staff: add/update/delete staffs from webinterface
 # 0.71: add staff: send email to new staff.  Bugfix wisa-import: exception when a field is present in the import which is not present in the Staff/Student class
+# 0.72: error logs can be mailed.  Small bugfix in student-computers.  Import students: protect from student being present twice
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V0.71', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V0.72', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 db = SQLAlchemy()
@@ -134,7 +134,39 @@ log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(username)s - 
 log_handler.setFormatter(log_formatter)
 log.addHandler(log_handler)
 
+
+email_log_handler = None
+def subscribe_email_log_handler_cb(cb):
+    global email_log_handler
+    email_log_handler = cb
+
+class MyBufferingHandler(logging.handlers.BufferingHandler):
+    def flush(self):
+        print("Flushing")
+        message_body = ""
+        for b in self.buffer:
+            print(self.format(b))
+            message_body += self.format(b) + "<br>"
+        self.buffer = []
+        with flask_app.app_context():
+            print(message_body)
+            if email_log_handler:
+                email_log_handler(message_body)
+
+    def shouldFlush(self, record):
+        print("Record", record)
+        return record.msg == "FLUSH-TO-EMAIL"
+
+
+buf_handler = MyBufferingHandler(2)
+buf_handler.setLevel("ERROR")
+log.addHandler(buf_handler)
+buf_handler.setFormatter(log_formatter)
+
+
+
 log.info(f"start {flask_app.config['SITE_NAME']}")
+
 
 jsglue = JSGlue(flask_app)
 db.app = flask_app  #  hack:-(
@@ -142,6 +174,12 @@ db.init_app(flask_app)
 
 
 socketio = SocketIO(flask_app, async_mode=flask_app.config['SOCKETIO_ASYNC_MODE'], ping_timeout=10, ping_interval=5, cors_allowed_origins=flask_app.config['SOCKETIO_CORS_ALLOWED_ORIGIN'])
+
+
+# configure e-mailclient
+email = Mail(flask_app)
+send_emails = False
+flask_app.extensions['mail'].debug = 0
 
 
 def create_admin():
@@ -163,11 +201,6 @@ login_manager.login_message = 'Je moet aangemeld zijn om deze pagina te zien!'
 login_manager.login_view = 'auth.login'
 
 migrate = Migrate(flask_app, db)
-
-# configure e-mailclient
-email = Mail(flask_app)
-send_emails = False
-flask_app.extensions['mail'].debug = 0
 
 SCHEDULER_API_ENABLED = True
 ap_scheduler = APScheduler()

@@ -53,7 +53,7 @@ def student_from_wisa_to_database(local_file=None, max=0):
         data = json.loads(response_text)
         # (Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
         saved_photos = {p[1]: p[0] for p in mphoto.get_photos_size()}
-        saved_students = {} # the current, active students in the database
+        db_students = {} # the current, active students in the database
         # default previous and current schoolyear
         _, current_schoolyear, prev_schoolyear = msettings.get_changed_schoolyear()
         if current_schoolyear == '':
@@ -67,23 +67,37 @@ def student_from_wisa_to_database(local_file=None, max=0):
             msettings.set_changed_schoolyear(prev_schoolyear, current_schoolyear)
         students = mstudent.get_students()
         if students:
-            saved_students = {s.leerlingnummer: s for s in students}
+            db_students = {s.leerlingnummer: s for s in students}
             current_schoolyear = students[0].schooljaar
         new_list = []
         changed_list = []
         flag_list = []
+        check_inschrijvingsdatum = {} #the import can contain a student twice, with different inschrijvingsdatum.  The most recent inschrijvingsdatum wins...
         nbr_deleted = 0
         nbr_processed = 0
-        # clean up, remove leading and trailing spaces
-        for item in data:
+        # clean up, remove leading and trailing spaces, convert datetime-string to datetime
+        for i, item in enumerate(data):
             for k, v in item.items():
                 if k == 'middag':  # this field may contain leading spaces
                     item[k] = v.replace(' ', '-')
                 else:
                     item[k] = v.strip()
+            item['inschrijvingsdatum'] = datetime.datetime.strptime(item['inschrijvingsdatum'].split(' ')[0], '%Y-%m-%d').date()
+            item['geboortedatum'] = datetime.datetime.strptime(item['geboortedatum'].split(' ')[0], '%Y-%m-%d').date()
+            if item["leerlingnummer"] in check_inschrijvingsdatum:
+                log.error(f'{sys._getframe().f_code.co_name}: Import contains twice the same student {item["leerlingnummer"]}, {data[check_inschrijvingsdatum[item["leerlingnummer"]]]["inschrijvingsdatum"]}, {item["inschrijvingsdatum"]}')
+                if data[check_inschrijvingsdatum[item["leerlingnummer"]]]["inschrijvingsdatum"] < item["inschrijvingsdatum"]:
+                    data[check_inschrijvingsdatum[item["leerlingnummer"]]] = None
+                    check_inschrijvingsdatum["leerlingnummer"] = i
+                else:
+                    data[i] = None
+            else:
+                check_inschrijvingsdatum[item["leerlingnummer"]] = i
         # massage the imported data so that it fits the database.
         # for each student in the import, check if it's new or changed
         for item in data:
+            if not item: # skip empty items
+                continue
             orig_geboorteplaats = None
             if "," in item['geboorteplaats'] or "-" in item['geboorteplaats'] and item['geboorteplaats'] not in belgische_gemeenten:
                 if "," in item['geboorteplaats']:   # sometimes, geboorteplaats is mis-used to also include geboorteland.
@@ -93,8 +107,6 @@ def student_from_wisa_to_database(local_file=None, max=0):
                 orig_geboorteplaats = item['geboorteplaats']
                 item['geboorteplaats'] = gl[0].strip()
                 item['geboorteland'] = gl[1].strip()
-            item['inschrijvingsdatum'] = datetime.datetime.strptime(item['inschrijvingsdatum'].split(' ')[0], '%Y-%m-%d').date()
-            item['geboortedatum'] = datetime.datetime.strptime(item['geboortedatum'].split(' ')[0], '%Y-%m-%d').date()
             try:
                 item['foto'] = item['foto'].split('\\')[1]
             except:
@@ -115,11 +127,11 @@ def student_from_wisa_to_database(local_file=None, max=0):
                 pass
             if "email" in item:
                 del(item["email"])
-            if item['leerlingnummer'] in saved_students:
+            if item['leerlingnummer'] in db_students:
                 # student already exists in database
                 # check if a student has updated properties
                 changed_properties = []
-                student = saved_students[item['leerlingnummer']]
+                student = db_students[item['leerlingnummer']]
                 for k, v in item.items():
                     if hasattr(student, k) and v != getattr(student, k):
                         changed_properties.append(k)
@@ -129,7 +141,7 @@ def student_from_wisa_to_database(local_file=None, max=0):
                     changed_list.append(item)
                 else:
                     flag_list.append({'changed': '', 'delete': False, 'new': False, 'student': student}) # student already present, no change
-                del(saved_students[item['leerlingnummer']])
+                del(db_students[item['leerlingnummer']])
             else:
                 # student not present in database, i.e. a new student
                 if orig_geboorteplaats:
@@ -142,7 +154,7 @@ def student_from_wisa_to_database(local_file=None, max=0):
             if max > 0 and nbr_processed >= max:
                 break
         # at this point, saved_students contains the students not present in the wisa-import, i.e. the deleted students
-        for k, v in saved_students.items():
+        for k, v in db_students.items():
             if not v.delete:
                 flag_list.append({'changed': '', 'delete': True, 'new': False, 'student': v})
                 nbr_deleted += 1

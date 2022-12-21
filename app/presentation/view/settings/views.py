@@ -1528,6 +1528,46 @@ settings_formio = \
             ]
           },
           {
+            "label": "Logging",
+            "tableView": false,
+            "key": "logging",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "Logging",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "logging",
+                "type": "panel",
+                "label": "E-mail server settings",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Submit",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "input": true
+                  },
+                  {
+                    "label": "Logs met niveau ERROR worden verstuurd naar volgende adressen",
+                    "tooltip": "één adres per rij\nEen adres wordt niet gebruikt als er een # voor staat",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "logging-inform-emails",
+                    "type": "textarea",
+                    "input": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "label": "Test",
             "tableView": false,
             "key": "test-students",

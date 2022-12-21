@@ -203,6 +203,9 @@ default_configuration_settings = {
     'popup-database-integrity-check': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-student-new-update': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-new-update-staff': ({}, Settings.SETTING_TYPE.E_JSON),
+
+    'logging-inform-emails': ('', Settings.SETTING_TYPE.E_STRING),
+
 }
 
 

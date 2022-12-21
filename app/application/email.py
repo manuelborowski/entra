@@ -1,7 +1,8 @@
-from app import email, flask_app
+from app import email, flask_app, subscribe_email_log_handler_cb
 from app.data import settings as msettings
 from flask_mail import Message
 import datetime, sys
+
 
 #logging on file level
 import logging
@@ -39,3 +40,13 @@ def send_standard_message(email_to, subject, message):
                f'{message}<br><br>' \
                f'School Data Hub'
         send_email(email_to, subject, body)
+
+
+# from app import email_log_handler
+def email_log_handler(message_body):
+    to_list = msettings.get_list("logging-inform-emails")
+    if to_list:
+        send_standard_message(to_list, "SDH ERROR LOG", message_body)
+
+
+subscribe_email_log_handler_cb(email_log_handler)

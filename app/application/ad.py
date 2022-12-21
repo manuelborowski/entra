@@ -470,8 +470,6 @@ def __students_deleted(ctx):
 def student_process_postponed_tasks(ctx):
     try:
         log.info(f"{sys._getframe().f_code.co_name}, START move students to current-year-OU")
-
-        verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
         for student in ctx.students_move_to_current_year_ou:
             dn = ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['dn']
             cn = f"CN={ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['attributes']['cn']}"
@@ -665,9 +663,10 @@ def cron_task_ad_get_student_computer(opaque=None):
             if student.leerlingnummer in ctx.ad_active_students_leerlingnummer:
                 computers = ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['attributes']['postOfficeBox']
                 computer = computers[0] if computers else ''
-                mstudent.update_student(student, {'computer': computer}, commit=False)
-                if verbose_logging:
-                    log.info(f'Student {student.naam} {student.voornaam}, {student.leerlingnummer}, updated computer {computer}')
+                if computer != student.computer:
+                    mstudent.update_student(student, {'computer': computer}, commit=False)
+                    if verbose_logging:
+                        log.info(f'Student {student.naam} {student.voornaam}, {student.leerlingnummer}, updated computer {computer}')
             else:
                 log.error(f'Student {student.naam} {student.voornaam}, {student.leerlingnummer}, not found in AD')
         mstudent.commit()

@@ -40,6 +40,8 @@ badge_properties = {
 
 def badge_add(student_ids):
     try:
+        if not student_ids:
+            return
         nbr_added = 0
         nbr_no_photo = 0
         nbr_empty_propery = 0
@@ -99,9 +101,8 @@ def badge_process_new(topic=None, opaque=None):
     try:
         with flask_app.app_context():
             new_students = mstudent.get_students({'new': True})
-            if new_students:
-                ids = [student.id for student in new_students]
-                badge_add(ids)
+            ids = [student.id for student in new_students]
+            badge_add(ids)
             updated_students = mstudent.get_students({'-changed': '', 'new': False})  # find students with changed property not equal to '' and not new
             if updated_students:
                 ids = []
@@ -109,8 +110,7 @@ def badge_process_new(topic=None, opaque=None):
                     changed = json.loads(student.changed)
                     if list(set(check_properties_changed).intersection(changed)):
                         ids.append(student.id)
-                if ids:
-                    badge_add(ids)
+                badge_add(ids)
             deleted_students = mstudent.get_students({'delete': True})
             if deleted_students:
                 data = [{"leerlingnummer": s.leerlingnummer } for s in deleted_students]

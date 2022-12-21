@@ -21,6 +21,7 @@ def cron_task():
     for task in cron_table:
         if task[0] in settings and settings[task[0]]:
             task[1]()
+    log.error("FLUSH-TO-EMAIL")
 
 
 def init_job(cron_template):
