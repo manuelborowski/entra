@@ -140,21 +140,21 @@ def subscribe_email_log_handler_cb(cb):
     global email_log_handler
     email_log_handler = cb
 
+
+# if the log-error-message is FLUSH-TO-EMAIL, all error logs are emailed and the buffer is cleared.
 class MyBufferingHandler(logging.handlers.BufferingHandler):
     def flush(self):
-        print("Flushing")
-        message_body = ""
-        for b in self.buffer:
-            print(self.format(b))
-            message_body += self.format(b) + "<br>"
+        if len(self.buffer) > 1:
+            message_body = ""
+            for b in self.buffer:
+                print(self.format(b))
+                message_body += self.format(b) + "<br>"
+            with flask_app.app_context():
+                if email_log_handler:
+                    email_log_handler(message_body)
         self.buffer = []
-        with flask_app.app_context():
-            print(message_body)
-            if email_log_handler:
-                email_log_handler(message_body)
 
     def shouldFlush(self, record):
-        print("Record", record)
         return record.msg == "FLUSH-TO-EMAIL"
 
 

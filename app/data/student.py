@@ -101,7 +101,7 @@ class Student(db.Model, SerializerMixin):
     changed = db.Column(db.TEXT, default='')
 
     @property
-    def user_id(self):
+    def person_id(self):
         return self.username
 
 

@@ -196,10 +196,8 @@ def staff_from_wisa_to_database(local_file=None, max=0):
         for key in keys:
             response_text = response_text.replace(f'"{key.upper()}"', f'"{key}"')
         wisa_data = json.loads(response_text)
-        saved_staff = {} # the staff in the database
         staff = mstaff.staff_get_m()
-        if staff:
-            saved_staff = {s.rijksregisternummer: s for s in staff}
+        staff_in_db = {s.code: s for s in staff}
         new_list = []
         changed_list = []
         flag_list = []
@@ -214,10 +212,9 @@ def staff_from_wisa_to_database(local_file=None, max=0):
         # for each staff-member in the import, check if it's new or changed
         for wisa_item in wisa_data:
             #skip double items
-            if wisa_item['rijksregisternummer'] in already_processed:
+            if wisa_item['code'] in already_processed:
                 continue
             wisa_item['geboortedatum'] = datetime.datetime.strptime(wisa_item['geboortedatum'].split(' ')[0], '%Y-%m-%d').date()
-
             email = wisa_item['email'] if 'campussintursula.be' in wisa_item['email'] else wisa_item['prive_email'] if 'campussintursula.be' in wisa_item['prive_email'] else ""
             if 'campussintursula.be' not in wisa_item['email'] and wisa_item["email"] != "":
                 prive_email = wisa_item['email']
@@ -230,12 +227,11 @@ def staff_from_wisa_to_database(local_file=None, max=0):
             else:
                 wisa_item['email'] = f"{wisa_item['voornaam'].translate(normalize_letters).lower()}.{wisa_item['naam'].translate(normalize_letters).lower()}@campussintursula.be"
             wisa_item["prive_email"] = prive_email
-
-            if wisa_item['rijksregisternummer'] in saved_staff:
+            if wisa_item['code'] in staff_in_db:
                 # staff-member already exists in database
                 # check if a staff-member has updated properties
                 changed_properties = []
-                staff = saved_staff[wisa_item['rijksregisternummer']]
+                staff = staff_in_db[wisa_item['code']]
                 for k, v in wisa_item.items():
                     if hasattr(staff, k) and v != getattr(staff, k):
                         changed_properties.append(k)
@@ -245,16 +241,16 @@ def staff_from_wisa_to_database(local_file=None, max=0):
                     changed_list.append(wisa_item)
                 else:
                     flag_list.append({'changed': '', 'delete': False, 'new': False, 'staff': staff}) # staff-mmeber already present, no change
-                del(saved_staff[wisa_item['rijksregisternummer']])
+                del(staff_in_db[wisa_item['code']])
             else:
                 # staff-member not present in database, i.e. a new staff-member
                 new_list.append(wisa_item)  # new staff-mmeber
-            already_processed.append(wisa_item['rijksregisternummer'])
+            already_processed.append(wisa_item['code'])
             nbr_processed += 1
             if max > 0 and nbr_processed >= max:
                 break
         # at this point, saved_staff contains the staff-memner not present in the wisa-import, i.e. the deleted staff-members
-        for k, v in saved_staff.items():
+        for k, v in staff_in_db.items():
             if not v.delete:
                 flag_list.append({'changed': '', 'delete': True, 'new': False, 'staff': v})
                 nbr_deleted += 1

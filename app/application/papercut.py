@@ -34,42 +34,45 @@ def papercut_core_wrapper(func):
     return wrapper
 
 
-# data is list of lists, e.g [["primary-card-number", "abcd1234"], ["office", "lkr"]]
 @papercut_core_wrapper
-def user_update(user_obj, data, **kwargs):
+def person_update(person, data, **kwargs):
     update_properties = []
     if "rfid" in data:
         update_properties.append(["primary-card-number", data["rfid"]])
     if update_properties:
-        ret = kwargs["server"].api.setUserProperties(kwargs["token"], user_obj.user_id, update_properties)
-        log.info(f'Update to Papercut, {user_obj.user_id} RFID {update_properties}')
+        ret = kwargs["server"].api.setUserProperties(kwargs["token"], person.person_id, update_properties)
+        log.info(f'Update to Papercut, {person.person_id} RFID {update_properties}')
         return ret
     return True
 
 
 @papercut_core_wrapper
-def user_add(user_obj, **kwargs):
-    ret = kwargs["server"].api.addNewUser(kwargs["token"], user_obj.user_id)
-    log.info(f'Add to papercut, {user_obj.user_id}')
+def person_add(person, **kwargs):
+    papercut_staff = person_get(person.person_id)
+    if papercut_staff:
+        log.info(f'{sys._getframe().f_code.co_name}, staff with {person.person_id} already exists in Papercut, skip')
+        return True
+    ret = kwargs["server"].api.addNewUser(kwargs["token"], person.person_id)
+    log.info(f'Add to papercut, {person.person_id}')
     return ret
 
 
 @papercut_core_wrapper
-def user_delete(user_objs, **kwargs):
-    for user_obj in user_objs:
+def person_delete_m(persons, **kwargs):
+    for person in persons:
         try:
-            ret = kwargs["server"].api.deleteExistingUser(kwargs["token"], user_obj.user_id, True)
-            log.info(f'Delete from papercut, {user_obj.user_id}, result {ret}')
+            ret = kwargs["server"].api.deleteExistingUser(kwargs["token"], person.person_id, True)
+            log.info(f'Delete from papercut, {person.person_id}, result {ret}')
         except Exception as e:
             if "Fault 262" in str(e):
-                log.info(f'user, {user_obj.user_id}, not found in Papercut')
+                log.info(f'user, {person.person_id}, not found in Papercut')
     return True
 
 
 @papercut_core_wrapper
-def user_get(user_id, **kwargs):
+def person_get(person_id, **kwargs):
     try:
-        ret = kwargs["server"].api.getUserProperties(kwargs["token"], user_id, papercut_properties)
+        ret = kwargs["server"].api.getUserProperties(kwargs["token"], person_id, papercut_properties)
         info = zip(papercut_properties, ret)
         return dict(info)
     except Exception as e:

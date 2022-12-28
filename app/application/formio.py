@@ -104,20 +104,6 @@ def datestring_to_date(date_in):
         return None
 
 
-def universal_datestring_to_date(date_in):
-    try:
-        try:
-            date_in = date_in.split("T")[0]
-        except:
-            pass
-        finally:
-            date_out = datetime.datetime.strptime(date_in, '%Y-%m-%d')
-            return date_out.date()
-        return None
-    except:
-        return None
-
-
 # formio returns:
 # 2022-3-4T13:34:23+02:00 OR SOMETIMES
 # 2022-3-4T13:34:23.000Z OR SOMETIMES

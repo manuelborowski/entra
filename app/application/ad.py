@@ -36,9 +36,13 @@
 # conn.modify_dn('CN=Rik Fabri,OU=2018-2019,OU=Leerlingen,OU=Accounts,DC=SU,DC=local', 'CN=Rik Fabri', new_superior='OU=manuel-test,OU=Leerlingen,OU=Accounts,DC=SU,DC=local')
 #  attributes = {'samaccountname': 's66666', 'wwwhomepage': '66666', 'name': 'manuel test', 'useraccountcontrol': 544, 'cn': 'manuel test', 'sn': 'test', 'l': 'manuel-6IT', 'description': 'manuel-test manuel-6IT', 'postalcode': '26-27', 'physicalDeliveryOfficeName': 'manuel-6IT', 'givenname': 'manuel', 'displayname': 'manuel test'}
 # ldap_s.add(f'CN=manuel-test,{klas_location_toplevel}', 'group', {'cn': 'manuel-test', 'member': 'CN=Michiel Smans,OU=2021-2022,OU=Leerlingen,OU=Accounts,DC=SU,DC=local'})
+import bdb
+import pdb
+
 import app
-from app.data import student as mstudent
+from app.data import student as mstudent, staff as mstaff
 from app.data import settings as msettings
+from app.application.email import  send_new_staff_message
 import ldap3, json, sys
 from functools import wraps
 from app.application.util import get_student_voornaam
@@ -49,17 +53,29 @@ from app import MyLogFilter, top_log_handle
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
+
+###############################################################
+############    Common specifications          ################
+###############################################################
+
+
+class PersonContext:
+    def __init__(self):
+        self.ldap = None
+        self.verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
+
+
 TOP_OU = 'DC=SU,DC=local'
 ACCOUNTS_OU = 'OU=Accounts,DC=SU,DC=local'
 __ldap = None
 
-def __handle_ldap_response(ctx, user_obj, res, info):
+def __handle_ldap_response(ctx, user, res, info):
     try:
         if res:
             if ctx.verbose_logging:
-                log.info(f'{sys._getframe(1).f_code.co_name}, {ctx.user_type}, {user_obj.user_id}, {info}')
+                log.info(f'{sys._getframe(1).f_code.co_name}, {user.__class__.__name__}, {user.person_id}, {info}')
         else:
-            log.error(f'{sys._getframe(1).f_code.co_name}, {ctx.user_type}, {user_obj.user_id}, ERROR COULD NOT {info}, {ctx.ldap.result}')
+            log.error(f'{sys._getframe(1).f_code.co_name}, {user.__class__.__name__}, {user.person_id}, ERROR COULD NOT {info}, {ctx.ldap.result}')
     except Exception as e:
         log.error(f'{sys._getframe(1).f_code.co_name}: {e}')
 
@@ -72,16 +88,17 @@ def __handle_ldap_response(ctx, user_obj, res, info):
 GROUPEN_OU = 'OU=Groepen,DC=SU,DC=local'
 KLAS_OU = 'OU=Klassen,OU=Groepen,DC=SU,DC=local'
 STUDENT_OU = 'OU=Leerlingen,OU=Accounts,DC=SU,DC=local'
+STUDENT_OUS = [STUDENT_OU]
+STUDENT_CHANGED_PROPERTIES_MASK = ['naam', 'voornaam', 'klascode', 'schooljaar', 'rfid', 'computer', 'roepnaam', 'email']
+STUDENT_LEERLINGEN_GROUP = 'CN=Leerlingen,OU=Groepen,DC=SU,DC=local'
+STUDENT_EMAIL_DOMAIN = '@lln.campussintursula.be'
 
 
-class StudentContext:
+class StudentContext(PersonContext):
     def __init__(self):
-        self.check_properties_changed = ['naam', 'voornaam', 'klascode', 'schooljaar', 'rfid', 'computer', 'roepnaam', 'email']
+        super().__init__()
         self.student_ou = STUDENT_OU
         self.klas_ou = KLAS_OU
-        self.leerlingen_group = 'CN=Leerlingen,OU=Groepen,DC=SU,DC=local'
-        self.veyon_group = 'CN=Veyon-Leerling-Groeperingen,OU=Speciaal,OU=Groepen,DC=SU,DC=local'
-        self.email_domain = '@lln.campussintursula.be'
         self.student_ou_current_year = ''
         self.ad_active_students_leerlingnummer = {}  # cache active students, use leerlingnummer as key
         self.ad_active_students_dn = {}  # cache active students, use dn as key
@@ -95,13 +112,10 @@ class StudentContext:
         self.students_move_to_current_year_ou = []
         self.students_change_cn = []
         self.students_must_update_password = []
-        self.ldap = None
         self.changed_schoolyear, self.prev_year, self.current_year = msettings.get_changed_schoolyear()
         if self.changed_schoolyear:  # keep a local copy of changed-schoolyear
             msettings.set_configuration_setting('ad-schoolyear-changed', True)
         self.changed_schoolyear = msettings.get_configuration_setting('ad-schoolyear-changed')
-        self.user_type = "STUDENT"
-        self.verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
 
 
 # translate a list of leerlingnummers to AD-DN's   If a leerlingnummer is not found in the local cache (not active) try to find in AD
@@ -224,8 +238,8 @@ def __students_do_to_group_leerlingen(ctx):
             for student in ctx.students_to_leerlingen_group:
                 dn = ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['dn']
                 if dn not in leerlingen_group_cache:
-                    res = ctx.ldap.modify(ctx.leerlingen_group, {'member': [(ldap3.MODIFY_ADD, dn)]})
-                    __handle_ldap_response(ctx, student, res, f'Add to group {ctx.leerlingen_group}')
+                    res = ctx.ldap.modify(STUDENT_LEERLINGEN_GROUP, {'member': [(ldap3.MODIFY_ADD, dn)]})
+                    __handle_ldap_response(ctx, student, res, f'Add to group {STUDENT_LEERLINGEN_GROUP}')
         else:
             log.error(f'{sys._getframe().f_code.co_name}: could not load group Leerlingen')
     except Exception as e:
@@ -377,7 +391,7 @@ def __students_new(ctx):
                 if verbose_logging:
                     log.info(f'student with same name already in ad, {student.naam} {student.voornaam}, {student.leerlingnummer}, email is {email}')
             attributes = {'samaccountname': student.username, 'wwwhomepage': f'{student.leerlingnummer}',
-                          'userprincipalname': f'{student.username}{ctx.email_domain}',
+                          'userprincipalname': f'{student.username}{STUDENT_EMAIL_DOMAIN}',
                           'mail': email,
                           'name': f'{student.naam} {student.voornaam}',
                           'useraccountcontrol': 0X220,     #password not required, normal account, account active
@@ -412,7 +426,7 @@ def __students_changed(ctx):
         if changed_students:
             for student in changed_students:
                 changed = json.loads(student.changed)
-                if list(set(ctx.check_properties_changed).intersection(changed)):
+                if list(set(STUDENT_CHANGED_PROPERTIES_MASK).intersection(changed)):
                     if student.leerlingnummer in ctx.ad_active_students_leerlingnummer:
                         changes = {}
                         if 'naam' in changed or 'voornaam' in changed:
@@ -686,47 +700,60 @@ TEACHER_OU = 'OU=Leerkrachten,OU=Accounts,DC=SU,DC=local'
 SEC_OU = 'OU=Secretariaat,DC=SU,DC=local'
 STAFF_OU = 'OU=Personeel,OU=Accounts,DC=SU,DC=local'
 INACTIVE_OU = 'OU=Inactief,OU=Accounts,DC=SU,DC=local'
+STAFF_OUS = [TEACHER_OU, SEC_OU, STAFF_OU, INACTIVE_OU]
+STAFF_CHANGED_PROPERTIES_MASK = ['naam', 'voornaam', "email", "rfid", "interim", "extra", "profiel", "einddatum"]
+STAFF_EMAIL_DOMAIN = '@campussintursula.be'
 
 
-class StaffContext:
+class StaffContext(PersonContext):
     def __init__(self):
-        self.check_properties_changed = ['naam', 'voornaam', 'klascode', 'schooljaar', 'rfid', 'computer', 'roepnaam', 'email']
-        self.email_domain = '@campussintursula.be'
-        self.ldap = None
-        self.user_type = "STAFF"
-        self.verbose_logging = msettings.get_configuration_setting('ad-verbose-logging')
+        super().__init__()
 
 
-def cron_task_ad_staff(opaque=None):
+# opaque can be used to pass a list of staff.  In that case, only the list is considered for new, changed or delete
+def process_add_update_delete_staff(opaque=None):
     try:
+        all_ok = True
         log.info(f"{sys._getframe().f_code.co_name}, START")
-        ctx = StudentContext()
-        __ldap_init(ctx)
-        __students_cache_init(ctx)
-        if not __create_current_year_ou(ctx):
-            __ldap_deinit(ctx)
-            return {"status": False, "data": "Kan huidig-jaar-ou niet aanmaken"}
-        __students_new(ctx)
-        __students_changed(ctx)
-        __students_deleted(ctx)
-        __klas_cache_init(ctx)
-        __klas_put_students_in_correct_klas(ctx)  # put all students in the correct klas in AD
-        __students_do_to_group_leerlingen(ctx) # then put the new students in the group leerlingen
-        student_process_postponed_tasks(ctx) # then move the students to the current schoolyear OU
-        __klas_check_if_student_is_in_one_klas(ctx)
-        __ldap_deinit(ctx)
-
-        # only once and then comment out
-        # get_usernames_from_ad()
-        # only once and then comment out
-        # update_ad_cn_and_displayname()
-
-        msettings.set_configuration_setting('ad-schoolyear-changed', False)
+        staff_list = opaque
+        if staff_list:
+            log.info(f"{sys._getframe().f_code.co_name}, staff: {staff_list}")
+        # check for new staff
+        if staff_list:
+            new_staff = [s for s in staff_list if s.new]
+        else:
+            new_staff = mstaff.staff_get_m({"new": True})
+        for db_staff in new_staff:
+            ad_staff = person_get(db_staff.code)
+            if ad_staff: # already present in AD -> activate
+                log.info(f'{sys._getframe().f_code.co_name}, staff with {db_staff.code} already exists in AD, re-activate')
+            else:
+                all_ok = all_ok and staff_add(db_staff)
+            default_password = msettings.get_configuration_setting("generic-standard-password")
+            all_ok = all_ok and person_set_password(db_staff, default_password)
+            db_staff.changed = json.dumps(STAFF_CHANGED_PROPERTIES_MASK)
+            all_ok = all_ok and staff_update2(db_staff)
+            if all_ok and db_staff.prive_email:
+                send_new_staff_message(db_staff, default_password)
+        # check for changed staff
+        if staff_list:
+            changed_staff = [s for s in staff_list if s.changed != "" and not s.new]
+        else:
+            changed_staff = mstaff.staff_get_m({"-changed": "", "new": False})
+        for db_staff in changed_staff:
+                all_ok = all_ok and staff_update2(db_staff)
+        # check for deleted staff
+        if staff_list:
+            deleted_staff = [s for s in staff_list if s.delete]
+        else:
+            deleted_staff = mstaff.staff_get_m({"delete": True})
+        for db_staff in deleted_staff:
+            all_ok = all_ok and staff_set_active_state(db_staff, False)
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
-        return {"status": True, "data": "AD sync is ok"}
+        return all_ok
     except Exception as e:
         log.error(f'update to AD error: {e}')
-        return {"status": False, "data": e}
+        raise Exception(f'AD-EXCEPTION {sys._getframe().f_code.co_name}: {e}')
 
 
 ###############################################################
@@ -753,17 +780,17 @@ def ad_core_wrapper(ctx):
 
 @ad_core_wrapper(StudentContext())
 def student_update(student, data, **kwargs):
-    return __user_update(kwargs["ctx"], student, [STUDENT_OU], data)
+    return __person_update(kwargs["ctx"], student, [STUDENT_OU], data)
 
 @ad_core_wrapper(StaffContext())
 def staff_update(staff, data, **kwargs):
-    return __user_update(kwargs["ctx"], staff, [SEC_OU, TEACHER_OU, STAFF_OU, INACTIVE_OU], data)
+    return __person_update(kwargs["ctx"], staff, [SEC_OU, TEACHER_OU, STAFF_OU, INACTIVE_OU], data)
 
 
-def __user_update(ctx, user_obj, ous_to_check, data):
+def __person_update(ctx, user_obj, ous_to_check, data):
     all_ok = True
     for ou in ous_to_check:
-        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={user_obj.user_id}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail', 'pager'])
+        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={user_obj.person_id}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail', 'pager'])
         if res:
             ad_user = ctx.ldap.response[0]
             if 'rfid' in data:
@@ -799,16 +826,80 @@ def __user_update(ctx, user_obj, ous_to_check, data):
                         __handle_ldap_response(ctx, user_obj, res, f'Delete from group {group}')
                         all_ok = all_ok and res
             changed_attributes = {}
-            if "interim" in data:
+            if "interim" in data and user_obj.profiel != "":
                 # raises an exception when called for a student -> no property "profiel" or "einddatum"
                 prefix = f"(I: {user_obj.einddatum}) " if data["interim"] else ""
                 changed_attributes["physicalDeliveryOfficeName"] = [ldap3.MODIFY_REPLACE, (f'{prefix}{user_obj.profiel}')]
-            if "extra" in data:
+            if "extra" in data and data["extra"] != "":
                 changed_attributes["description"] = [ldap3.MODIFY_REPLACE, (data["extra"])]
+            if "naam" in data and "voornaam" in data:
+                changed_attributes.update({"name": f'{data["naam"]} {data["voornaam"]}', "sn": data["naam"], "givenname": data["voornaam"]})
+            if "email" in data:
+                changed_attributes.update({"mail": data["email"]})
             if changed_attributes:
                 res = ctx.ldap.modify(ad_user['dn'], changes=changed_attributes)
                 __handle_ldap_response(ctx, user_obj, res, f'Changed {changed_attributes}')
             break
+    if not all_ok:
+        log.error(f'{sys._getframe().f_code.co_name}: check logging')
+    return all_ok
+
+
+@ad_core_wrapper(StaffContext())
+def staff_update2(staff, **kwargs):
+    ctx = kwargs["ctx"]
+    all_ok = False
+    for ou in STAFF_OUS:
+        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={staff.person_id}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail', 'pager'])
+        if res:
+            ad_user = ctx.ldap.response[0]
+            changed = json.loads(staff.changed)
+            mask = list(set(STAFF_CHANGED_PROPERTIES_MASK).intersection(changed))
+            if mask:
+                all_ok = True
+                changed_attributes = {}
+                if 'profiel' in mask:
+                    res = ctx.ldap.search(TOP_OU, f'(&(objectclass=group)(member={ad_user["dn"]}))', ldap3.SUBTREE)
+                    all_ok = all_ok and res
+                    groepen = mstaff.profiel_to_groepen(staff.profiel)
+                    if res and groepen:
+                        current_ad_groups = {i["dn"] for i in ctx.ldap.response if "dn" in i}
+                        new_groups = set(groepen)
+                        groups_to_remove = current_ad_groups - new_groups
+                        groups_to_add = new_groups - current_ad_groups
+                        for group in groups_to_add:
+                            res = ctx.ldap.modify(group, {'member': [(ldap3.MODIFY_ADD, ad_user['dn'])]})
+                            __handle_ldap_response(ctx, staff, res, f'Add to group {group}')
+                            all_ok = all_ok and res
+                        for group in groups_to_remove:
+                            res = ctx.ldap.modify(group, {'member': [(ldap3.MODIFY_DELETE, ad_user['dn'])]})
+                            __handle_ldap_response(ctx, staff, res, f'Delete from group {group}')
+                            all_ok = all_ok and res
+                        prefix = f"(I: {staff.einddatum}) " if staff.interim else ""
+                        changed_attributes["physicalDeliveryOfficeName"] = [ldap3.MODIFY_REPLACE, (f'{prefix}{staff.profiel}')]
+                if 'rfid' in mask:
+                    pager = staff.rfid if staff.rfid != "" else []
+                    changed_attributes['pager'] = [ldap3.MODIFY_REPLACE, (pager)]
+                if "interim" in mask and staff.profiel != "":
+                    prefix = f"(I: {staff.einddatum}) " if staff.interim else ""
+                    changed_attributes["physicalDeliveryOfficeName"] = [ldap3.MODIFY_REPLACE, (f'{prefix}{staff.profiel}')]
+                if "extra" in mask:
+                    description = staff.extra if staff.extra != "" else []
+                    changed_attributes["description"] = [ldap3.MODIFY_REPLACE, (description)]
+                if "naam" in mask or "voornaam" in mask:
+                    changed_attributes.update({"displayname":  [ldap3.MODIFY_REPLACE, (f'{staff.naam} {staff.voornaam}')],
+                                               "sn": [ldap3.MODIFY_REPLACE, (staff.naam)],
+                                               "givenname": [ldap3.MODIFY_REPLACE, (staff.voornaam)]})
+                if "email" in mask:
+                    mail = staff.email if staff.email != "" else []
+                    changed_attributes.update({"mail": [ldap3.MODIFY_REPLACE, (mail)]})
+                if changed_attributes:
+                    res = ctx.ldap.modify(ad_user['dn'], changes=changed_attributes)
+                    __handle_ldap_response(ctx, staff, res, f'Changed {changed_attributes}')
+                    all_ok = all_ok and res
+                break
+    else:
+        log.error(f'{sys._getframe().f_code.co_name}: {staff.person_id} not found in AD')
     if not all_ok:
         log.error(f'{sys._getframe().f_code.co_name}: check logging')
     return all_ok
@@ -821,58 +912,80 @@ def staff_add(staff, **kwargs):
     object_class = ['top', 'person', 'organizationalPerson', 'user']
     cn = f'{staff.code}'
     dn = f'CN={cn},{STAFF_OU}'
-    attributes = {'samaccountname': staff.code,
-                  'userprincipalname': f'{staff.code}{ctx.email_domain}',
-                  "physicalDeliveryOfficeName": staff.profiel,
-                  "description": staff.extra,
+    attributes = {'samaccountname': staff.code, 'name': staff.code,
+                  'userprincipalname': f'{staff.code}{STAFF_EMAIL_DOMAIN}',
                   'cn': cn, 'useraccountcontrol': 0X220,  # password not required, normal account, account active
-                  "name": f'{staff.naam} {staff.voornaam}', "sn": staff.naam, "givenname": staff.voornaam}
-    if staff.email != "":
-        attributes["mail"] = staff.email
-    if staff.rfid != "":
-        attributes["pager"] = staff.rfid
+                  "displayname": f'{staff.naam} {staff.voornaam}', "sn": staff.naam, "givenname": staff.voornaam}
     res = ctx.ldap.add(dn, object_class, attributes)
     __handle_ldap_response(ctx, staff, res, f'attributes ({attributes})')
-    if not res:
-        return False
-    return True
+    return res
 
 
-# move to INACTIVE_OU and set inactive or move to STAFF_OU and set active
+# active=False: move to INACTIVE_OU and set inactive
+# active=True: move to STAFF_OU and set active
 @ad_core_wrapper(StaffContext())
 def staff_set_active_state(staff, active=False, **kwargs):
-    to_ou = STAFF_OU if active else INACTIVE_OU
+    all_ok = False
     ctx = kwargs["ctx"]
-    res = ctx.ldap.search(TOP_OU, f'(&(objectclass=user)(samaccountname={staff.code}))', ldap3.SUBTREE, attributes=["userAccountControl", "cn"])
-    if not res:
-        log.error(f'{sys._getframe().f_code.co_name}: staff not found: {staff.code}')
-        return False
-    staff_ad = ctx.ldap.response[0]
-    # change active state
-    account_control = staff_ad['attributes']['userAccountControl']
-    if active:
-        account_control &= ~2  # deactivate
+    for ou in STAFF_OUS:
+        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={staff.code}))', ldap3.SUBTREE, attributes=["userAccountControl", "cn"])
+        if res:
+            to_ou = STAFF_OU if active else INACTIVE_OU
+            all_ok = True
+            staff_ad = ctx.ldap.response[0]
+            # change active state
+            account_control = staff_ad['attributes']['userAccountControl']
+            if active:
+                account_control &= ~2  # deactivate
+            else:
+                account_control |= 2  # activate
+            changes = {'userAccountControl': [(ldap3.MODIFY_REPLACE, [account_control])]}
+            res = ctx.ldap.modify(staff_ad["dn"], changes)
+            all_ok = all_ok and res
+            __handle_ldap_response(ctx, staff, res, f'active is {active}')
+            # move to ou
+            res = ctx.ldap.modify_dn(staff_ad["dn"], f'CN={staff_ad["attributes"]["cn"]}', new_superior=to_ou)
+            all_ok = all_ok and res
+            __handle_ldap_response(ctx, staff, res, f'moved to OU {to_ou}')
+            break
     else:
-        account_control |= 2  # activate
-    changes = {'userAccountControl': [(ldap3.MODIFY_REPLACE, [account_control])]}
-    res = ctx.ldap.modify(staff_ad["dn"], changes)
-    __handle_ldap_response(ctx, staff, res, f'active is {active}')
-    # move to ou
-    res = ctx.ldap.modify_dn(staff_ad["dn"], f'CN={staff_ad["attributes"]["cn"]}', new_superior=to_ou)
-    __handle_ldap_response(ctx, staff, res, f'moved to OU {to_ou}')
-    return True
+        log.error(f'{sys._getframe().f_code.co_name}: {staff.person_id} not found in AD')
+    return all_ok
 
 
-@ad_core_wrapper(StaffContext())
-def staff_get(samaccountname, **kwargs):
+@ad_core_wrapper(PersonContext())
+def person_get(samaccountname, **kwargs):
     ctx = kwargs["ctx"]
-    for ou in [SEC_OU, ACCOUNTS_OU]:
+    for ou in STAFF_OUS + STUDENT_OUS:
         res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={samaccountname}))', ldap3.SUBTREE)
         if res:
-            ret = ctx.ldap.response
-            __ldap_deinit(ctx)
-            return ret
+            return ctx.ldap.response
+    else:
+        log.error(f'{sys._getframe().f_code.co_name}: {samaccountname} not found in AD')
     return None
+
+
+@ad_core_wrapper(PersonContext())
+def person_set_password(person, password, must_update=False, **kwargs):
+    ctx = kwargs["ctx"]
+    all_ok = True
+    for ou in STAFF_OUS + STUDENT_OUS:
+        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={person.person_id}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail', 'pager'])
+        if res:
+            ad_user = ctx.ldap.response[0]
+            res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, ad_user['dn'], password, None)
+            __handle_ldap_response(ctx, person, res, f'update PASSWORD')
+            all_ok = all_ok and res
+            if must_update:
+                res = ctx.ldap.modify(ad_user['dn'], changes={"pwdLastSet": (ldap3.MODIFY_REPLACE, [0])})
+                __handle_ldap_response(ctx, person, res, f'set person-must-set-password-at-next-login')
+                all_ok = all_ok and res
+            break
+    else:
+        log.error(f'{sys._getframe().f_code.co_name}: {person.person_id} not found in AD')
+    if not all_ok:
+        log.error(f'{sys._getframe().f_code.co_name}: check logging')
+    return all_ok
 
 
 

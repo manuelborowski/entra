@@ -1,8 +1,19 @@
 import sys, json, datetime
-from app import log, db
+
+import app.data.formio
+from app import db
 import app.data.models
 from sqlalchemy import text, func, desc
 from sqlalchemy_serializer import SerializerMixin
+from app.data.formio import iso_datestring_to_date
+from app.data import settings as msettings
+
+
+#logging on file level
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
 
 
 class Staff(db.Model, SerializerMixin):
@@ -26,7 +37,7 @@ class Staff(db.Model, SerializerMixin):
     email = db.Column(db.String(256), default='')
     prive_email = db.Column(db.String(256), default='')
     rfid = db.Column(db.String(256), default='')
-    profiel = db.Column(db.String(256), default="leerkracht")
+    profiel = db.Column(db.String(256), default='["lkr"]')
     interim = db.Column(db.Boolean, default=False)
     extra = db.Column(db.TEXT, default='')
     einddatum = db.Column(db.Date)
@@ -46,7 +57,7 @@ class Staff(db.Model, SerializerMixin):
         return "JA" if self.stamboeknummer != "" else "NEE"
 
     @property
-    def user_id(self):
+    def person_id(self):
         return self.code
 
 
@@ -80,7 +91,7 @@ def staff_get_m(data={}, fields=[], order_by=None, first=False, count=False, act
     return app.data.models.get_multiple(Staff, data=data, fields=fields, order_by=order_by, first=first, count=count, active=active)
 
 
-def staff_get_first(data={}):
+def staff_get(data={}):
     return app.data.models.get_first_single(Staff, data)
 
 
@@ -130,6 +141,28 @@ def staff_flag_m(data = []):
     return None
 
 
+def profiel_to_groepen(profiel):
+    profile_settings = msettings.get_configuration_setting("ad-staff-profiles")
+    groepen = set()
+    for p in profile_settings:
+        if p[0] in profiel:
+            groepen |= set(p[2])
+    return list(groepen)
+
+
+# massage the incoming data
+def massage_data(data):
+    try:
+        if "profiel" in data:
+            data["profiel"] = json.dumps(data["profiel"])
+        if "einddatum" in data:
+            data['einddatum'] = iso_datestring_to_date(data['einddatum'])
+        return data
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        raise e
+
+
 ############ staff overview list #########
 def pre_sql_query():
     return db.session.query(Staff).filter(Staff.active == True)
@@ -144,4 +177,5 @@ def pre_sql_search(search_string):
     search_constraints.append(Staff.naam.like(search_string))
     search_constraints.append(Staff.voornaam.like(search_string))
     return search_constraints
+
 

@@ -7,7 +7,7 @@ const badge_raw2hex = code => {
             '&': '1', 'É': '2', '"': '3', '\'': '4', '(': '5', '§': '6', 'È': '7', '!': '8', 'Ç': '9',
             'À': '0', 'A': 'A', 'B': 'B', 'C': 'C', 'D': 'D', 'E': 'E', 'F': 'F'
         };
-        for (r of code) {
+        for (let r of code) {
             out += dd[r.toUpperCase()];
         }
         return out
@@ -111,6 +111,8 @@ export async function check_rfid(ids, update_endpoint) {
                             },
                         }
                     })
+                } else {
+                   bootbox.alert("Geen geldige RFID code");
                 }
             }
         }
