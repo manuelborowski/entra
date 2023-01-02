@@ -91,7 +91,7 @@ def api_staff_update(data):
         if "password_data" in data:
             new_password = data["password_data"]["password"]
             must_change_password = data["password_data"]["must_update"]
-            ad_ok = ad_ok and mad.person_set_password(db_staff, new_password, must_change_password)
+            ad_ok = ad_ok and mad.person_set_password(db_staff, new_password, must_change_password, True)
             data["password_data"] = "xxx"
         else:
             data = mstaff.massage_data(data)
