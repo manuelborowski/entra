@@ -43,7 +43,7 @@ import app
 from app.data import student as mstudent, staff as mstaff
 from app.data import settings as msettings
 from app.application.email import  send_new_staff_message
-import ldap3, json, sys
+import ldap3, json, sys, datetime
 from functools import wraps
 from app.application.util import get_student_voornaam
 
@@ -710,8 +710,9 @@ class StaffContext(PersonContext):
         super().__init__()
 
 
+# for new staff, the new and changed properties are valid.  So, a staff is considered changed only when its changed property is set AND new is FALSE
 # opaque can be used to pass a list of staff.  In that case, only the list is considered for new, changed or delete
-def process_add_update_delete_staff(opaque=None):
+def staff_process_flagged(opaque=None):
     try:
         all_ok = True
         log.info(f"{sys._getframe().f_code.co_name}, START")
@@ -727,10 +728,11 @@ def process_add_update_delete_staff(opaque=None):
             ad_staff = person_get(db_staff.code)
             if ad_staff: # already present in AD -> activate
                 log.info(f'{sys._getframe().f_code.co_name}, staff with {db_staff.code} already exists in AD, re-activate')
+                all_ok = all_ok and staff_set_active_state(db_staff, active=True)
             else:
                 all_ok = all_ok and staff_add(db_staff)
             default_password = msettings.get_configuration_setting("generic-standard-password")
-            all_ok = all_ok and person_set_password(db_staff, default_password)
+            all_ok = all_ok and person_set_password(db_staff, default_password, never_expires=True)
             db_staff.changed = json.dumps(STAFF_CHANGED_PROPERTIES_MASK)
             all_ok = all_ok and staff_update2(db_staff)
             if all_ok and db_staff.prive_email:
@@ -883,11 +885,13 @@ def staff_update2(staff, **kwargs):
                 if "interim" in mask and staff.profiel != "":
                     prefix = f"(I: {staff.einddatum}) " if staff.interim else ""
                     changed_attributes["physicalDeliveryOfficeName"] = [ldap3.MODIFY_REPLACE, (f'{prefix}{staff.profiel}')]
+                    expire_date = datetime.datetime.combine(staff.einddatum, datetime.datetime.min.time()) if staff.interim else datetime.datetime(9999, 12, 30, 23, 59, 59, 9999)
+                    changed_attributes.update({"accountexpires": [ldap3.MODIFY_REPLACE, (expire_date)]})
                 if "extra" in mask:
                     description = staff.extra if staff.extra != "" else []
                     changed_attributes["description"] = [ldap3.MODIFY_REPLACE, (description)]
                 if "naam" in mask or "voornaam" in mask:
-                    changed_attributes.update({"displayname":  [ldap3.MODIFY_REPLACE, (f'{staff.naam} {staff.voornaam}')],
+                    changed_attributes.update({"displayname":  [ldap3.MODIFY_REPLACE, (f'{staff.voornaam} {staff.naam}')],
                                                "sn": [ldap3.MODIFY_REPLACE, (staff.naam)],
                                                "givenname": [ldap3.MODIFY_REPLACE, (staff.voornaam)]})
                 if "email" in mask:
@@ -897,7 +901,7 @@ def staff_update2(staff, **kwargs):
                     res = ctx.ldap.modify(ad_user['dn'], changes=changed_attributes)
                     __handle_ldap_response(ctx, staff, res, f'Changed {changed_attributes}')
                     all_ok = all_ok and res
-                break
+            break
     else:
         log.error(f'{sys._getframe().f_code.co_name}: {staff.person_id} not found in AD')
     if not all_ok:
@@ -908,17 +912,19 @@ def staff_update2(staff, **kwargs):
 # required fields in data: code, profiel, naam, voornaam
 @ad_core_wrapper(StaffContext())
 def staff_add(staff, **kwargs):
+    all_ok = True
     ctx = kwargs["ctx"]
     object_class = ['top', 'person', 'organizationalPerson', 'user']
-    cn = f'{staff.code}'
+    cn = f'{staff.naam} {staff.voornaam}'
     dn = f'CN={cn},{STAFF_OU}'
-    attributes = {'samaccountname': staff.code, 'name': staff.code,
+
+    attributes = {'samaccountname': staff.code, 'name': f'{staff.naam} {staff.voornaam}',
                   'userprincipalname': f'{staff.code}{STAFF_EMAIL_DOMAIN}',
-                  'cn': cn, 'useraccountcontrol': 0X220,  # password not required, normal account, account active
-                  "displayname": f'{staff.naam} {staff.voornaam}', "sn": staff.naam, "givenname": staff.voornaam}
+                  'cn': cn, 'useraccountcontrol': 0X220}
     res = ctx.ldap.add(dn, object_class, attributes)
+    all_ok = all_ok and res
     __handle_ldap_response(ctx, staff, res, f'attributes ({attributes})')
-    return res
+    return all_ok
 
 
 # active=False: move to INACTIVE_OU and set inactive
@@ -961,12 +967,12 @@ def person_get(samaccountname, **kwargs):
         if res:
             return ctx.ldap.response
     else:
-        log.error(f'{sys._getframe().f_code.co_name}: {samaccountname} not found in AD')
+        log.info(f'{sys._getframe().f_code.co_name}: {samaccountname} not found in AD')
     return None
 
 
 @ad_core_wrapper(PersonContext())
-def person_set_password(person, password, must_update=False, **kwargs):
+def person_set_password(person, password, must_update=False, never_expires=False, **kwargs):
     ctx = kwargs["ctx"]
     all_ok = True
     for ou in STAFF_OUS + STUDENT_OUS:
@@ -975,6 +981,11 @@ def person_set_password(person, password, must_update=False, **kwargs):
             ad_user = ctx.ldap.response[0]
             res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, ad_user['dn'], password, None)
             __handle_ldap_response(ctx, person, res, f'update PASSWORD')
+            all_ok = all_ok and res
+            user_account_control = 0x10200 if never_expires else 0x200
+            attributes = {'useraccountcontrol': [ldap3.MODIFY_REPLACE, (user_account_control)]}
+            res = ctx.ldap.modify(ad_user['dn'], changes=attributes)
+            __handle_ldap_response(ctx, person, res, f'Set password-never-expires {attributes}')
             all_ok = all_ok and res
             if must_update:
                 res = ctx.ldap.modify(ad_user['dn'], changes={"pwdLastSet": (ldap3.MODIFY_REPLACE, [0])})

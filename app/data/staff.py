@@ -60,6 +60,10 @@ class Staff(db.Model, SerializerMixin):
     def person_id(self):
         return self.code
 
+    @property
+    def einddatum_date(self):
+        return self.einddatum
+
 
 def get_columns():
     return [p for p in dir(Staff) if not p.startswith('_')]
@@ -157,6 +161,8 @@ def massage_data(data):
             data["profiel"] = json.dumps(data["profiel"])
         if "einddatum" in data:
             data['einddatum'] = iso_datestring_to_date(data['einddatum'])
+        if "interim" in data and not data["interim"]:
+            data["einddatum"] = None
         return data
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')

@@ -271,14 +271,13 @@ def get_and_increment_default_student_code():
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
-# Read from formio text-area and format a list.
-# Lines with # are ignored
+# Lines with # or empty lines are ignored
 def get_list(list_name):
     out = []
-    recepients = get_configuration_setting(list_name)
-    if recepients != '':
-        recepients = recepients.split('\n')
-        out = [r.strip() for r in recepients if '#' not in r]
+    settings_list = get_configuration_setting(list_name)
+    if settings_list != '':
+        settings_list = settings_list.split('\n')
+        out = [r.strip() for r in settings_list if '#' not in r and r !=""]
     return out
 
 

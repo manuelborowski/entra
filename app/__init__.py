@@ -147,7 +147,6 @@ class MyBufferingHandler(logging.handlers.BufferingHandler):
         if len(self.buffer) > 1:
             message_body = ""
             for b in self.buffer:
-                print(self.format(b))
                 message_body += self.format(b) + "<br>"
             with flask_app.app_context():
                 if email_log_handler:

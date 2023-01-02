@@ -11,16 +11,22 @@ log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
 
-def staff_delete(ids):
+def staff_delete_m(ids):
     mstaff.staff_delete_m(ids)
 
 
-# do not deactivate, but delete
-def cron_task_deactivate_deleted_staff(opaque=None):
+# delete staff that is flagged delete
+# reset new and changed flags
+def staff_post_processing(opaque=None):
     try:
         deleted_staffs = mstaff.staff_get_m({"delete": True})
         mstaff.staff_delete_m(staffs=deleted_staffs)
-        log.info(f"deleted {len(deleted_staffs)} staffs")
+        log.info(f"deleted {len(deleted_staffs)} staff")
+        changed_new_staff = mstaff.staff_get_m({"-changed": "", "new": True})
+        for staff in changed_new_staff:
+            mstaff.staff_update(staff, {"changed": "", "new": False}, commit=False)
+        mstaff.commit()
+        log.info(f"new, changed {len(changed_new_staff)} staff")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
@@ -62,7 +68,7 @@ def api_staff_add(data):
         db_staff = mstaff.staff_add(data)
         if db_staff:
             db_ok = True
-            ad_ok = mad.process_add_update_delete_staff([db_staff])
+            ad_ok = mad.staff_process_flagged([db_staff])
             papercut_ok = mpapercut.person_add(db_staff)
             db_staff = mstaff.staff_update(db_staff, {"changed": "", "new": False, "delete": False})
         if db_ok and ad_ok and papercut_ok:
@@ -79,27 +85,29 @@ def api_staff_add(data):
 # manually update (some) properties
 def api_staff_update(data):
     try:
-        db_ok = papercut_ok = ad_ok = False
+        db_ok = papercut_ok = ad_ok = True
         error_data = ''
         db_staff = mstaff.staff_get({'id': data['id']})
-        data = mstaff.massage_data(data)
-        if "rfid" in data:
-            if mperson.check_if_rfid_already_exists(data["rfid"]):
-                error_data = f'RFID {data["rfid"]} bestaat al voor {db_staff.person_id}<db>'
-                del (data["rfid"])
-        changed_attributes = [k for k, v in data.items() if hasattr(db_staff, k) and v != getattr(db_staff, k)]
-        data.update({"changed": json.dumps(changed_attributes)})
-        db_staff = mstaff.staff_update(db_staff, data)
-        if db_staff:
-            db_ok = True
-            ad_ok = mad.process_add_update_delete_staff([db_staff])
-            papercut_ok = mpapercut.person_update(db_staff, data)
-        db_staff = mstaff.staff_update(db_staff, {"changed": "", "new": False, "delete": False})
-        new_password = data["new-password"] if "new-password" in data else None
-        must_change_password = data["user-must-update-password"] if "user-must-update-password" in data else False
-        if new_password:
+        if "password_data" in data:
+            new_password = data["password_data"]["password"]
+            must_change_password = data["password_data"]["must_update"]
             ad_ok = ad_ok and mad.person_set_password(db_staff, new_password, must_change_password)
-            data["new-password"] = "xxx"
+            data["password_data"] = "xxx"
+        else:
+            data = mstaff.massage_data(data)
+            if "rfid" in data:
+                if mperson.check_if_rfid_already_exists(data["rfid"]):
+                    error_data = f'RFID {data["rfid"]} bestaat al voor {db_staff.person_id}<db>'
+                    del (data["rfid"])
+            changed_attributes = [k for k, v in data.items() if hasattr(db_staff, k) and v != getattr(db_staff, k)]
+            data = {k: v for k,v in data.items() if k in changed_attributes}
+            data.update({"changed": json.dumps(changed_attributes)})
+            db_staff = mstaff.staff_update(db_staff, data)
+            db_ok = db_staff is not None
+            if db_staff:
+                ad_ok = ad_ok and mad.staff_process_flagged([db_staff])
+                papercut_ok = papercut_ok and mpapercut.person_update(db_staff, data)
+            db_staff = mstaff.staff_update(db_staff, {"changed": "", "new": False, "delete": False})
         if db_ok and ad_ok and papercut_ok:
             log.info(f'{sys._getframe().f_code.co_name}: DB {db_ok}, AD {ad_ok}, PAPERCUT {papercut_ok}, data {data}')
             return {"status": True, "data": f"Personeelslid {db_staff.code} is aangepast"}
@@ -126,7 +134,7 @@ def api_staff_delete(data):
         if staff_to_delete:
             for staff in staff_to_delete:
                 mstaff.staff_update(staff, {"changed": "", "new": False, "delete": True})
-            mad.process_add_update_delete_staff(staff_to_delete)
+            mad.staff_process_flagged(staff_to_delete)
             mpapercut.person_delete_m(staff_to_delete)
             mstaff.staff_delete_m(staffs=staff_to_delete)
         if staff_from_wisa:

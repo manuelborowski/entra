@@ -31,6 +31,9 @@ def student_from_wisa_to_database(local_file=None, max=0):
             log.info(f'Reading from local file {local_file}')
             response_text = open(local_file).read()
         else:
+            # prevent accidental import from WISA
+            log.error("NO IMPORT FROM WISA ALLOWED")
+            return
             login = msettings.get_configuration_setting('wisa-login')
             password = msettings.get_configuration_setting('wisa-password')
             base_url = msettings.get_configuration_setting('wisa-url')
@@ -183,6 +186,9 @@ def staff_from_wisa_to_database(local_file=None, max=0):
             log.info(f'Reading from local file {local_file}')
             response_text = open(local_file).read()
         else:
+            # prevent accidental import from WISA
+            log.error("NO IMPORT FROM WISA ALLOWED")
+            return
             login = msettings.get_configuration_setting('wisa-login')
             password = msettings.get_configuration_setting('wisa-password')
             base_url = msettings.get_configuration_setting('wisa-url')
@@ -228,19 +234,21 @@ def staff_from_wisa_to_database(local_file=None, max=0):
                 wisa_item['email'] = f"{wisa_item['voornaam'].translate(normalize_letters).lower()}.{wisa_item['naam'].translate(normalize_letters).lower()}@campussintursula.be"
             wisa_item["prive_email"] = prive_email
             if wisa_item['code'] in staff_in_db:
-                # staff-member already exists in database
-                # check if a staff-member has updated properties
+                # staff-member already exists in database, check if a staff-member has updated properties
                 changed_properties = []
                 staff = staff_in_db[wisa_item['code']]
                 for k, v in wisa_item.items():
                     if hasattr(staff, k) and v != getattr(staff, k):
                         changed_properties.append(k)
+                # if the naam or voornaam changes AND the email is already set in the database THEN ignore the new email (will cause confusion)
+                if "email" in changed_properties and staff.email != "":
+                    changed_properties.remove("email")
                 if changed_properties:
                     changed_properties.extend(['delete', 'new'])  # staff-member already present, but has changed properties
                     wisa_item.update({'changed': changed_properties, 'staff': staff, 'delete': False, 'new': False})
                     changed_list.append(wisa_item)
                 else:
-                    flag_list.append({'changed': '', 'delete': False, 'new': False, 'staff': staff}) # staff-mmeber already present, no change
+                    flag_list.append({'changed': '', 'delete': False, 'new': False, 'staff': staff}) # staff already present, no change
                 del(staff_in_db[wisa_item['code']])
             else:
                 # staff-member not present in database, i.e. a new staff-member
@@ -298,7 +306,6 @@ def cront_task_wisa_get_staff(opaque=None):
                 current_wisa_file = wisa_files[new_index]
             msettings.set_configuration_setting('test-staff-wisa-current-json', current_wisa_file)
             staff_from_wisa_to_database(local_file=current_wisa_file)
-
         else:
             staff_from_wisa_to_database()
 

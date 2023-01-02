@@ -1,5 +1,5 @@
 from app import log, db
-import sys
+import sys, datetime
 from babel.dates import get_day_names, get_month_names
 from sqlalchemy import text, desc
 from app.data import settings as msettings
@@ -82,7 +82,7 @@ def update_single(model, obj, data={}, commit=True):
     try:
         for k, v in data.items():
             if hasattr(obj, k):
-                if getattr(model, k).expression.type.python_type == type(v):
+                if getattr(model, k).expression.type.python_type == type(v) or isinstance(getattr(model, k).expression.type, db.Date) and v == None:
                     setattr(obj, k, v.strip() if isinstance(v, str) else v)
         if commit:
             db.session.commit()
