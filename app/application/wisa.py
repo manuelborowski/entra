@@ -32,8 +32,8 @@ def student_from_wisa_to_database(local_file=None, max=0):
             response_text = open(local_file).read()
         else:
             # prevent accidental import from WISA
-            log.error("NO IMPORT FROM WISA ALLOWED")
-            return
+            # log.error("NO IMPORT FROM WISA ALLOWED")
+            # return
             login = msettings.get_configuration_setting('wisa-login')
             password = msettings.get_configuration_setting('wisa-password')
             base_url = msettings.get_configuration_setting('wisa-url')
@@ -68,7 +68,7 @@ def student_from_wisa_to_database(local_file=None, max=0):
                 current_schoolyear = f'{now.year}-{now.year+1}'
                 prev_schoolyear = f'{now.year-1}-{now.year}'
             msettings.set_changed_schoolyear(prev_schoolyear, current_schoolyear)
-        students = mstudent.get_students()
+        students = mstudent.student_get_m()
         if students:
             db_students = {s.leerlingnummer: s for s in students}
             current_schoolyear = students[0].schooljaar
@@ -162,11 +162,11 @@ def student_from_wisa_to_database(local_file=None, max=0):
                 flag_list.append({'changed': '', 'delete': True, 'new': False, 'student': v})
                 nbr_deleted += 1
         # add the new students to the database
-        mstudent.add_students(new_list)
+        mstudent.student_add_m(new_list)
         # update the changed properties of the students
-        mstudent.change_students(changed_list, overwrite=True) # previous changes are lost
+        mstudent.student_change_m(changed_list, overwrite=True) # previous changes are lost
         # deleted students and students that are not changed, set the flags correctly
-        mstudent.flag_students(flag_list)
+        mstudent.student_flag_m(flag_list)
         # if required, update the current and previous schoolyear (normally at the beginning of a new schoolyear)
         if new_list:
             if new_list[0]['schooljaar'] != current_schoolyear:
@@ -187,8 +187,8 @@ def staff_from_wisa_to_database(local_file=None, max=0):
             response_text = open(local_file).read()
         else:
             # prevent accidental import from WISA
-            log.error("NO IMPORT FROM WISA ALLOWED")
-            return
+            # log.error("NO IMPORT FROM WISA ALLOWED")
+            # return
             login = msettings.get_configuration_setting('wisa-login')
             password = msettings.get_configuration_setting('wisa-password')
             base_url = msettings.get_configuration_setting('wisa-url')

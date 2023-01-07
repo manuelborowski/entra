@@ -19,10 +19,12 @@ def staff_delete_m(ids):
 # reset new and changed flags
 def staff_post_processing(opaque=None):
     try:
+        log.info(f'{sys._getframe().f_code.co_name}: START')
         deleted_staffs = mstaff.staff_get_m({"delete": True})
         mstaff.staff_delete_m(staffs=deleted_staffs)
         log.info(f"deleted {len(deleted_staffs)} staff")
-        changed_new_staff = mstaff.staff_get_m({"-changed": "", "new": True})
+        changed_new_staff = mstaff.staff_get_m({"-changed": ""})
+        changed_new_staff.extend(mstaff.staff_get_m({"new": True}))
         for staff in changed_new_staff:
             mstaff.staff_update(staff, {"changed": "", "new": False}, commit=False)
         mstaff.commit()
@@ -96,8 +98,9 @@ def api_staff_update(data):
         else:
             data = mstaff.massage_data(data)
             if "rfid" in data:
-                if mperson.check_if_rfid_already_exists(data["rfid"]):
-                    error_data = f'RFID {data["rfid"]} bestaat al voor {db_staff.person_id}<db>'
+                person = mperson.check_if_rfid_already_exists(data["rfid"])
+                if person:
+                    error_data = f'RFID {data["rfid"]} bestaat al voor {person.person_id}<db>'
                     del (data["rfid"])
             changed_attributes = [k for k, v in data.items() if hasattr(db_staff, k) and v != getattr(db_staff, k)]
             data = {k: v for k,v in data.items() if k in changed_attributes}
@@ -110,12 +113,15 @@ def api_staff_update(data):
             db_staff = mstaff.staff_update(db_staff, {"changed": "", "new": False, "delete": False})
         if db_ok and ad_ok and papercut_ok:
             log.info(f'{sys._getframe().f_code.co_name}: DB {db_ok}, AD {ad_ok}, PAPERCUT {papercut_ok}, data {data}')
-            return {"status": True, "data": f"Personeelslid {db_staff.code} is aangepast"}
+            log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
+            return {"status": True, "data": f"Personeelslid {db_staff.person_id} is aangepast"}
         else:
             log.error(f'{sys._getframe().f_code.co_name}: DB {db_ok}, AD {ad_ok}, PAPERCUT {papercut_ok}, data {data}')
-            return {"status": False, "data": f"Fout, kan {db_staff.code} niet aanpassen.<db>{error_data}"}
+            log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
+            return {"status": False, "data": f"Fout, kan {db_staff.person_id} niet aanpassen.<db>{error_data}"}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
         raise Exception(f'STAFF-EXCEPTION {sys._getframe().f_code.co_name}: {e}')
 
 

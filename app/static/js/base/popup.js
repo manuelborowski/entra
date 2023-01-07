@@ -126,7 +126,7 @@ export const formio_popup_subscribe_event = (event, cb, opaque) => {
     });
 }
 
-const formio_popup_set_value = (key, value) => {
+export const formio_popup_set_value = (key, value) => {
     try {
         formio_popup_form.getComponent(key).setValue(value);
     } catch (error) {

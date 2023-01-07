@@ -48,7 +48,7 @@ def badge_add(student_ids):
         delete_badges = []
         saved_photos = {p.id : p.photo for p in mphoto.get_photos()}
         for student_id in student_ids:
-            student = mstudent.get_first_student({'id': student_id})
+            student = mstudent.student_get({'id': student_id})
             if student:
                 badge = mcardpresso.get_first_badge({'leerlingnummer': student.leerlingnummer})
                 if badge:
@@ -100,10 +100,10 @@ check_properties_changed = ['middag', 'vsknummer', 'photo', 'schooljaar', 'klasc
 def badge_process_new(topic=None, opaque=None):
     try:
         with flask_app.app_context():
-            new_students = mstudent.get_students({'new': True})
+            new_students = mstudent.student_get_m({'new': True})
             ids = [student.id for student in new_students]
             badge_add(ids)
-            updated_students = mstudent.get_students({'-changed': '', 'new': False})  # find students with changed property not equal to '' and not new
+            updated_students = mstudent.student_get_m({'-changed': '', 'new': False})  # find students with changed property not equal to '' and not new
             if updated_students:
                 ids = []
                 for student in updated_students:
@@ -111,7 +111,7 @@ def badge_process_new(topic=None, opaque=None):
                     if list(set(check_properties_changed).intersection(changed)):
                         ids.append(student.id)
                 badge_add(ids)
-            deleted_students = mstudent.get_students({'delete': True})
+            deleted_students = mstudent.student_get_m({'delete': True})
             if deleted_students:
                 data = [{"leerlingnummer": s.leerlingnummer } for s in deleted_students]
                 old_badges = mcardpresso.get_badges(data)
@@ -130,7 +130,7 @@ def rfid_check_for_new():
         deleted_badges = []
         badges = mcardpresso.get_badges({'changed': '["rfid"]'})
         if badges:
-            saved_students = {s.leerlingnummer: s for s in mstudent.get_students({'delete': False})}
+            saved_students = {s.leerlingnummer: s for s in mstudent.student_get_m({'delete': False})}
             for badge in badges:
                 if badge.rfid != '':
                     if badge.leerlingnummer in saved_students:
@@ -141,7 +141,7 @@ def rfid_check_for_new():
                         log.info(f'{sys._getframe().f_code.co_name}: {badge.leerlingnummer} not found')
                     deleted_badges.append(badge.id)
             if changed_students:
-                mstudent.change_students(changed_students)
+                mstudent.student_change_m(changed_students)
             if deleted_badges:
                 mcardpresso.delete_badges(deleted_badges)
         log.info(f'check_for_new_rfid: updated {len(changed_students)} rfids of students')

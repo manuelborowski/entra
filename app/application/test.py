@@ -11,9 +11,9 @@ def test_cron_task(opaque=None):
     if msettings.get_configuration_setting('test-prepare'):
         log.info('TEST: prepare for testing students...')
         msettings.set_configuration_setting('test-prepare', False)
-        all_students = mstudent.get_students()
-        all_students.extend(mstudent.get_students(active=False))
-        mstudent.delete_students(students=all_students)
+        all_students = mstudent.student_get_m()
+        all_students.extend(mstudent.student_get_m(active=False))
+        mstudent.student_delete_m(students=all_students)
         msettings.set_configuration_setting('sdh-prev-schoolyear', '')
         msettings.set_configuration_setting('sdh-current-schoolyear', '')
         msettings.set_configuration_setting('sdh-schoolyear-changed', False)

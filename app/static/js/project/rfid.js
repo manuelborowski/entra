@@ -69,11 +69,7 @@ const badge_raw2hex = code => {
 }
 
 async function rfid_to_server(id, rfid, update_endpoint) {
-    const ret = await fetch(Flask.url_for(update_endpoint), {
-        headers: {'x-api-key': api_key,},
-        method: 'POST',
-        body: JSON.stringify({id, rfid}),
-    });
+    const ret = await fetch(Flask.url_for(update_endpoint), {headers: {'x-api-key': api_key,}, method: 'POST', body: JSON.stringify({id, rfid}),});
     const status = await ret.json();
     if (status.status) {
         update_cell(id, 'rfid', rfid);

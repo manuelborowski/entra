@@ -1,4 +1,4 @@
-from app.data.student import get_first_student
+from app.data.student import student_get
 from app.data.staff import staff_get
 import sys
 
@@ -14,11 +14,11 @@ def check_if_rfid_already_exists(rfid):
         staff = staff_get(data={"rfid": rfid})
         if staff:
             log.error(f'{sys._getframe(1).f_code.co_name}: RFID {rfid} already exists for {staff.person_id}')
-            return True
-        student = get_first_student(data={"rfid": rfid})
+            return staff
+        student = student_get(data={"rfid": rfid})
         if student:
             log.error(f'{sys._getframe(1).f_code.co_name}: RFID {rfid} already exists for {student.person_id}')
-            return True
-    return False
+            return student
+    return None
 
 

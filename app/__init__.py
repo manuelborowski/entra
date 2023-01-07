@@ -92,11 +92,11 @@ flask_app.config.from_pyfile('config.py')
 # 0.71: add staff: send email to new staff.  Bugfix wisa-import: exception when a field is present in the import which is not present in the Staff/Student class
 # 0.72: error logs can be mailed.  Small bugfix in student-computers.  Import students: protect from student being present twice
 # 0.73: import staff from wisa AND adding staff manually is ok.
-
+# 1.0: version 1.0
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V0.73', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V1.0', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 db = SQLAlchemy()

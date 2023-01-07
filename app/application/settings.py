@@ -13,6 +13,10 @@ def set_configuration_setting(setting, value):
     msettings.set_configuration_setting(setting, value)
 
 
+def get_list(list_name):
+    return msettings.get_list(list_name)
+
+
 def set_setting_topic(settings):
     try:
         for _, container in settings.items():

@@ -7,8 +7,8 @@ from app.application.wisa import cront_task_wisa_get_staff
 from app.application.student import cront_task_vsk_numbers
 from app.application.cardpresso import cron_task_new_badges
 from app.application.cardpresso import cron_task_new_rfid_to_database
-from app.application.ad import cron_task_ad_student, staff_process_flagged, cron_task_ad_get_student_computer
-from app.application.student import cron_task_delete_marked_students
+from app.application.ad import student_process_flagged, staff_process_flagged, student_cron_task_get_computer
+from app.application.student import student_post_processing
 from app.application.staff import staff_post_processing
 from app.application.student import cron_task_schoolyear_clear_changed_flag
 
@@ -21,10 +21,10 @@ cron_table = [
     ('VSK-NUMMERS', cront_task_vsk_numbers, 'NAAR SDH, Vsk nummers bijwerken', ''),
     ('CARDPRESSO-NEW', cron_task_new_badges, 'NAAR cardpresso, nieuwe badges klaarmaken', ''),
     ('CARDPRESSO-RFID', cron_task_new_rfid_to_database, 'VAN cardpresso, RFID van studenten bijwerken', ''),
-    ('AD-STUDENT', cron_task_ad_student, 'NAAR AD, studenten bijwerken', ''),
+    ('AD-STUDENT', student_process_flagged, 'NAAR AD, studenten bijwerken', ''),
     ('AD-STAFF', staff_process_flagged, 'NAAR AD, personeel bijwerken', ''),
-    ('AD-COMPUTER', cron_task_ad_get_student_computer, 'NAAR SDH, computer van studenten bijwerken', ''),
-    ('SDH-MARKED-STUDENT', cron_task_delete_marked_students, 'NAAR SDH, verwijder gemarkeerde studenten', 'studenten die gemarkeerd zijn als delete worden uit de database verwijderd.  CHECK om de goede werking te verzekeren'),
+    ('AD-COMPUTER', student_cron_task_get_computer, 'NAAR SDH, computer van studenten bijwerken', ''),
+    ('SDH-MARKED-STUDENT', student_post_processing, 'NAAR SDH, verwijder gemarkeerde studenten', 'studenten die gemarkeerd zijn als delete worden uit de database verwijderd.  CHECK om de goede werking te verzekeren'),
     ('SDH-MARKED-STAFF', staff_post_processing, 'NAAR SDH, verwijder gemarkeerde personeelsleden', 'personeelsleden die gemarkeerd zijn als delete worden uit de database verwijderd.  CHECK om de goede werking te verzekeren'),
     ('SDH-SCHOOLYEAR-CHANGED', cron_task_schoolyear_clear_changed_flag, 'NAAR SDH, wis schooljaar-is-veranderd-vlag', ''),
 ]

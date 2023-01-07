@@ -113,27 +113,27 @@ def commit():
     return app.data.models.commit()
 
 
-def add_student(data = {}, commit=True):
+def student_add(data = {}, commit=True):
     return app.data.models.add_single(Student, data, commit)
 
 
-def add_students(data = []):
+def student_add_m(data = []):
     return app.data.models.add_multiple(Student, data)
 
 
-def update_student(student, data={}, commit=True):
-    return app.data.models.update_single(Student, data, commit)
+def student_update(student, data={}, commit=True):
+    return app.data.models.update_single(Student, student, data, commit)
 
 
-def delete_students(ids=[], students=[]):
+def student_delete_m(ids=[], students=[]):
     return app.data.models.delete_multiple(ids, students)
 
 
-def get_students(data={}, fields=[], order_by=None, first=False, count=False, active=True):
+def student_get_m(data={}, fields=[], order_by=None, first=False, count=False, active=True):
     return app.data.models.get_multiple(Student, data=data, fields=fields, order_by=order_by, first=first, count=count, active=active)
 
 
-def get_first_student(data={}):
+def student_get(data={}):
     return app.data.models.get_first_single(Student, data)
 
 
@@ -144,7 +144,7 @@ def get_first_student(data={}):
 # property#1: the first property changed
 # property#2: ....
 # overwrite: if True, overwrite the changed field, else extend the changed field
-def change_students(data=[], overwrite=False):
+def student_change_m(data=[], overwrite=False):
     try:
         for d in data:
             student = d['student']
@@ -171,7 +171,7 @@ def change_students(data=[], overwrite=False):
     return None
 
 
-def flag_students(data=[]):
+def student_flag_m(data=[]):
     try:
         for d in data:
             student = d['student']

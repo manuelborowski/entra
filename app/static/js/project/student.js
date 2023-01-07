@@ -74,6 +74,6 @@ async function new_vsk_numbers() {
 }
 
 subscribe_right_click('new-vsk-numbers', (item, ids) => new_vsk_numbers());
-subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.update_student'));
-subscribe_right_click('update-password', (item, ids) => update_password(ids,'api.update_student', ctx.popups['update-password']));
+subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.student_update'));
+subscribe_right_click('update-password', (item, ids) => update_password(ids,'api.student_update', ctx.popups['update-password']));
 subscribe_right_click('database-integrity-check', (item, ids) => database_integrity_check('api.database_integrity_check', ctx.popups['database-integrity-check']));

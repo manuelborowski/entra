@@ -130,8 +130,8 @@ def student_get():
 @admin_key_required
 def student_update():
     data = json.loads(request.data)
-    mstudent.api_student_update(data)
-    return json.dumps({"status": True, "data": 'ok'})
+    ret = mstudent.api_student_update(data)
+    return json.dumps(ret, ensure_ascii=False)
 
 
 @api.route('/api/staff/get', methods=['GET'])
