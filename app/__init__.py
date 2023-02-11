@@ -93,10 +93,11 @@ flask_app.config.from_pyfile('config.py')
 # 0.72: error logs can be mailed.  Small bugfix in student-computers.  Import students: protect from student being present twice
 # 0.73: import staff from wisa AND adding staff manually is ok.
 # 1.0: version 1.0
+# 1.1: if student already in AD, get username from AD.  Update in search
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.0', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V1.1', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 db = SQLAlchemy()

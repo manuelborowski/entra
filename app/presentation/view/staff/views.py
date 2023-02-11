@@ -89,6 +89,7 @@ def get_right_click_settings():
         ])
     return settings
 
+
 class Config(DatatableConfig):
     def pre_sql_query(self):
         return app.data.staff.pre_sql_query()

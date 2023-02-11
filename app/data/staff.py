@@ -182,6 +182,7 @@ def pre_sql_search(search_string):
     search_constraints = []
     search_constraints.append(Staff.naam.like(search_string))
     search_constraints.append(Staff.voornaam.like(search_string))
+    search_constraints.append(Staff.code.like(search_string))
     return search_constraints
 
 

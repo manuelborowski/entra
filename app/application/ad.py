@@ -68,7 +68,6 @@ class PersonContext:
 TOP_OU = 'DC=SU,DC=local'
 ACCOUNTS_OU = 'OU=Accounts,DC=SU,DC=local'
 USER_OBJECT_CLASS = ['top', 'person', 'organizationalPerson', 'user']
-__ldap = None
 
 
 def __handle_ldap_response(ctx, user, res, info):
@@ -141,19 +140,16 @@ def person_set_password(person, password, must_update=False, never_expires=False
 
 @ad_exception_wrapper
 def __ldap_init(ctx):
-    global __ldap
-    if not __ldap or __ldap.closed:
-        ad_host = msettings.get_configuration_setting('ad-url')
-        ad_login = msettings.get_configuration_setting('ad-login')
-        ad_password = msettings.get_configuration_setting('ad-password')
-        ldap_server = ldap3.Server(ad_host, use_ssl=True)
-        __ldap = ldap3.Connection(ldap_server, ad_login, ad_password, auto_bind=True, authentication=ldap3.NTLM)
-    ctx.ldap = __ldap
+    ad_host = msettings.get_configuration_setting('ad-url')
+    ad_login = msettings.get_configuration_setting('ad-login')
+    ad_password = msettings.get_configuration_setting('ad-password')
+    ldap_server = ldap3.Server(ad_host, use_ssl=True)
+    ctx.ldap = ldap3.Connection(ldap_server, ad_login, ad_password, auto_bind=True, authentication=ldap3.NTLM)
 
 
 @ad_exception_wrapper
 def __ldap_deinit(ctx):
-    return # keep the connection open
+    # return # keep the connection open
     if ctx.ldap:
         ctx.ldap.unbind()
 
@@ -359,7 +355,7 @@ def __students_new(ctx):
     default_password = msettings.get_configuration_setting('generic-standard-password')
     log.info(f"{sys._getframe().f_code.co_name}, check for 'new' students already in AD: activate and move to correct OU")
     for student in new_students:
-        res = ctx.ldap.search(STUDENT_OU, f'(&(objectclass=user)(wwwhomepage={student.leerlingnummer}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail'])
+        res = ctx.ldap.search(STUDENT_OU, f'(&(objectclass=user)(wwwhomepage={student.leerlingnummer}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail', 'samaccountname'])
         if res:  # student already in AD, but inactive and probably in wrong OU and wrong klas
             ad_student = ctx.ldap.response[0]
             dn = ad_student['dn']  # old OU
@@ -386,6 +382,10 @@ def __students_new(ctx):
                 mstudent.student_update(student, {'email': ad_student['attributes']['mail']})
                 if ctx.verbose_logging:
                     log.info(f'student already in AD, {student.naam} {student.voornaam}, {student.leerlingnummer}, update email in SDH {ad_student["attributes"]["mail"]}')
+            if student.username != ad_student['attributes']['samaccountname']:
+                mstudent.student_update(student, {'username': ad_student['attributes']['samaccountname']})
+                if ctx.verbose_logging:
+                    log.info(f'student already in AD, {student.naam} {student.voornaam}, {student.leerlingnummer}, update username in SDH {ad_student["attributes"]["samaccountname"]}')
             # add student to cache
             ctx.ad_active_students_leerlingnummer[student.leerlingnummer] = ad_student
             ctx.students_to_leerlingen_group.append(student)
@@ -744,7 +744,7 @@ def staff_process_flagged(opaque=None, **kwargs):
     else:
         deleted_staff = mstaff.staff_get_m({"delete": True})
     for db_staff in deleted_staff:
-        all_ok = all_ok and __staff_set_active_state(ctx, db_staff, False)
+        __staff_set_active_state(ctx, db_staff, False)
     log.info(f"{sys._getframe().f_code.co_name}, STOP")
     return all_ok
 
