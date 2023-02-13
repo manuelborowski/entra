@@ -137,7 +137,7 @@ const get_form = async (endpoint, id) => {
 }
 
 
-function clear_filter_setting() {
+export function clear_filter_setting() {
     localStorage.clear(`Filter-${ctx.table_config.view}`);
     location.reload();
 }

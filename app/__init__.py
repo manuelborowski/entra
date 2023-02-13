@@ -95,10 +95,11 @@ flask_app.config.from_pyfile('config.py')
 # 1.0: version 1.0
 # 1.1: if student already in AD, get username from AD.  Update in search
 # 1.2: bugfix filters
+# 1.3: bugfix clear-filter-setting
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.2', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V1.3', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 db = SQLAlchemy()
