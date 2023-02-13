@@ -5,6 +5,7 @@ import { socketio } from "../base/socketio.js";
 
 let filter_settings = [];
 let column_name_to_index = {};
+const filters = table_config.filters;
 
 export let ctx = null;
 

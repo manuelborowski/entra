@@ -31,9 +31,9 @@
                 <h2>{{ table_config.title }}</h2>
                 <form method="post" id="action_form" enctype=multipart/form-data
                       action="{{ url_for(table_config.table_action) }}">
-                    {% if filters %}
+                    {% if table_config.filters %}
                         <div class="flex-container">
-                            {% for f in filters %}
+                            {% for f in table_config.filters %}
                                 {% if f.type == "select" %}
                                     <div class="form-group "><label class="control-label" for="{{ f.name }}"
                                                                     title="{{ f.tt }}">{{ f.label }}</label>
@@ -164,7 +164,6 @@
 
         <script>
             const table_config = {{ (table_config or []) | tojson }};
-            const filters = {{ (filters or []) | tojson }};
             const popups = {{ (popups or {}) | tojson }};
             const api_key = {{ (api_key or '') | tojson }};
             const current_user_is_at_least_admin = {{ current_user.is_at_least_admin | tojson }};
