@@ -111,7 +111,7 @@ def flag_wisa_photos(data = []):
 def delete_photos(ids=None):
     try:
         for id in ids:
-            photo = get_first_photo({"id": id})
+            photo = photo_get({"id": id})
             db.session.delete(photo)
         db.session.commit()
     except Exception as e:
@@ -120,36 +120,38 @@ def delete_photos(ids=None):
     return None
 
 
-def get_photos(data={}, special={}, order_by=None, first=False, count=False):
+def photo_get_m(data={}, special={}, order_by=None, first=False, count=False):
     try:
         q = Photo.query
         for k, v in data.items():
             if hasattr(Photo, k):
                 q = q.filter(getattr(Photo, k) == v)
+        if 'ids' in special:
+            q = q.filter(Photo.id.in_(special["ids"]))
         if order_by:
             q = q.order_by(getattr(Photo, order_by))
         if first:
-            guest = q.first()
-            return guest
+            item = q.first()
+            return item
         if count:
             return q.count()
-        guests = q.all()
-        return guests
+        items = q.all()
+        return items
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
     return None
 
 
-def get_first_photo(data={}):
+def photo_get(data={}):
     try:
-        user = get_photos(data, first=True)
+        user = photo_get_m(data, first=True)
         return user
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
     return None
 
 
-def get_photos_size():
+def photo_get_size_all():
     try:
         q = db.session.query(Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
         q = q.all()

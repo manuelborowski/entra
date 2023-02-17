@@ -46,7 +46,7 @@ def badge_add(student_ids):
         nbr_no_photo = 0
         nbr_empty_propery = 0
         delete_badges = []
-        saved_photos = {p.id : p.photo for p in mphoto.get_photos()}
+        saved_photos = {p.id : p.photo for p in mphoto.photo_get_m()}
         for student_id in student_ids:
             student = mstudent.student_get({'id': student_id})
             if student:

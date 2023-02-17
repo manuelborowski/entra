@@ -12,9 +12,26 @@ log.addFilter(MyLogFilter())
 
 
 
-def photo_get(id):
-    photo = mphoto.get_first_photo({"id": id})
-    return base64.b64encode(photo.photo)
+def api_photo_get_m(ids):
+    try:
+        photos = mphoto.photo_get_m(special={"ids": ids})
+        encoded_photos = [{"id": p.id, "photo": base64.b64encode(p.photo).decode("ascii")} for p in photos]
+        return {"status": True, "data": encoded_photos}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": str(e)}
+
+
+def api_photo_get_size_all():
+    try:
+        photos = mphoto.photo_get_size_all()
+        size_list = [{"id": p[0], "size": p[5]} for p in photos]
+        return {"status": True, "data": size_list}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": str(e)}
+
+
 
 #to have access to the photo's, mount the windowsshare
 #sudo apt install keyutils
@@ -39,7 +56,7 @@ def cron_task_photo(opaque=None):
             nbr_processed = 0
             nbr_deleted = 0
 
-            photo_sizes = mphoto.get_photos_size()
+            photo_sizes = mphoto.photo_get_size_all()
             # (Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo)
             saved_photos = {p[1]: {'size': p[5], 'new': p[2], 'changed': p[3], 'delete': p[4]} for p in photo_sizes}
 

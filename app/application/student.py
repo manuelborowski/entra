@@ -179,7 +179,7 @@ def form_prepare_for_view(id, read_only=False):
     try:
         student = mstudent.student_get({"id": id})
         template = app.data.settings.get_configuration_setting('student-formio-template')
-        photo = mphoto.get_first_photo({'filename': student.foto})
+        photo = mphoto.photo_get({'filename': student.foto})
         data = {"photo": base64.b64encode(photo.photo).decode('utf-8') if photo else ''}
         iterate_components_cb(template, form_prepare_for_view_cb, data)
         return {'template': template,

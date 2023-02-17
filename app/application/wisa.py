@@ -55,7 +55,7 @@ def student_from_wisa_to_database(local_file=None, max=0):
             response_text = response_text.replace(f'"{key.upper()}"', f'"{key}"')
         data = json.loads(response_text)
         # (Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
-        saved_photos = {p[1]: p[0] for p in mphoto.get_photos_size()}
+        saved_photos = {p[1]: p[0] for p in mphoto.photo_get_size_all()}
         db_students = {} # the current, active students in the database
         # default previous and current schoolyear
         _, current_schoolyear, prev_schoolyear = msettings.get_changed_schoolyear()
@@ -259,7 +259,8 @@ def staff_from_wisa_to_database(local_file=None, max=0):
                 break
         # at this point, saved_staff contains the staff-memner not present in the wisa-import, i.e. the deleted staff-members
         for k, v in staff_in_db.items():
-            if not v.delete:
+            if not v.delete and v.stamboeknummer != "":
+                log.info(f"Delete staff {v.code}")
                 flag_list.append({'changed': '', 'delete': True, 'new': False, 'staff': v})
                 nbr_deleted += 1
         # add the new staff-members to the database
