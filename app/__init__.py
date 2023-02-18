@@ -98,10 +98,11 @@ flask_app.config.from_pyfile('config.py')
 # 1.3: bugfix clear-filter-setting
 # 1.4: updated API to get photos.  Bugfix manually-added-staff; if not present in WISA then do not delete from database when stamboeknummer is empty
 # 1.5: bugfix paging/slicing
+# 1.6: app_context required in cron-task.  api-get-students: added start/stop for pagination
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.5', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V1.6', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 db = SQLAlchemy()

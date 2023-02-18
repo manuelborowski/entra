@@ -99,24 +99,23 @@ check_properties_changed = ['middag', 'vsknummer', 'photo', 'schooljaar', 'klasc
 
 def badge_process_new(topic=None, opaque=None):
     try:
-        with flask_app.app_context():
-            new_students = mstudent.student_get_m({'new': True})
-            ids = [student.id for student in new_students]
+        new_students = mstudent.student_get_m({'new': True})
+        ids = [student.id for student in new_students]
+        badge_add(ids)
+        updated_students = mstudent.student_get_m({'-changed': '', 'new': False})  # find students with changed property not equal to '' and not new
+        if updated_students:
+            ids = []
+            for student in updated_students:
+                changed = json.loads(student.changed)
+                if list(set(check_properties_changed).intersection(changed)):
+                    ids.append(student.id)
             badge_add(ids)
-            updated_students = mstudent.student_get_m({'-changed': '', 'new': False})  # find students with changed property not equal to '' and not new
-            if updated_students:
-                ids = []
-                for student in updated_students:
-                    changed = json.loads(student.changed)
-                    if list(set(check_properties_changed).intersection(changed)):
-                        ids.append(student.id)
-                badge_add(ids)
-            deleted_students = mstudent.student_get_m({'delete': True})
-            if deleted_students:
-                data = [{"leerlingnummer": s.leerlingnummer } for s in deleted_students]
-                old_badges = mcardpresso.get_badges(data)
-                ids = [b.id for b in old_badges]
-                mcardpresso.delete_badges(ids)
+        deleted_students = mstudent.student_get_m({'delete': True})
+        if deleted_students:
+            data = [{"leerlingnummer": s.leerlingnummer } for s in deleted_students]
+            old_badges = mcardpresso.get_badges(data)
+            ids = [b.id for b in old_badges]
+            mcardpresso.delete_badges(ids)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 

@@ -21,7 +21,9 @@ def api_process_options(options):
             for filter in options['filters'].split(','):
                 k_v = filter.split('=')
                 filters[k_v[0]] = k_v[1]
-        return fields, filters
+        start = int(options["start"]) if "start" in options else None
+        stop = int(options["stop"]) if "stop"in options else None
+        return fields, filters, start, stop
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": True, "data": e}
@@ -32,8 +34,8 @@ def api_process_options(options):
 # options is a string with fields and filters (see above)
 def api_get_model_data(model, options=None):
     try:
-        fields, filters = api_process_options(options)
-        items = mmodels.get_multiple(model, data=filters, fields=fields)
+        fields, filters, start, stop = api_process_options(options)
+        items = mmodels.get_multiple(model, data=filters, fields=fields, start=start, stop=stop)
         if fields:
             # if only a limited number of properties is required, it is possible that some properties must be converted to a string (e.g. datetime and date) because these cannot be
             # serialized to json

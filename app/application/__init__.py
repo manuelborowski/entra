@@ -3,8 +3,8 @@ __all__ = ['tables', 'datatables', 'socketio', 'settings', 'warning', 'wisa', 'c
 
 from app.application.photo import cron_task_photo
 from app.application.wisa import cron_task_wisa_get_student
-from app.application.wisa import cront_task_wisa_get_staff
-from app.application.student import cront_task_vsk_numbers
+from app.application.wisa import cron_task_wisa_get_staff
+from app.application.student import cron_task_vsk_numbers
 from app.application.cardpresso import cron_task_new_badges
 from app.application.cardpresso import cron_task_new_rfid_to_database
 from app.application.ad import student_process_flagged, staff_process_flagged, student_cron_task_get_computer
@@ -17,8 +17,8 @@ from app.application.student import cron_task_schoolyear_clear_changed_flag
 cron_table = [
     ('PHOTO', cron_task_photo, 'VAN foto (windows share), leerlingen bijwerken', ''),
     ('WISA-STUDENT', cron_task_wisa_get_student, 'VAN wisa, leerlingen bijwerken', ''),
-    ('WISA-STAFF', cront_task_wisa_get_staff, 'VAN wisa, personeel bijwerken', ''),
-    ('VSK-NUMMERS', cront_task_vsk_numbers, 'NAAR SDH, Vsk nummers bijwerken', ''),
+    ('WISA-STAFF', cron_task_wisa_get_staff, 'VAN wisa, personeel bijwerken', ''),
+    ('VSK-NUMMERS', cron_task_vsk_numbers, 'NAAR SDH, Vsk nummers bijwerken', ''),
     ('CARDPRESSO-NEW', cron_task_new_badges, 'NAAR cardpresso, nieuwe badges klaarmaken', ''),
     ('CARDPRESSO-RFID', cron_task_new_rfid_to_database, 'VAN cardpresso, RFID van studenten bijwerken', ''),
     ('AD-STUDENT', student_process_flagged, 'NAAR AD, studenten bijwerken', ''),

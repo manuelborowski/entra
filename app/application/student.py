@@ -54,7 +54,7 @@ def vsk_clear_numbers():
     return {"status": True, "data": nbr_updated}
 
 
-def cront_task_vsk_numbers(opaque=None):
+def cron_task_vsk_numbers(opaque=None):
     # check if schooljaar has changed.  If so, clear all vsk numbers first
     schoolyear_changed, _, _ = msettings.get_changed_schoolyear()
     if schoolyear_changed:

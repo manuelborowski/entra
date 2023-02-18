@@ -275,40 +275,38 @@ def staff_from_wisa_to_database(local_file=None, max=0):
 
 
 def cron_task_wisa_get_student(opaque=None):
-    with flask_app.app_context():
-        wisa_files = msettings.get_list('test-wisa-json-list')
-        if wisa_files:  # test with wisa files
-            current_wisa_file = msettings.get_configuration_setting('test-wisa-current-json')
-            if current_wisa_file == '' or current_wisa_file not in wisa_files:
-                current_wisa_file = wisa_files[0]
-            else:
-                new_index = wisa_files.index(current_wisa_file) + 1
-                if new_index >= len(wisa_files):
-                    new_index = 0
-                current_wisa_file = wisa_files[new_index]
-            msettings.set_configuration_setting('test-wisa-current-json', current_wisa_file)
-            student_from_wisa_to_database(local_file=current_wisa_file)
+    wisa_files = msettings.get_list('test-wisa-json-list')
+    if wisa_files:  # test with wisa files
+        current_wisa_file = msettings.get_configuration_setting('test-wisa-current-json')
+        if current_wisa_file == '' or current_wisa_file not in wisa_files:
+            current_wisa_file = wisa_files[0]
         else:
-            # read_from_wisa_database(max=10)
-            student_from_wisa_to_database()
+            new_index = wisa_files.index(current_wisa_file) + 1
+            if new_index >= len(wisa_files):
+                new_index = 0
+            current_wisa_file = wisa_files[new_index]
+        msettings.set_configuration_setting('test-wisa-current-json', current_wisa_file)
+        student_from_wisa_to_database(local_file=current_wisa_file)
+    else:
+        # read_from_wisa_database(max=10)
+        student_from_wisa_to_database()
 
 
-def cront_task_wisa_get_staff(opaque=None):
-    with flask_app.app_context():
-        wisa_files = msettings.get_list('test-staff-wisa-json-list')
-        if wisa_files:  # test with wisa files
-            current_wisa_file = msettings.get_configuration_setting('test-staff-wisa-current-json')
-            if current_wisa_file == '' or current_wisa_file not in wisa_files:
-                current_wisa_file = wisa_files[0]
-            else:
-                new_index = wisa_files.index(current_wisa_file) + 1
-                if new_index >= len(wisa_files):
-                    new_index = 0
-                current_wisa_file = wisa_files[new_index]
-            msettings.set_configuration_setting('test-staff-wisa-current-json', current_wisa_file)
-            staff_from_wisa_to_database(local_file=current_wisa_file)
+def cron_task_wisa_get_staff(opaque=None):
+    wisa_files = msettings.get_list('test-staff-wisa-json-list')
+    if wisa_files:  # test with wisa files
+        current_wisa_file = msettings.get_configuration_setting('test-staff-wisa-current-json')
+        if current_wisa_file == '' or current_wisa_file not in wisa_files:
+            current_wisa_file = wisa_files[0]
         else:
-            staff_from_wisa_to_database()
+            new_index = wisa_files.index(current_wisa_file) + 1
+            if new_index >= len(wisa_files):
+                new_index = 0
+            current_wisa_file = wisa_files[new_index]
+        msettings.set_configuration_setting('test-staff-wisa-current-json', current_wisa_file)
+        staff_from_wisa_to_database(local_file=current_wisa_file)
+    else:
+        staff_from_wisa_to_database()
 
 
 

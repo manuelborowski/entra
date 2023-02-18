@@ -107,7 +107,7 @@ def delete_multiple(ids=[], objs=[]):
     return None
 
 
-def get_multiple(model, data={}, fields=[], order_by=None, first=False, count=False, active=True):
+def get_multiple(model, data={}, fields=[], order_by=None, first=False, count=False, active=True, start=None, stop=None):
     try:
         tablename = model.__tablename__
         entities = [text(f'{tablename}.{f}') for f in fields]
@@ -128,6 +128,8 @@ def get_multiple(model, data={}, fields=[], order_by=None, first=False, count=Fa
             else:
                 q = q.order_by(getattr(model, order_by))
         q = q.filter(model.active == active)
+        if start is not None and stop is not None:
+            q = q.slice(start, stop)
         if first:
             obj = q.first()
             return obj
