@@ -113,12 +113,14 @@ def api_staff_update(data):
             db_staff = mstaff.staff_update(db_staff, {"changed": "", "new": False, "delete": False})
         if db_ok and ad_ok and papercut_ok:
             log.info(f'{sys._getframe().f_code.co_name}: DB {db_ok}, AD {ad_ok}, PAPERCUT {papercut_ok}, data {data}')
+            person_id = db_staff.person_id
             log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
-            return {"status": True, "data": f"Personeelslid {db_staff.person_id} is aangepast"}
+            return {"status": True, "data": f"Personeelslid {person_id} is aangepast"}
         else:
             log.error(f'{sys._getframe().f_code.co_name}: DB {db_ok}, AD {ad_ok}, PAPERCUT {papercut_ok}, data {data}')
+            person_id = db_staff.person_id
             log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
-            return {"status": False, "data": f"Fout, kan {db_staff.person_id} niet aanpassen.<db>{error_data}"}
+            return {"status": False, "data": f"Fout, kan {person_id} niet aanpassen.<db>{error_data}"}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)

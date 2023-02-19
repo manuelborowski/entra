@@ -722,13 +722,17 @@ def staff_process_flagged(opaque=None, **kwargs):
         ad_staff = __person_get(ctx, db_staff.code)
         if ad_staff: # already present in AD -> activate
             log.info(f'{sys._getframe().f_code.co_name}, staff with {db_staff.code} already exists in AD, re-activate')
-            all_ok = all_ok and __staff_set_active_state(ctx, db_staff, active=True)
+            res = __staff_set_active_state(ctx, db_staff, active=True)
+            all_ok = all_ok and res
         else:
-            all_ok = all_ok and __staff_add(ctx, db_staff)
+            res = __staff_add(ctx, db_staff)
+            all_ok = all_ok and res
         default_password = msettings.get_configuration_setting("generic-standard-password")
-        all_ok = all_ok and person_set_password(db_staff, default_password, never_expires=True)
+        res = person_set_password(db_staff, default_password, never_expires=True)
+        all_ok = all_ok and res
         db_staff.changed = json.dumps(STAFF_CHANGED_PROPERTIES_MASK)
-        all_ok = all_ok and __staff_update(ctx, db_staff)
+        res = __staff_update(ctx, db_staff)
+        all_ok = all_ok and res
         if all_ok and db_staff.prive_email:
             send_new_staff_message(db_staff, default_password)
     # check for changed staff
@@ -737,7 +741,8 @@ def staff_process_flagged(opaque=None, **kwargs):
     else:
         changed_staff = mstaff.staff_get_m({"-changed": "", "new": False})
     for db_staff in changed_staff:
-            all_ok = all_ok and __staff_update(ctx, db_staff)
+            res = __staff_update(ctx, db_staff)
+            all_ok = all_ok and res
     # check for deleted staff
     if staff_list:
         deleted_staff = [s for s in staff_list if s.delete]
@@ -780,14 +785,15 @@ def __staff_update(ctx, staff):
     for ou in STAFF_OUS:
         res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={staff.person_id}))', ldap3.SUBTREE, attributes=['cn', 'userAccountControl', 'mail', 'pager'])
         if res:
+            all_ok = True
             ad_user = ctx.ldap.response[0]
             changed = json.loads(staff.changed)
             mask = list(set(STAFF_CHANGED_PROPERTIES_MASK).intersection(changed))
             if mask:
-                all_ok = True
                 changed_attributes = {}
                 if 'profiel' in mask:
                     res = ctx.ldap.search(TOP_OU, f'(&(objectclass=group)(member={ad_user["dn"]}))', ldap3.SUBTREE)
+                    __handle_ldap_response(ctx, staff, res, f'search all groups of {ad_user["dn"]}')
                     all_ok = all_ok and res
                     groepen = mstaff.profiel_to_groepen(staff.profiel)
                     if res and groepen:
