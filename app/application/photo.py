@@ -22,6 +22,16 @@ def api_photo_get_m(ids):
         return {"status": False, "data": str(e)}
 
 
+def api_photo_get_size_m(ids):
+    try:
+        photos = mphoto.photo_get_size_m(ids=ids)
+        size_list = [{"id": p[0], "size": p[5]} for p in photos]
+        return {"status": True, "data": size_list}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": str(e)}
+
+
 def api_photo_get_size_all():
     try:
         photos = mphoto.photo_get_size_all()

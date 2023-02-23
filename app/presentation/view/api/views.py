@@ -78,16 +78,20 @@ def user_get():
 @api.route('/api/photo/get', methods=['GET'])
 @user_key_required
 def photo_get():
+    ids = []
     if "ids" in request.args:
-        id_list = request.args["ids"].split(",")
-        ret = mphoto.api_photo_get_m(id_list)
+        ids = request.args["ids"].split(",")
+    ret = mphoto.api_photo_get_m(ids)
     return (json.dumps(ret))
 
 
 @api.route('/api/photo/sizes', methods=['GET'])
 @user_key_required
 def photo_sizes_get():
-    ret = mphoto.api_photo_get_size_all()
+    ids = []
+    if "ids" in request.args:
+        ids = request.args["ids"].split(",")
+    ret = mphoto.api_photo_get_size_m(ids)
     return (json.dumps(ret))
 
 

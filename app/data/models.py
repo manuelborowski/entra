@@ -127,6 +127,8 @@ def get_multiple(model, data={}, fields=[], order_by=None, first=False, count=Fa
                 q = q.order_by(desc(getattr(model, order_by[1::])))
             else:
                 q = q.order_by(getattr(model, order_by))
+        else:
+            q = q.order_by(getattr(model, "id"))
         q = q.filter(model.active == active)
         if start is not None and stop is not None:
             q = q.slice(start, stop)

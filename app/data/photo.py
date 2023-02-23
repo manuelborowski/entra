@@ -1,6 +1,6 @@
 import sys, json, datetime
 from app import log, db
-from sqlalchemy import func
+from sqlalchemy import func, delete
 from sqlalchemy.dialects.mysql import MEDIUMBLOB
 from sqlalchemy_serializer import SerializerMixin
 
@@ -108,12 +108,10 @@ def flag_wisa_photos(data = []):
 
 
 
-def delete_photos(ids=None):
+def delete_photo_m(ids=None):
     try:
-        for id in ids:
-            photo = photo_get({"id": id})
-            db.session.delete(photo)
-        db.session.commit()
+        delete_statement = delete(Photo).where(Photo.id._in(ids))
+        db.session.execute(delete_statement)
     except Exception as e:
         db.session.rollback()
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
@@ -146,6 +144,18 @@ def photo_get(data={}):
     try:
         user = photo_get_m(data, first=True)
         return user
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+    return None
+
+
+def photo_get_size_m(ids=[]):
+    try:
+        q = db.session.query(Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
+        if ids:
+            q = q.filter(Photo.id.in_(ids))
+        items = q.all()
+        return items
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
     return None
