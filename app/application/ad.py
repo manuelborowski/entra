@@ -728,7 +728,7 @@ def staff_process_flagged(opaque=None, **kwargs):
             res = __staff_add(ctx, db_staff)
             all_ok = all_ok and res
         default_password = msettings.get_configuration_setting("generic-standard-password")
-        res = person_set_password(db_staff, default_password, never_expires=True)
+        res = person_set_password(db_staff, default_password, must_update=True, never_expires=True)
         all_ok = all_ok and res
         db_staff.changed = json.dumps(STAFF_CHANGED_PROPERTIES_MASK)
         res = __staff_update(ctx, db_staff)
