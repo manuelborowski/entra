@@ -10,7 +10,8 @@ log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
 
-PROPERTY_RFID = 'primary-card-number'
+PROPERTY_RFID_CURRENT = 'primary-card-number'
+PROPERTY_RFID_PREVIOUS = 'secondary-card-number'
 
 papercut_properties = [
     "balance", "primary-card-number", "secondary-card-number", "department", "disabled-print", "email", "full-name", "internal", "notes", "office", "print-stats.job-count", "print-stats.page-count",
@@ -39,6 +40,10 @@ def person_update(person, data, **kwargs):
     update_properties = []
     if "rfid" in data:
         update_properties.append(["primary-card-number", data["rfid"]])
+        #store the current (primary) rfid in the secondary position.  Old cards will still work.
+        rfid_current = kwargs["server"].api.getUserProperty(kwargs["token"], person.person_id, PROPERTY_RFID_CURRENT)
+        update_properties.append(["secondary-card-number", rfid_current])
+
     if update_properties:
         ret = kwargs["server"].api.setUserProperties(kwargs["token"], person.person_id, update_properties)
         log.info(f'Update to Papercut, {person.person_id} RFID {update_properties}')
@@ -88,7 +93,7 @@ def load_staff_rfid_codes(topic=None, opaque=None, **kwargs):
     nbr_not_found = 0
     for staff in staffs:
         try:
-            rfid = kwargs["server"].api.getUserProperty(kwargs["token"], staff.code, PROPERTY_RFID)
+            rfid = kwargs["server"].api.getUserProperty(kwargs["token"], staff.code, PROPERTY_RFID_CURRENT)
             staff.rfid = rfid.upper()
             log.info(f'{sys._getframe().f_code.co_name}, {staff.code} has rfid {rfid}')
             nbr_found += 1

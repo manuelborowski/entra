@@ -100,8 +100,8 @@ def api_staff_update(data):
             if "rfid" in data:
                 person = mperson.check_if_rfid_already_exists(data["rfid"])
                 if person:
-                    error_data = f'RFID {data["rfid"]} bestaat al voor {person.person_id}<db>'
-                    del (data["rfid"])
+                    log.error( f"{sys._getframe().f_code.co_name}: RFID {data['rfid']} bestaat al voor {person.person_id}")
+                    return {"status": False, "data": f"RFID {data['rfid']} bestaat al voor {person.person_id}"}
             changed_attributes = [k for k, v in data.items() if hasattr(db_staff, k) and v != getattr(db_staff, k)]
             data = {k: v for k,v in data.items() if k in changed_attributes}
             data.update({"changed": json.dumps(changed_attributes)})
