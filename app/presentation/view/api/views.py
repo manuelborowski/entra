@@ -140,7 +140,7 @@ def student_get():
 
 
 @api.route('/api/student/update', methods=['POST'])
-@admin_key_required
+@supervisor_key_required
 def student_update():
     data = json.loads(request.data)
     ret = mstudent.api_student_update(data)
@@ -156,7 +156,7 @@ def staff_get():
 
 
 @api.route('/api/staff/add', methods=['POST'])
-@admin_key_required
+@supervisor_key_required
 def staff_add():
     data = json.loads(request.data)
     ret = mstaff.api_staff_add(data)
@@ -164,7 +164,7 @@ def staff_add():
 
 
 @api.route('/api/staff/update', methods=['POST'])
-@admin_key_required
+@supervisor_key_required
 def staff_update():
     data = json.loads(request.data)
     ret = mstaff.api_staff_update(data)
