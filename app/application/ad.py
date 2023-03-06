@@ -692,8 +692,9 @@ def student_cron_task_get_computer(opaque=None, **kwargs):
 TEACHER_OU = 'OU=Leerkrachten,OU=Accounts,DC=SU,DC=local'
 SEC_OU = 'OU=Secretariaat,DC=SU,DC=local'
 STAFF_OU = 'OU=Personeel,OU=Accounts,DC=SU,DC=local'
+ADMIN_OU = "OU=Beheerders,OU=Accounts,DC=SU,DC=local"
 INACTIVE_OU = 'OU=Inactief,OU=Accounts,DC=SU,DC=local'
-STAFF_OUS = [TEACHER_OU, SEC_OU, STAFF_OU, INACTIVE_OU]
+STAFF_OUS = [TEACHER_OU, SEC_OU, STAFF_OU, INACTIVE_OU, ADMIN_OU]
 STAFF_CHANGED_PROPERTIES_MASK = ['naam', 'voornaam', "email", "rfid", "interim", "extra", "profiel", "einddatum"]
 STAFF_EMAIL_DOMAIN = '@campussintursula.be'
 

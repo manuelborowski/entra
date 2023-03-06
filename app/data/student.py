@@ -1,4 +1,4 @@
-import sys, json
+import sys, json, datetime
 
 import app.data.models
 from app import log, db
@@ -26,7 +26,7 @@ class Student(db.Model, SerializerMixin):
     foto = db.Column(db.String(256), default="")
     foto_id = db.Column(db.Integer, default=-1)
 
-    geboortedatum = db.Column(db.Date)
+    geboortedatum = db.Column(db.Date, default=datetime.datetime(1900, 1, 1))
     geboorteplaats = db.Column(db.String(256), default='')
     geboorteland = db.Column(db.String(256), default='')
     geslacht = db.Column(db.String(256), default='')
@@ -41,7 +41,7 @@ class Student(db.Model, SerializerMixin):
     email = db.Column(db.String(256), default='')
 
 
-    inschrijvingsdatum = db.Column(db.Date)
+    inschrijvingsdatum = db.Column(db.Date, default=datetime.datetime(1900, 1, 1))
 
     schooljaar = db.Column(db.String(256), default='')
     instellingsnummer = db.Column(db.String(256), default='')
@@ -92,7 +92,7 @@ class Student(db.Model, SerializerMixin):
     vo_postcode = db.Column(db.String(256), default='')
     vo_gemeente = db.Column(db.String(256), default='')
 
-    timestamp = db.Column(db.DateTime)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.now())
 
     new = db.Column(db.Boolean, default=True)
     delete = db.Column(db.Boolean, default=False)

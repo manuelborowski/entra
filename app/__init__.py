@@ -103,11 +103,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.8: API update, getting size of photos
 # 1.10: papercut, store current rfid code in secondary-card-number.
 # 1.11: api, update required level to add staff and update staff/student
+# 1.12: papercut, when a badge is re-used, delete the old entry.  Bugfix api, get-staff.  Set default dates in database
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.11', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V1.12', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
 
 
 db = SQLAlchemy()

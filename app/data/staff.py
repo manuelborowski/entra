@@ -31,7 +31,7 @@ class Staff(db.Model, SerializerMixin):
     stamboeknummer = db.Column(db.String(256), default='')
     code = db.Column(db.String(256), default='')
     geslacht = db.Column(db.String(256), default='')
-    geboortedatum = db.Column(db.Date)
+    geboortedatum = db.Column(db.Date, default=datetime.datetime(1900, 1, 1))
     geboorteplaats = db.Column(db.String(256), default='')
     instellingsnummer = db.Column(db.String(256), default='')
     email = db.Column(db.String(256), default='')
@@ -40,9 +40,9 @@ class Staff(db.Model, SerializerMixin):
     profiel = db.Column(db.String(256), default='["lkr"]')
     interim = db.Column(db.Boolean, default=False)
     extra = db.Column(db.TEXT, default='')
-    einddatum = db.Column(db.Date)
+    einddatum = db.Column(db.Date, default=datetime.datetime(2999, 1, 1))
 
-    timestamp = db.Column(db.DateTime)
+    timestamp = db.Column(db.DateTime, default=datetime.datetime.now())
 
     new = db.Column(db.Boolean, default=True)
     delete = db.Column(db.Boolean, default=False)

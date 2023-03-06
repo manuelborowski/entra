@@ -45,8 +45,9 @@ def api_staff_get_fields():
 def api_staff_get(options=None):
     try:
         data = app.application.api.api_get_model_data(mstaff.Staff, options)
-        for i in data["data"]:
-            i["profiel"] = json.loads(i["profiel"])
+        if data["data"] and "profiel" in data["data"][0]:
+            for i in data["data"]:
+                i["profiel"] = json.loads(i["profiel"])
         return data
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')

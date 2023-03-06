@@ -39,6 +39,17 @@ def papercut_core_wrapper(func):
 def person_update(person, data, **kwargs):
     update_properties = []
     if "rfid" in data:
+        #check if rfid already exists, and if so, delete it
+        if data["rfid"] != "":
+            user = kwargs["server"].api.lookUpUserNameByCardNo(kwargs["token"], data["rfid"])
+            if user != "" and user.upper() != person.person_id.upper():
+                ret = kwargs["server"].api.getUserProperties(kwargs["token"], user, ["primary-card-number", "secondary-card-number"])
+                properties = dict(zip(["primary-card-number", "secondary-card-number"], ret))
+                if properties["primary-card-number"] == data["rfid"]:
+                    kwargs["server"].api.setUserProperties(kwargs["token"], user, [["primary-card-number", ""]])
+                else:
+                    kwargs["server"].api.setUserProperties(kwargs["token"], user, [["secondary-card-number", ""]])
+                log.info(f'Erase rfid (reuse) of {user} RFID {data["rfid"]}')
         update_properties.append(["primary-card-number", data["rfid"]])
         #store the current (primary) rfid in the secondary position.  Old cards will still work.
         rfid_current = kwargs["server"].api.getUserProperty(kwargs["token"], person.person_id, PROPERTY_RFID_CURRENT)
