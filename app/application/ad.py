@@ -743,6 +743,13 @@ def staff_process_flagged(opaque=None, **kwargs):
         changed_staff = mstaff.staff_get_m({"-changed": "", "new": False})
     for db_staff in changed_staff:
             res = __staff_update(ctx, db_staff)
+            # check if the invitation email needs to be resend: only when the private email address has changed AND the password is never updated (is still default)
+            if res and "prive_email" in db_staff.changed and db_staff.prive_email:
+                ad_staff = __person_get(ctx, db_staff.code, ["pwdLastSet"])
+                #If the password is never changed (still default), the year is 1601(?)
+                if ad_staff[0]["attributes"]["pwdLastSet"].year < 1900:
+                    default_password = msettings.get_configuration_setting("generic-standard-password")
+                    send_new_staff_message(db_staff, default_password)
             all_ok = all_ok and res
     # check for deleted staff
     if staff_list:
@@ -890,9 +897,9 @@ def __staff_set_active_state(ctx, staff, active=False):
 
 
 @ad_exception_wrapper
-def __person_get(ctx, samaccountname):
+def __person_get(ctx, samaccountname, attributes=None):
     for ou in STAFF_OUS + STUDENT_OUS:
-        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={samaccountname}))', ldap3.SUBTREE)
+        res = ctx.ldap.search(ou, f'(&(objectclass=user)(samaccountname={samaccountname}))', ldap3.SUBTREE, attributes=attributes)
         if res:
             return ctx.ldap.response
     else:
