@@ -797,6 +797,8 @@ def __staff_update(ctx, staff):
             ad_user = ctx.ldap.response[0]
             changed = json.loads(staff.changed)
             mask = list(set(STAFF_CHANGED_PROPERTIES_MASK).intersection(changed))
+            update_physicalDeliveryOfficeName = False
+            update_accountexpires = False
             if mask:
                 changed_attributes = {}
                 if 'profiel' in mask:
@@ -817,16 +819,13 @@ def __staff_update(ctx, staff):
                             res = ctx.ldap.modify(group, {'member': [(ldap3.MODIFY_DELETE, ad_user['dn'])]})
                             __handle_ldap_response(ctx, staff, res, f'Delete from group {group}')
                             all_ok = all_ok and res
-                        prefix = f"(I: {staff.einddatum}) " if staff.interim else ""
-                        changed_attributes["physicalDeliveryOfficeName"] = [ldap3.MODIFY_REPLACE, (f'{prefix}{staff.profiel}')]
+                        update_physicalDeliveryOfficeName = True
                 if 'rfid' in mask:
                     pager = staff.rfid if staff.rfid != "" else []
                     changed_attributes['pager'] = [ldap3.MODIFY_REPLACE, (pager)]
-                if "interim" in mask and staff.profiel != "":
-                    prefix = f"(I: {staff.einddatum}) " if staff.interim else ""
-                    changed_attributes["physicalDeliveryOfficeName"] = [ldap3.MODIFY_REPLACE, (f'{prefix}{staff.profiel}')]
-                    expire_date = datetime.datetime.combine(staff.einddatum, datetime.datetime.min.time()) if staff.interim else datetime.datetime(9999, 12, 30, 23, 59, 59, 9999)
-                    changed_attributes.update({"accountexpires": [ldap3.MODIFY_REPLACE, (expire_date)]})
+                if ("interim" in mask or "einddatum" in mask) and staff.profiel != "":
+                    update_physicalDeliveryOfficeName = True
+                    update_accountexpires = True
                 if "extra" in mask:
                     description = staff.extra if staff.extra != "" else []
                     changed_attributes["description"] = [ldap3.MODIFY_REPLACE, (description)]
@@ -837,6 +836,12 @@ def __staff_update(ctx, staff):
                 if "email" in mask:
                     mail = staff.email if staff.email != "" else []
                     changed_attributes.update({"mail": [ldap3.MODIFY_REPLACE, (mail)]})
+                if update_physicalDeliveryOfficeName:
+                    prefix = f"(I: {staff.einddatum}) " if staff.interim else ""
+                    changed_attributes["physicalDeliveryOfficeName"] = [ldap3.MODIFY_REPLACE, (f'{prefix}{staff.profiel}')]
+                if update_accountexpires:
+                    expire_date = datetime.datetime.combine(staff.einddatum, datetime.datetime.min.time()) if staff.interim else datetime.datetime(9999, 12, 30, 23, 59, 59, 9999)
+                    changed_attributes.update({"accountexpires": [ldap3.MODIFY_REPLACE, (expire_date)]})
                 if changed_attributes:
                     res = ctx.ldap.modify(ad_user['dn'], changes=changed_attributes)
                     __handle_ldap_response(ctx, staff, res, f'Changed {changed_attributes}')
