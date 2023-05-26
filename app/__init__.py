@@ -107,10 +107,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.13: update email of already imported, new staff: resend the invitation if email changed and password not updated yet
 # 1.14: update staff expire date: did not ripple through to AD
 # 1.15: small update
+# 1.16: import students from informat.  Added testmode.  Simplify current_schoolyear
+
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.15', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'])
+    return dict(version='@ 2022 MB. V1.16', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

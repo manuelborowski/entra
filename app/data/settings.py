@@ -93,6 +93,7 @@ default_configuration_settings = {
     'generic-default-student-code': ('t1', Settings.SETTING_TYPE.E_STRING),
     'generic-standard-password': ('', Settings.SETTING_TYPE.E_STRING),
     'generic-new-via-smartschool': (False, Settings.SETTING_TYPE.E_BOOL),
+    'generic-servername': ('', Settings.SETTING_TYPE.E_STRING),
 
     'sdh-inform-emails': ('t1', Settings.SETTING_TYPE.E_STRING),
     'sdh-prev-schoolyear': ('', Settings.SETTING_TYPE.E_STRING),
@@ -192,6 +193,8 @@ default_configuration_settings = {
     'test-prepare': (False, Settings.SETTING_TYPE.E_BOOL),
     'test-wisa-json-list': ('', Settings.SETTING_TYPE.E_STRING),
     'test-wisa-current-json': ('', Settings.SETTING_TYPE.E_STRING),
+    'test-informat-xml-list': ('', Settings.SETTING_TYPE.E_STRING),
+    'test-informat-current-xml': ('', Settings.SETTING_TYPE.E_STRING),
     'test-rfid-start-code': ('', Settings.SETTING_TYPE.E_STRING),
     'test-staff-prepare': (False, Settings.SETTING_TYPE.E_BOOL),
     'test-staff-wisa-json-list': ('', Settings.SETTING_TYPE.E_STRING),
@@ -279,20 +282,3 @@ def get_list(list_name):
         settings_list = settings_list.split('\n')
         out = [r.strip() for r in settings_list if '#' not in r and r !=""]
     return out
-
-
-def set_changed_schoolyear(prev, current):
-    set_configuration_setting('sdh-schoolyear-changed', True)
-    set_configuration_setting('sdh-prev-schoolyear', prev)
-    set_configuration_setting('sdh-current-schoolyear', current)
-
-
-def reset_changed_schoolyear():
-    set_configuration_setting('sdh-schoolyear-changed', False)
-
-
-def get_changed_schoolyear():
-    changed = get_configuration_setting('sdh-schoolyear-changed')
-    prev = get_configuration_setting('sdh-prev-schoolyear')
-    current = get_configuration_setting('sdh-current-schoolyear')
-    return changed, prev, current

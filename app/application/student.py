@@ -56,10 +56,6 @@ def vsk_clear_numbers():
 
 def cron_task_vsk_numbers(opaque=None):
     # check if schooljaar has changed.  If so, clear all vsk numbers first
-    schoolyear_changed, _, _ = msettings.get_changed_schoolyear()
-    if schoolyear_changed:
-        ret = vsk_clear_numbers()
-        log.info(f'vsk_numbers_cron_task: deleted {ret["data"]} vsk numbers')
     ret = vsk_get_next_number()
     if ret['status'] and ret['data'] > -1:
         ret = vsk_update_numbers(ret['data'])
@@ -88,10 +84,6 @@ def student_post_processing(opaque=None):
         log.info(f"new, changed {len(changed_new_student)} student")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
-
-
-def cron_task_schoolyear_clear_changed_flag(opaque=None):
-    msettings.reset_changed_schoolyear()
 
 
 def klassen_get_unique():

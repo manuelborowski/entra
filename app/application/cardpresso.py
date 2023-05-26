@@ -1,5 +1,5 @@
 from app import flask_app
-from app.data import student as mstudent, photo as mphoto, cardpresso as mcardpresso
+from app.data import student as mstudent, photo as mphoto, cardpresso as mcardpresso, utils as mutils
 from app.application import settings as msettings, email as memail
 import sys, json, datetime
 
@@ -34,7 +34,6 @@ badge_properties = {
     'busnummer': False,
     'gemeente': True,
     'schoolnaam': True,
-    'schooljaar': True,
     'klascode': True
 }
 
@@ -55,12 +54,14 @@ def badge_add(student_ids):
                     delete_badges.append(badge.id)
                 photo = saved_photos[student.foto_id] if student.foto_id in saved_photos else None
                 if photo:
-                    data = {'photo': photo}
+                    current_year = mutils.get_current_schoolyear()
+                    data = {'photo': photo, "schooljaar": current_year}
                     student_dict = student.to_dict()
                     for p, r in badge_properties.items():
                         if r and student_dict[p] != '' or not r:
                             data.update({p: student_dict[p]})
                         else:
+                            log.error(f"New badge: {student.naam} {student.voornaam} {student.leerlingnummer} invalid property {p}, {student_dict[p]}")
                             data = {}
                             break
                     if data:
@@ -75,7 +76,7 @@ def badge_add(student_ids):
                     log.error(f"New badge: {student.naam} {student.voornaam} {student.leerlingnummer} has no valid photo")
                     nbr_no_photo += 1
             else:
-                log.error(f"add_badges: student with id {student_id} not found")
+                log.error(f"badge_add: student with id {student_id} not found")
         if delete_badges:
             mcardpresso.delete_badges(delete_badges)
 
@@ -111,11 +112,13 @@ def badge_process_new(topic=None, opaque=None):
                     ids.append(student.id)
             badge_add(ids)
         deleted_students = mstudent.student_get_m({'delete': True})
-        if deleted_students:
-            data = [{"leerlingnummer": s.leerlingnummer } for s in deleted_students]
-            old_badges = mcardpresso.get_badges(data)
-            ids = [b.id for b in old_badges]
-            mcardpresso.delete_badges(ids)
+        deleted_badges = []
+        for student in deleted_students:
+            badge = mcardpresso.get_first_badge({"leerlingnummer": student.leerlingnummer})
+            if badge:
+                    deleted_badges.append(badge.id)
+        if deleted_badges:
+            mcardpresso.delete_badges(deleted_badges)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 

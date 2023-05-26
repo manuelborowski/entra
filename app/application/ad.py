@@ -36,11 +36,8 @@
 # conn.modify_dn('CN=Rik Fabri,OU=2018-2019,OU=Leerlingen,OU=Accounts,DC=SU,DC=local', 'CN=Rik Fabri', new_superior='OU=manuel-test,OU=Leerlingen,OU=Accounts,DC=SU,DC=local')
 #  attributes = {'samaccountname': 's66666', 'wwwhomepage': '66666', 'name': 'manuel test', 'useraccountcontrol': 544, 'cn': 'manuel test', 'sn': 'test', 'l': 'manuel-6IT', 'description': 'manuel-test manuel-6IT', 'postalcode': '26-27', 'physicalDeliveryOfficeName': 'manuel-6IT', 'givenname': 'manuel', 'displayname': 'manuel test'}
 # ldap_s.add(f'CN=manuel-test,{klas_location_toplevel}', 'group', {'cn': 'manuel-test', 'member': 'CN=Michiel Smans,OU=2021-2022,OU=Leerlingen,OU=Accounts,DC=SU,DC=local'})
-import bdb
-import pdb
-
-import app
-from app.data import student as mstudent, staff as mstaff
+import bdb, app
+from app.data import student as mstudent, staff as mstaff, utils as mutils
 from app.data import settings as msettings
 from app.application.email import  send_new_staff_message
 import ldap3, json, sys, datetime
@@ -185,10 +182,7 @@ class StudentContext(PersonContext):
         self.students_move_to_current_year_ou = []
         self.students_change_cn = []
         self.students_must_update_password = []
-        self.changed_schoolyear, self.prev_year, self.current_year = msettings.get_changed_schoolyear()
-        if self.changed_schoolyear:  # keep a local copy of changed-schoolyear
-            msettings.set_configuration_setting('ad-schoolyear-changed', True)
-        self.changed_schoolyear = msettings.get_configuration_setting('ad-schoolyear-changed')
+        self.current_year = mutils.get_current_schoolyear()
 
 
 # translate a list of leerlingnummers to AD-DN's   If a leerlingnummer is not found in the local cache (not active) try to find in AD

@@ -78,6 +78,17 @@ settings_formio = \
                 "type": "checkbox",
                 "input": true,
                 "defaultValue": false
+              },
+              {
+                "label": "Servernaam",
+                "labelPosition": "left-left",
+                "tooltip": "Als de hostname, waarop dit programma draait, dezelfde is als dit veld, dan is het programma operationeel.\nAnders in testmode",
+                "applyMaskOn": "change",
+                "tableView": true,
+                "key": "generic-servername",
+                "type": "textfield",
+                "input": true,
+                "labelWidth": 13
               }
             ]
           }
@@ -1606,7 +1617,9 @@ settings_formio = \
                   {
                     "label": "Wisa testbestanden",
                     "tooltip": "Als de croncyclus wordt uitgevoerd, haal de wisa data uit onderstaande bestanden\nEen regel met # wordt genegeerd",
+                    "applyMaskOn": "change",
                     "autoExpand": false,
+                    "hidden": true,
                     "tableView": true,
                     "key": "test-wisa-json-list",
                     "type": "textarea",
@@ -1616,8 +1629,30 @@ settings_formio = \
                     "label": "Huidig wisa test bestand",
                     "labelPosition": "left-left",
                     "tooltip": "Bovenstaande lijst wordt continu van boven naar beneden doorlopen.\nHier wordt het huidige wisa testbestand weergegeven.",
+                    "applyMaskOn": "change",
+                    "hidden": true,
                     "tableView": true,
                     "key": "test-wisa-current-json",
+                    "type": "textfield",
+                    "input": true
+                  },
+                  {
+                    "label": "Informat testbestanden",
+                    "tooltip": "Als de croncyclus wordt uitgevoerd, haal de informat data uit onderstaande bestanden\n",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "test-informat-xml-list",
+                    "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Huidig informat test bestand",
+                    "labelPosition": "left-left",
+                    "tooltip": "Bovenstaande lijst wordt continu van boven naar beneden doorlopen.\nHier wordt het huidige informat testbestand weergegeven.",
+                    "applyMaskOn": "change",
+                    "tableView": true,
+                    "key": "test-informat-current-xml",
                     "type": "textfield",
                     "input": true
                   },

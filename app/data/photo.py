@@ -1,6 +1,6 @@
 import sys, json, datetime
 from app import log, db
-from sqlalchemy import func, delete
+from sqlalchemy import func, delete, update
 from sqlalchemy.dialects.mysql import MEDIUMBLOB
 from sqlalchemy_serializer import SerializerMixin
 
@@ -28,7 +28,7 @@ def add_photo(data = {}, commit=True):
         photo = Photo()
         photo.filename = data['filename']
         photo.photo = data['photo']
-        photo.timestamp = datetime.datetime.now()
+        photo.timestamp = data["timestamp"]
         db.session.add(photo)
         if commit:
             db.session.commit()
@@ -59,11 +59,23 @@ def commit():
     return None
 
 
+def reset_flags(commit=False):
+    try:
+        stmt = (update(Photo).values(new=0, changed=0, delete=0))
+        db.session.execute(stmt)
+        if commit:
+            db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+    return None
+
+
 def update_photo(filename, data, commit=True):
     try:
         q = db.session.query(Photo)
         q = q.filter(Photo.filename == filename)
-        data.update({'timestamp': datetime.datetime.now()})
+        p = q.first()
         q.update(data)
         if commit:
             db.session.commit()
@@ -163,7 +175,7 @@ def photo_get_size_m(ids=[]):
 
 def photo_get_size_all():
     try:
-        q = db.session.query(Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
+        q = db.session.query(Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo), Photo.timestamp)
         q = q.all()
         return q
     except Exception as e:
