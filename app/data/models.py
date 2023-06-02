@@ -96,7 +96,7 @@ def update_single(model, obj, data={}, commit=True):
 def delete_multiple(ids=[], objs=[]):
     try:
         for id in ids:
-            obj = get_first_single({"id": id})
+            obj = get_first_single([("id", "=", id)])
             db.session.delete(obj)
         for obj in objs:
             db.session.delete(obj)
@@ -106,8 +106,8 @@ def delete_multiple(ids=[], objs=[]):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
     return None
 
-
-def get_multiple(model, data={}, fields=[], order_by=None, first=False, count=False, active=True, start=None, stop=None):
+# filters is list of tupples: [(key, operator, value), ...]
+def get_multiple(model, filters=[], fields=[], order_by=None, first=False, count=False, active=True, start=None, stop=None):
     try:
         tablename = model.__tablename__
         entities = [text(f'{tablename}.{f}') for f in fields]
@@ -115,10 +115,22 @@ def get_multiple(model, data={}, fields=[], order_by=None, first=False, count=Fa
             q = model.query.with_entities(*entities)
         else:
             q = model.query
-        for k, v in data.items():
-            if k[0] == '-':
-                if hasattr(model, k[1::]):
-                    q = q.filter(getattr(model, k[1::]) != v)
+        for k, o, v in filters:
+            if o == '!':
+                if hasattr(model, k):
+                    q = q.filter(getattr(model, k) != v)
+            elif o == '>':
+                if hasattr(model, k):
+                    q = q.filter(getattr(model, k) > v)
+            elif o == '<':
+                if hasattr(model, k):
+                    q = q.filter(getattr(model, k) < v)
+            elif o == '>=':
+                if hasattr(model, k):
+                    q = q.filter(getattr(model, k) >= v)
+            elif o == '=<':
+                if hasattr(model, k):
+                    q = q.filter(getattr(model, k) <= v)
             else:
                 if hasattr(model, k):
                     q = q.filter(getattr(model, k) == v)
@@ -144,9 +156,9 @@ def get_multiple(model, data={}, fields=[], order_by=None, first=False, count=Fa
     return None
 
 
-def get_first_single(model, data={}, order_by=None):
+def get_first_single(model, filters=[], order_by=None):
     try:
-        obj = get_multiple(model, data, order_by=order_by, first=True)
+        obj = get_multiple(model, filters, order_by=order_by, first=True)
         return obj
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')

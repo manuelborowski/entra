@@ -20,7 +20,8 @@ def show(table_config, template=None, popups={}):
     api_key = config = None
     try:
         config = table_config.create_table_config()
-        api_key = msettings.get_configuration_setting('api-keys')[current_user.level-1]
+        api_keys = msettings.get_configuration_setting('api-keys')[current_user.level-1]
+        api_key = [k for k, v in api_keys.items() if v == "local"][0]
     except Exception as e:
         flash_plus(f'Tabel kan niet getoond worden (show)', e)
     if not template:

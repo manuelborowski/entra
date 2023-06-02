@@ -119,6 +119,7 @@ def student_from_informat_to_database(local_file=None, max=0):
             for l in informat_students:
                 if l["leerlingnummer"] in informat_lln_extra_cache:
                     l.update(informat_lln_extra_cache[l["leerlingnummer"]])
+        schooljaar = mutils.get_current_schoolyear()
         # (Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
         saved_photos = {p[1]: p[0] for p in mphoto.photo_get_size_all()}
         db_students = {} # the current, active students in the database
@@ -138,6 +139,7 @@ def student_from_informat_to_database(local_file=None, max=0):
                 continue
             informat_student["geboortedatum"] = datetime.datetime.strptime(informat_student["geboortedatum"], "%Y-%m-%d").date()
             informat_student["klasnummer"] = int(informat_student["klasnummer"])
+            informat_student["schooljaar"] = schooljaar
 
             if f"{informat_student['leerlingnummer']}.jpg" in saved_photos:
                 informat_student['foto_id'] = saved_photos[f"{informat_student['leerlingnummer']}.jpg"]

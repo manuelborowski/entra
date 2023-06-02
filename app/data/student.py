@@ -129,12 +129,12 @@ def student_delete_m(ids=[], students=[]):
     return app.data.models.delete_multiple(ids, students)
 
 
-def student_get_m(data={}, fields=[], order_by=None, first=False, count=False, active=True):
-    return app.data.models.get_multiple(Student, data=data, fields=fields, order_by=order_by, first=first, count=count, active=active)
+def student_get_m(filters=[], fields=[], order_by=None, first=False, count=False, active=True):
+    return app.data.models.get_multiple(Student, filters=filters, fields=fields, order_by=order_by, first=first, count=count, active=active)
 
 
-def student_get(data={}):
-    return app.data.models.get_first_single(Student, data)
+def student_get(filters=[]):
+    return app.data.models.get_first_single(Student, filters)
 
 
 

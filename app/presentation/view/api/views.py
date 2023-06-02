@@ -6,19 +6,23 @@ import json, sys, html, itertools
 from functools import wraps
 
 
-def api_core(level, func, *args, **kwargs):
+def api_core(api_level, func, *args, **kwargs):
     try:
         all_keys = msettings.get_configuration_setting('api-keys')
-        keys = list(itertools.chain.from_iterable(all_keys[(level-1)::]))
-        if request.headers.get('x-api-key') in keys:
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                log.error(f'{func.__name__}: {e}')
-                return json.dumps({"status": False, "data": f'API-EXCEPTION {func.__name__}: {html.escape(str(e))}'})
+        header_key = request.headers.get('x-api-key')
+        for i, keys_per_level in  enumerate(all_keys[(api_level - 1)::]):
+            if header_key in keys_per_level:
+                key_level = api_level + i
+                log.info(f"API access by '{keys_per_level[header_key]}', keylevel {key_level}, from {request.headers.environ['REMOTE_ADDR']}:{request.headers.environ['REMOTE_PORT']} , URI {request.headers.environ['RAW_URI']}")
+                try:
+                    return func(*args, **kwargs)
+                except Exception as e:
+                    log.error(f'{func.__name__}: {e}')
+                    return json.dumps({"status": False, "data": f'API-EXCEPTION {func.__name__}: {html.escape(str(e))}'})
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return json.dumps({"status": False, "data": html.escape(str(e))})
+    log.error(f"API, API key not valid, {header_key}, from {request.headers.environ['REMOTE_ADDR']}:{request.headers.environ['REMOTE_PORT']} , URI {request.headers.environ['RAW_URI']}")
     return json.dumps({"status": False, "data": f'API key not valid'})
 
 

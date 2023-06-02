@@ -20,11 +20,11 @@ def staff_delete_m(ids):
 def staff_post_processing(opaque=None):
     try:
         log.info(f'{sys._getframe().f_code.co_name}: START')
-        deleted_staffs = mstaff.staff_get_m({"delete": True})
+        deleted_staffs = mstaff.staff_get_m([("delete", "=", True)])
         mstaff.staff_delete_m(staffs=deleted_staffs)
         log.info(f"deleted {len(deleted_staffs)} staff")
-        changed_new_staff = mstaff.staff_get_m({"-changed": ""})
-        changed_new_staff.extend(mstaff.staff_get_m({"new": True}))
+        changed_new_staff = mstaff.staff_get_m([("changed", "!", "")])
+        changed_new_staff.extend(mstaff.staff_get_m([("new", "=", True)]))
         for staff in changed_new_staff:
             mstaff.staff_update(staff, {"changed": "", "new": False}, commit=False)
         mstaff.commit()
@@ -59,7 +59,7 @@ def api_staff_get(options=None):
 # if a staff already exists in Papercut, skip
 def api_staff_add(data):
     try:
-        db_staff = mstaff.staff_get({'code': data['code']})
+        db_staff = mstaff.staff_get([('code', "=", data['code'])])
         if db_staff:
             log.error(f'{sys._getframe().f_code.co_name}, error, staff with {db_staff.code} already exists in Database')
             return {"status": False, "data": f'Fout, personeelslid {db_staff.code} bestaat al in Database'}
@@ -90,7 +90,7 @@ def api_staff_update(data):
     try:
         db_ok = papercut_ok = ad_ok = True
         error_data = ''
-        db_staff = mstaff.staff_get({'id': data['id']})
+        db_staff = mstaff.staff_get([('id', "=",  data['id'])])
         if "password_data" in data:
             new_password = data["password_data"]["password"]
             must_change_password = data["password_data"]["must_update"]
@@ -135,7 +135,7 @@ def api_staff_delete(data):
         staff_from_wisa = []
         staff_to_delete = []
         for id in data:
-            staff = mstaff.staff_get({'id': id})
+            staff = mstaff.staff_get([('id', "=", id)])
             if staff.stamboeknummer != '': # not empty means staff is synchronized from WISA and can not be deleted
                 staff_from_wisa.append(staff)
             else:

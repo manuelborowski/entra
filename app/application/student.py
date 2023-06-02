@@ -14,7 +14,7 @@ def student_delete(ids):
 # find the first next vsk number, to be assigned to a student, or -1 when not found
 def vsk_get_next_number():
     try:
-        student = mstudent.student_get_m({'delete': False}, order_by='-vsknummer', first=True)
+        student = mstudent.student_get_m([('delete', "=", False)], order_by='-vsknummer', first=True)
         if student and student.vsknummer != '':
             return {"status": True, "data": int(student.vsknummer) + 1}
         else:
@@ -31,7 +31,7 @@ def vsk_update_numbers(vsknumber):
     try:
         vsknumber = int(vsknumber)
         changed_students = []
-        students = mstudent.student_get_m({'vsknummer': '', 'delete': False})
+        students = mstudent.student_get_m([('vsknummer', "=", ''), ('delete', "=",  False)])
         nbr_updated = 0
         for student in students:
             changed_students.append({'vsknummer': str(vsknumber), 'student': student, 'changed': ['vsknummer']})
@@ -73,11 +73,11 @@ def cron_task_vsk_numbers(opaque=None):
 def student_post_processing(opaque=None):
     try:
         log.info(f'{sys._getframe().f_code.co_name}: START')
-        deleted_students = mstudent.student_get_m({"delete": True})
+        deleted_students = mstudent.student_get_m([("delete", "=",  True)])
         mstudent.student_delete_m(students=deleted_students)
         log.info(f"deleted {len(deleted_students)} students")
-        changed_new_student = mstudent.student_get_m({"-changed": ""})
-        changed_new_student.extend(mstudent.student_get_m({"new": True}))
+        changed_new_student = mstudent.student_get_m([("changed", "!", "")])
+        changed_new_student.extend(mstudent.student_get_m([("new", "=", True)]))
         for student in changed_new_student:
             mstudent.student_update(student, {"changed": "", "new": False}, commit=False)
         mstudent.commit()
@@ -113,7 +113,7 @@ def api_student_get(options=None):
 def api_student_update(data):
     try:
         db_ok = papercut_ok = ad_ok = True
-        db_student = mstudent.student_get({'id': data['id']})
+        db_student = mstudent.student_get([('id', "=", data['id'])])
         if "password_data" in data:
             new_password = data["password_data"]["password"]
             must_change_password = data["password_data"]["must_update"]
@@ -169,7 +169,7 @@ def form_prepare_for_view_cb(component, opaque):
 
 def form_prepare_for_view(id, read_only=False):
     try:
-        student = mstudent.student_get({"id": id})
+        student = mstudent.student_get([("id", "=", id)])
         template = app.data.settings.get_configuration_setting('student-formio-template')
         photo = mphoto.photo_get({'filename': student.foto})
         data = {"photo": base64.b64encode(photo.photo).decode('utf-8') if photo else ''}
@@ -204,7 +204,7 @@ def format_data(db_list, total_count=None, filtered_count=None):
 
 
 def photo_get_nbr_not_found():
-    nbr_students_no_photo = mstudent.student_get_m({'foto_id': -1}, count=True)
+    nbr_students_no_photo = mstudent.student_get_m([('foto_id', "=", -1)], count=True)
     return nbr_students_no_photo
 
 

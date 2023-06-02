@@ -11,11 +11,11 @@ log.addFilter(MyLogFilter())
 
 def check_if_rfid_already_exists(rfid):
     if rfid != "":
-        staff = staff_get(data={"rfid": rfid})
+        staff = staff_get([("rfid", "=", rfid)])
         if staff:
             log.error(f'{sys._getframe(1).f_code.co_name}: RFID {rfid} already exists for {staff.person_id}')
             return staff
-        student = student_get(data={"rfid": rfid})
+        student = student_get([("rfid", "=", rfid)])
         if student:
             log.error(f'{sys._getframe(1).f_code.co_name}: RFID {rfid} already exists for {student.person_id}')
             return student

@@ -344,7 +344,7 @@ def __students_new(ctx):
     # check if new student already exists in AD (student left school and came back)
     # if so, activate and put in current OU
     log.info(f"{sys._getframe().f_code.co_name}, START")
-    new_students = mstudent.student_get_m({"new": True})
+    new_students = mstudent.student_get_m([("new", "=", True)])
     reset_student_password = msettings.get_configuration_setting('ad-reset-student-password')
     default_password = msettings.get_configuration_setting('generic-standard-password')
     log.info(f"{sys._getframe().f_code.co_name}, check for 'new' students already in AD: activate and move to correct OU")
@@ -431,7 +431,7 @@ def __students_changed(ctx):
     # check if there are students with valid, changed attributes.  If so, update the attributes
     # if required, move the students to the current OU
     log.info(f"{sys._getframe().f_code.co_name}, START")
-    changed_students = mstudent.student_get_m({"-changed": "", "new": False})
+    changed_students = mstudent.student_get_m([("changed", "!", ""), ("new", "=", False)])
     if changed_students:
         for student in changed_students:
             changed = json.loads(student.changed)
@@ -468,7 +468,7 @@ def __students_changed(ctx):
 @ad_exception_wrapper
 def __students_deleted(ctx):
     log.info(f"{sys._getframe().f_code.co_name}, START")
-    deleted_students = mstudent.student_get_m({"delete": True})
+    deleted_students = mstudent.student_get_m([("delete", "=", True)])
     deactivate_student = msettings.get_configuration_setting('ad-deactivate-deleled-student')
     if deleted_students:
         for student in deleted_students:
@@ -712,7 +712,7 @@ def staff_process_flagged(opaque=None, **kwargs):
     if staff_list:
         new_staff = [s for s in staff_list if s.new]
     else:
-        new_staff = mstaff.staff_get_m({"new": True})
+        new_staff = mstaff.staff_get_m([("new", "=", True)])
     for db_staff in new_staff:
         ad_staff = __person_get(ctx, db_staff.code)
         if ad_staff: # already present in AD -> activate
@@ -734,7 +734,7 @@ def staff_process_flagged(opaque=None, **kwargs):
     if staff_list:
         changed_staff = [s for s in staff_list if s.changed != "" and not s.new]
     else:
-        changed_staff = mstaff.staff_get_m({"-changed": "", "new": False})
+        changed_staff = mstaff.staff_get_m([("changed", "!" ""), ("new", "=", False)])
     for db_staff in changed_staff:
             res = __staff_update(ctx, db_staff)
             # check if the invitation email needs to be resend: only when the private email address has changed AND the password is never updated (is still default)
@@ -749,7 +749,7 @@ def staff_process_flagged(opaque=None, **kwargs):
     if staff_list:
         deleted_staff = [s for s in staff_list if s.delete]
     else:
-        deleted_staff = mstaff.staff_get_m({"delete": True})
+        deleted_staff = mstaff.staff_get_m([("delete", "=", True)])
     for db_staff in deleted_staff:
         __staff_set_active_state(ctx, db_staff, False)
     log.info(f"{sys._getframe().f_code.co_name}, STOP")

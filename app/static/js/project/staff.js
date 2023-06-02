@@ -23,7 +23,7 @@ const staff_add = async () => {
 }
 
 const staff_update = async (item, ids) => {
-    const ret = await fetch(Flask.url_for('api.staff_get', {filters: `id=${ids[0]}`}), {headers: {'x-api-key': ctx.api_key,}});
+    const ret = await fetch(Flask.url_for('api.staff_get', {filters: `id$=$${ids[0]}`}), {headers: {'x-api-key': ctx.api_key,}});
     const status = await ret.json();
     if (status.status) {
         formio_popup_create(ctx.popups.new_update_staff, async (action, opaque, data = null) => {

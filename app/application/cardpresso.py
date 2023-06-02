@@ -47,7 +47,7 @@ def badge_add(student_ids):
         delete_badges = []
         saved_photos = {p.id : p.photo for p in mphoto.photo_get_m()}
         for student_id in student_ids:
-            student = mstudent.student_get({'id': student_id})
+            student = mstudent.student_get([('id', "=", student_id)])
             if student:
                 badge = mcardpresso.get_first_badge({'leerlingnummer': student.leerlingnummer})
                 if badge:
@@ -100,10 +100,10 @@ check_properties_changed = ['middag', 'vsknummer', 'photo', 'schooljaar', 'klasc
 
 def badge_process_new(topic=None, opaque=None):
     try:
-        new_students = mstudent.student_get_m({'new': True})
+        new_students = mstudent.student_get_m([('new', "=", True)])
         ids = [student.id for student in new_students]
         badge_add(ids)
-        updated_students = mstudent.student_get_m({'-changed': '', 'new': False})  # find students with changed property not equal to '' and not new
+        updated_students = mstudent.student_get_m([('changed', "!", ''), ('new', "=", False)])  # find students with changed property not equal to '' and not new
         if updated_students:
             ids = []
             for student in updated_students:
@@ -111,7 +111,7 @@ def badge_process_new(topic=None, opaque=None):
                 if list(set(check_properties_changed).intersection(changed)):
                     ids.append(student.id)
             badge_add(ids)
-        deleted_students = mstudent.student_get_m({'delete': True})
+        deleted_students = mstudent.student_get_m([('delete', "=", True)])
         deleted_badges = []
         for student in deleted_students:
             badge = mcardpresso.get_first_badge({"leerlingnummer": student.leerlingnummer})
@@ -132,7 +132,7 @@ def rfid_check_for_new():
         deleted_badges = []
         badges = mcardpresso.get_badges({'changed': '["rfid"]'})
         if badges:
-            saved_students = {s.leerlingnummer: s for s in mstudent.student_get_m({'delete': False})}
+            saved_students = {s.leerlingnummer: s for s in mstudent.student_get_m([('delete', "=", False)])}
             for badge in badges:
                 if badge.rfid != '':
                     if badge.leerlingnummer in saved_students:

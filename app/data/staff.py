@@ -91,12 +91,12 @@ def staff_delete_m(ids=[], staffs=[]):
     return app.data.models.delete_multiple(ids, staffs)
 
 
-def staff_get_m(data={}, fields=[], order_by=None, first=False, count=False, active=True):
-    return app.data.models.get_multiple(Staff, data=data, fields=fields, order_by=order_by, first=first, count=count, active=active)
+def staff_get_m(filters=[], fields=[], order_by=None, first=False, count=False, active=True):
+    return app.data.models.get_multiple(Staff, filters=filters, fields=fields, order_by=order_by, first=first, count=count, active=active)
 
 
-def staff_get(data={}):
-    return app.data.models.get_first_single(Staff, data)
+def staff_get(filters=[]):
+    return app.data.models.get_first_single(Staff, filters)
 
 
 # data is a list, with:
