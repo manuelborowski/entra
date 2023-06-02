@@ -10,8 +10,8 @@ def api_core(api_level, func, *args, **kwargs):
     try:
         all_keys = msettings.get_configuration_setting('api-keys')
         header_key = request.headers.get('x-api-key')
-        if request.headers.get("Forwarded"):
-            remote_ip = request.headers.get("Forwarded")
+        if request.headers.get("X-Forwarded-For"):
+            remote_ip = request.headers.get("X-Forwarded-For")
         else:
             remote_ip = request.remote_addr
         for i, keys_per_level in  enumerate(all_keys[(api_level - 1)::]):
