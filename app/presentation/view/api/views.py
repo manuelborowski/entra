@@ -1,4 +1,4 @@
-from flask import request
+from flask import request, render_template
 from . import api
 from app.application import  student as mstudent, user as muser, photo as mphoto, staff as mstaff, settings as msettings, cardpresso as mcardpresso
 from app import log
@@ -13,7 +13,7 @@ def api_core(api_level, func, *args, **kwargs):
         for i, keys_per_level in  enumerate(all_keys[(api_level - 1)::]):
             if header_key in keys_per_level:
                 key_level = api_level + i
-                log.info(f"API access by '{keys_per_level[header_key]}', keylevel {key_level}, from {request.headers.environ['REMOTE_ADDR']}:{request.headers.environ['REMOTE_PORT']} , URI {request.headers.environ['RAW_URI']}")
+                log.info(f"API access by '{keys_per_level[header_key]}', keylevel {key_level}, from {request.remote_addr}, URI {request.url}")
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
@@ -22,7 +22,7 @@ def api_core(api_level, func, *args, **kwargs):
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return json.dumps({"status": False, "data": html.escape(str(e))})
-    log.error(f"API, API key not valid, {header_key}, from {request.headers.environ['REMOTE_ADDR']}:{request.headers.environ['REMOTE_PORT']} , URI {request.headers.environ['RAW_URI']}")
+    log.error(f"API, API key not valid, {header_key}, from {request.remote_addr} , URI {request.url}")
     return json.dumps({"status": False, "data": f'API key not valid'})
 
 
@@ -143,6 +143,13 @@ def student_get():
     return json.dumps(ret, ensure_ascii=False)
 
 
+@api.route('/api/student/fields', methods=['GET'])
+@user_key_required
+def student_fields():
+    ret = {"status": True, "data": mstudent.api_student_get_fields()}
+    return json.dumps(ret, ensure_ascii=False)
+
+
 @api.route('/api/student/update', methods=['POST'])
 @supervisor_key_required
 def student_update():
@@ -156,6 +163,13 @@ def student_update():
 def staff_get():
     options = request.args
     ret = mstaff.api_staff_get(options)
+    return json.dumps(ret, ensure_ascii=False)
+
+
+@api.route('/api/staff/fields', methods=['GET'])
+@user_key_required
+def staff_fields():
+    ret = {"status": True, "data": mstaff.api_staff_get_fields()}
     return json.dumps(ret, ensure_ascii=False)
 
 
@@ -204,4 +218,8 @@ def carpresso_delete():
 # ?fields=klasgroep,schooljaar
 # sort=-gemeente
 # gemeente=nijlen   filter on gemeente equals nijlen
+
+@api.route('/api/info/', methods=['GET'])
+def get_info():
+    return render_template("api/info.html")
 

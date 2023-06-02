@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>API</title>
+</head>
+<body>
+<h2>Access to API</h2>
+
+<p>Access to the API is via POST-HTTPS requests</p>
+
+<p>Authentication is required by adding, in the header, the <strong>x-api-key</strong>&nbsp;key.&nbsp; The value should be a unique token, supplied by the owner of the site.</p>
+
+<p>url : &lt;<strong>base-url</strong>&gt;/api/&lt;<strong>topic</strong>&gt;/get?<strong>fields</strong>=aa,bb&amp;<strong>filters</strong>=aa$!$123,bb$&gt;$456</p>
+
+<p>fields and filters are <strong>optional</strong>, if not present&nbsp;<strong>all</strong>&nbsp;fields of&nbsp;<strong>all&nbsp;</strong>datasets are returned</p>
+
+<h2>base-url</h2>
+
+<p>Is the url where this page is hosted,&nbsp;<strong>without</strong>&nbsp;the trailing &quot;/api/info&quot;</p>
+
+<h2>topic</h2>
+
+<ul>
+	<li><strong>student</strong>&nbsp;: everything related to students</li>
+	<li><strong>staff</strong>: everyting related to teachers and employees</li>
+</ul>
+
+<h2>fields</h2>
+
+<p>url to list the available fields of a topic: .../api/&lt;<strong>topic</strong>&gt;/<strong>fields</strong></p>
+
+<p><strong>fields</strong>&nbsp;is a comma separated list of fields.</p>
+
+<p>A field is a member of a dataset.&nbsp; By supplying one or more fields, the data returned (per dataset) is limited to these fields.</p>
+
+<p>E.g. in the example above, only fields <strong>aa </strong>and <strong>bb </strong>are returned</p>
+
+<h2>filters</h2>
+
+<p><strong>filters</strong>&nbsp;is a comma separated list of filters.</p>
+
+<p>If specifying more than one filter, the filters are <strong>ANDed</strong></p>
+
+<p>Template of a filter: &lt;field&gt;&lt;operator&gt;&lt;value&gt;</p>
+
+<p>Field is a member of the dataset to filter on.&nbsp;&nbsp;<strong>Note</strong>, it is&nbsp;<strong>not</strong>&nbsp;required that the field, specified at <strong>filters</strong> is also specified at <strong>fields</strong></p>
+
+<p>Operator:</p>
+
+<ul>
+	<li>$=$: equal to</li>
+	<li>$!$: not equal to</li>
+	<li>$&lt;$: less than</li>
+	<li>$&gt;$: more than</li>
+</ul>
+
+<p>Value is the value to be compared with.&nbsp;&nbsp;<strong>Note</strong>, when comparing with dates, the format is <strong>year-mont-day</strong>, e.g. 2023-10-25</p>
+
+</body>
+</html>
