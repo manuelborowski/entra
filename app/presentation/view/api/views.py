@@ -225,5 +225,6 @@ def carpresso_delete():
 
 @api.route('/api/info/', methods=['GET'])
 def get_info():
-    return render_template("api/info.html")
+    info_page = msettings.get_configuration_setting("api-info-page")
+    return info_page
 

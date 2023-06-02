@@ -1444,6 +1444,15 @@ settings_formio = \
                     "key": "api-keys",
                     "type": "textarea",
                     "input": true
+                  },
+                  {
+                    "label": "Info pagina (html)",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "api-info-page",
+                    "type": "textarea",
+                    "input": true
                   }
                 ]
               }
