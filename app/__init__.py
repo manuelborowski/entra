@@ -110,11 +110,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.16: import students from informat.  Added testmode.  Simplify current_schoolyear
 # 1.17: update model::get and model::get_m, upgrade of filtering.  Update API keys, each key has a tag now
 # 1.18: added api-info-html.  Bugfixed API logging
+# 1.19 Bugfixed API logging
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.18', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.19', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
