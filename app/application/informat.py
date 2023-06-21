@@ -73,16 +73,18 @@ sdh_allowed_student_keys = [
 ]
 
 
-def get_from_url(url, item_name, replace_keys={}):
+def get_from_url(url, item_name, replace_keys=None, params=None):
     try:
         out = []
-        params = {"login": flask_app.config["INFORMAT_USERNAME"], "paswoord": flask_app.config["INFORMAT_PASSWORD"], "hoofdstructuur": ""}
-        now = datetime.datetime.now()
-        referentiedatum = now.strftime("%d-%m-%Y")
-        reference_year = now.year - 1 if now.month < 8 else now.year
-        schooljaar = f"{reference_year}-{reference_year-2000+1}"
-        params["schooljaar"] = schooljaar
-        params["referentiedatum"] = referentiedatum
+        if not params:
+            params = {}
+        params.update({"login": flask_app.config["INFORMAT_USERNAME"], "paswoord": flask_app.config["INFORMAT_PASSWORD"]})
+        # now = datetime.datetime.now()
+        # referentiedatum = now.strftime("%d-%m-%Y")
+        # reference_year = now.year - 1 if now.month < 8 else now.year
+        # schooljaar = f"{reference_year}-{reference_year-2000+1}"
+        # params["schooljaar"] = schooljaar
+        # params["referentiedatum"] = referentiedatum
         instellingen = ["30569", "30593"]
         for instelling in instellingen:
             params["instelnr"] = instelling
@@ -100,7 +102,6 @@ def get_from_url(url, item_name, replace_keys={}):
         return []
 
 
-
 def student_from_informat_to_database(local_file=None, max=0):
     try:
         log.info('start student import from informat')
@@ -112,9 +113,13 @@ def student_from_informat_to_database(local_file=None, max=0):
             # prevent accidental import from informat
             # log.error("NO IMPORT FROM informat ALLOWED")
             # return
-
-            informat_students = get_from_url(flask_app.config["INFORMAT_URL_LLN"], "wsInschrijving", informat2sdh_student_keys)
-            informat_lln_extra = get_from_url(flask_app.config["INFORMAT_URL_LLN_EXTRA"], "wsLeerling", informat2sdh_student_keys)
+            now = datetime.datetime.now()
+            referentiedatum = now.strftime("%d-%m-%Y")
+            reference_year = now.year - 1 if now.month < 8 else now.year
+            schooljaar = f"{reference_year}-{reference_year - 2000 + 1}"
+            params = {"schooljaar": schooljaar, "referentiedatum":  referentiedatum, "hoofdstructuur": ""}
+            informat_students = get_from_url(flask_app.config["INFORMAT_URL_LLN"], "wsInschrijving", informat2sdh_student_keys, params)
+            informat_lln_extra = get_from_url(flask_app.config["INFORMAT_URL_LLN_EXTRA"], "wsLeerling", informat2sdh_student_keys, params)
             informat_lln_extra_cache = {l["pointer"]: l for l in informat_lln_extra}
             for l in informat_students:
                 if l["leerlingnummer"] in informat_lln_extra_cache:
@@ -202,31 +207,70 @@ def student_from_informat_to_database(local_file=None, max=0):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
-def staff_from_wisa_to_database(local_file=None, max=0):
+
+informat2sdh_staff_keys = {
+    "Voornaam": "voornaam",
+    "Naam": "naam",
+    "Rijksregnr": "rijksregisternummer",
+    "Stamnummer": "stamboeknummer",
+    "Geslacht": "geslacht",
+    "Geboortedatum": "geboortedatum",
+    "Geboorteplaats": "geboorteplaats",
+    "Prive_email": "prive_email",
+    "School_email": "email",
+    "Instelnr": "instellingsnummer"
+}
+
+
+def staff_from_informat_to_database(local_file=None, max=0):
     try:
-        log.info('start staff import from wisa')
-        if local_file:
-            log.info(f'Reading from local file {local_file}')
-            response_text = open(local_file).read()
-        else:
-            # prevent accidental import from WISA
-            # log.error("NO IMPORT FROM WISA ALLOWED")
-            # return
-            login = msettings.get_configuration_setting('wisa-login')
-            password = msettings.get_configuration_setting('wisa-password')
-            base_url = msettings.get_configuration_setting('wisa-url')
-            query = msettings.get_configuration_setting('wisa-staff-query')
-            werkdatum = str(datetime.date.today())
-            url = f'{base_url}/{query}?werkdatum={werkdatum}&_username_={login}&_password_={password}&format=json'
-            response = requests.get(url)
-            response_text = response.text.encode("iso-8859-1").decode("utf-8")
+        log.info('start staff import from informat')
+        now = datetime.datetime.now()
+        reference_year = now.year - 1 if now.month < 8 else now.year
+        schooljaar = f"{reference_year}-{reference_year - 2000 + 1}"
+        params = {"schooljaar": schooljaar, "personeelsgroep_is_een_optie": ""}
+        informat_staffs = get_from_url(flask_app.config["INFORMAT_URL_LKR"], "wsPersoneelslid", informat2sdh_staff_keys, params)
+
+        #flatten informat list and process instellingsnummer
+        rijksregisternummers_staffs = {}
+        for informat_staff in informat_staffs:
+            if informat_staff["Actief"] == "N":
+                continue
+
+            rijksregisternummer = informat_staff["rijksregisternummer"]
+            if rijksregisternummer in rijksregisternummers_staffs:
+                saved_instellingnummers = json.loads(rijksregisternummers_staffs[rijksregisternummer]["instellingsnummer"])
+                if informat_staff["instellingsnummer"] not in saved_instellingnummers:
+                    saved_instellingnummers.append(informat_staff["instellingsnummer"])
+                    rijksregisternummers_staffs[rijksregisternummer]["instellingsnummer"] = json.dumps(saved_instellingnummers)
+            else:
+                informat_staff["instellingsnummer"] = json.dumps([informat_staff["instellingsnummer"]])
+                rijksregisternummers_staffs[rijksregisternummer] = informat_staff
+
+
+        # if local_file:
+        #     log.info(f'Reading from local file {local_file}')
+        #     response_text = open(local_file).read()
+        # else:
+        #     # prevent accidental import from WISA
+        #     # log.error("NO IMPORT FROM WISA ALLOWED")
+        #     # return
+        #     login = msettings.get_configuration_setting('wisa-login')
+        #     password = msettings.get_configuration_setting('wisa-password')
+        #     base_url = msettings.get_configuration_setting('wisa-url')
+        #     query = msettings.get_configuration_setting('wisa-staff-query')
+        #     werkdatum = str(datetime.date.today())
+        #     url = f'{base_url}/{query}?werkdatum={werkdatum}&_username_={login}&_password_={password}&format=json'
+        #     response = requests.get(url)
+        #     response_text = response.text.encode("iso-8859-1").decode("utf-8")
         # The query returns with the keys in uppercase.  Convert to lowercase first
-        keys = mstaff.get_columns()
-        for key in keys:
-            response_text = response_text.replace(f'"{key.upper()}"', f'"{key}"')
-        wisa_data = json.loads(response_text)
-        staff = mstaff.staff_get_m()
-        staff_in_db = {s.code: s for s in staff}
+
+        # keys = mstaff.get_columns()
+        # for key in keys:
+        #     response_text = response_text.replace(f'"{key.upper()}"', f'"{key}"')
+        # informat_staffs = json.loads(response_text)
+        db_staff = mstaff.staff_get_m()
+        staff_in_db = {s.rijksregisternummer: s for s in db_staff}
         new_list = []
         changed_list = []
         flag_list = []
@@ -234,53 +278,78 @@ def staff_from_wisa_to_database(local_file=None, max=0):
         nbr_deleted = 0
         nbr_processed = 0
         # clean up, remove leading and trailing spaces
-        for wisa_item in wisa_data:
-            for k, v in wisa_item.items():
-                wisa_item[k] = v.strip()
+        for _, informat_staff in rijksregisternummers_staffs.items():
+            for k, v in informat_staff.items():
+                if not v:
+                    informat_staff[k] = ""
+                informat_staff[k] = informat_staff[k].strip()
+
+        for _, informat_staff in rijksregisternummers_staffs.items():
+            log.info(f"CHECK1 {informat_staff['rijksregisternummer']}, {informat_staff['naam']} {informat_staff['voornaam']}")
+
+        if "70011716031" in rijksregisternummers_staffs:
+            log.info("FOUND IN INFORMAT")
+
+
         # massage the imported data so that it fits the database.
         # for each staff-member in the import, check if it's new or changed
-        for wisa_item in wisa_data:
-            #skip double items
-            if wisa_item['code'] in already_processed:
+        for _, informat_staff in rijksregisternummers_staffs.items():
+            #skip double or inactive items
+            if informat_staff['rijksregisternummer'] in already_processed or informat_staff["Actief"] == "N":
                 continue
-            wisa_item['geboortedatum'] = datetime.datetime.strptime(wisa_item['geboortedatum'].split(' ')[0], '%Y-%m-%d').date()
-            email = wisa_item['email'] if 'campussintursula.be' in wisa_item['email'] else wisa_item['prive_email'] if 'campussintursula.be' in wisa_item['prive_email'] else ""
-            if 'campussintursula.be' not in wisa_item['email'] and wisa_item["email"] != "":
-                prive_email = wisa_item['email']
-            elif 'campussintursula.be' not in wisa_item['prive_email'] and wisa_item["prive_email"] != "":
-                prive_email = wisa_item['prive_email']
+
+            informat_staff["geboortedatum"] = datetime.datetime.strptime(informat_staff["geboortedatum"], "%d.%m.%Y").date()
+            informat_staff["geslacht"] = "V" if informat_staff["geslacht"] == "2" else "M"
+
+
+
+            # informat_staff['geboortedatum'] = datetime.datetime.strptime(informat_staff['geboortedatum'].split(' ')[0], '%Y-%m-%d').date()
+            email = informat_staff['email'] if 'campussintursula.be' in informat_staff['email'] else informat_staff['prive_email'] if 'campussintursula.be' in informat_staff['prive_email'] else ""
+            if 'campussintursula.be' not in informat_staff['email'] and informat_staff["email"] != "":
+                prive_email = informat_staff['email']
+            elif 'campussintursula.be' not in informat_staff['prive_email'] and informat_staff["prive_email"] != "":
+                prive_email = informat_staff['prive_email']
             else:
                 prive_email = ''
             if email != "":
-                wisa_item['email'] = email
+                informat_staff['email'] = email
             else:
-                wisa_item['email'] = f"{wisa_item['voornaam'].translate(normalize_letters).lower()}.{wisa_item['naam'].translate(normalize_letters).lower()}@campussintursula.be"
-            wisa_item["prive_email"] = prive_email
-            if wisa_item['code'] in staff_in_db:
+                informat_staff['email'] = f"{informat_staff['voornaam'].translate(normalize_letters).lower()}.{informat_staff['naam'].translate(normalize_letters).lower()}@campussintursula.be"
+            informat_staff["prive_email"] = prive_email
+
+            log.info(f"CHECK {informat_staff['rijksregisternummer']}, {informat_staff['naam']} {informat_staff['voornaam']}")
+
+            if informat_staff['rijksregisternummer'] in staff_in_db:
+                log.info(f"GEVONDEN {informat_staff['rijksregisternummer']}, {informat_staff['naam']} {informat_staff['voornaam']}")
                 # staff-member already exists in database, check if a staff-member has updated properties
                 changed_properties = []
-                staff = staff_in_db[wisa_item['code']]
-                for k, v in wisa_item.items():
-                    if hasattr(staff, k) and v != getattr(staff, k):
+                db_staff = staff_in_db[informat_staff['rijksregisternummer']]
+                for k, v in informat_staff.items():
+                    if hasattr(db_staff, k) and v != getattr(db_staff, k):
                         changed_properties.append(k)
                 # if the naam or voornaam changes AND the email is already set in the database THEN ignore the new email (will cause confusion)
-                if "email" in changed_properties and staff.email != "":
+                if "email" in changed_properties and db_staff.email != "":
                     changed_properties.remove("email")
                 if changed_properties:
                     changed_properties.extend(['delete', 'new'])  # staff-member already present, but has changed properties
-                    wisa_item.update({'changed': changed_properties, 'staff': staff, 'delete': False, 'new': False})
-                    changed_list.append(wisa_item)
+                    informat_staff.update({'changed': changed_properties, 'staff': db_staff, 'delete': False, 'new': False})
+                    changed_list.append(informat_staff)
                 else:
-                    flag_list.append({'changed': '', 'delete': False, 'new': False, 'staff': staff}) # staff already present, no change
-                del(staff_in_db[wisa_item['code']])
+                    flag_list.append({'changed': '', 'delete': False, 'new': False, 'staff': db_staff}) # staff already present, no change
+                del(staff_in_db[informat_staff['rijksregisternummer']])
             else:
                 # staff-member not present in database, i.e. a new staff-member
-                new_list.append(wisa_item)  # new staff-mmeber
-            already_processed.append(wisa_item['code'])
+                new_list.append(informat_staff)  # new staff-mmeber
+            already_processed.append(informat_staff['rijksregisternummer'])
             nbr_processed += 1
             if max > 0 and nbr_processed >= max:
                 break
-        # at this point, saved_staff contains the staff-memner not present in the wisa-import, i.e. the deleted staff-members
+
+            if "70011716031" not in rijksregisternummers_staffs:
+                log.info("NOT FOUND IN INFORMAT")
+
+
+        # at this point, staff_in_db contains the staff-member not present in the informat-import, i.e. the deleted staff-members
         for k, v in staff_in_db.items():
             if not v.delete and v.stamboeknummer != "":
                 log.info(f"Delete staff {v.code}")
@@ -316,20 +385,7 @@ def cron_task_informat_get_student(opaque=None):
 
 
 def cron_task_informat_get_staff(opaque=None):
-    wisa_files = msettings.get_list('test-staff-wisa-json-list')
-    if wisa_files:  # test with wisa files
-        current_wisa_file = msettings.get_configuration_setting('test-staff-wisa-current-json')
-        if current_wisa_file == '' or current_wisa_file not in wisa_files:
-            current_wisa_file = wisa_files[0]
-        else:
-            new_index = wisa_files.index(current_wisa_file) + 1
-            if new_index >= len(wisa_files):
-                new_index = 0
-            current_wisa_file = wisa_files[new_index]
-        msettings.set_configuration_setting('test-staff-wisa-current-json', current_wisa_file)
-        staff_from_wisa_to_database(local_file=current_wisa_file)
-    else:
-        staff_from_wisa_to_database()
+        staff_from_informat_to_database()
 
 
 

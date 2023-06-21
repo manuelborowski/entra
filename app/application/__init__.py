@@ -5,7 +5,7 @@ from app import flask_app
 from app.application.photo import cron_task_photo
 # from app.application.wisa import cron_task_wisa_get_student
 # from app.application.wisa import cron_task_wisa_get_staff
-from app.application.informat import cron_task_informat_get_student
+from app.application.informat import cron_task_informat_get_student, cron_task_informat_get_staff
 from app.application.student import cron_task_vsk_numbers
 from app.application.cardpresso import cron_task_new_badges
 from app.application.cardpresso import cron_task_new_rfid_to_database
@@ -21,6 +21,7 @@ cron_table = [
     # ('WISA-STUDENT', cron_task_wisa_get_student, 'VAN wisa, leerlingen bijwerken', '', False),
     # ('WISA-STAFF', cron_task_wisa_get_staff, 'VAN wisa, personeel bijwerken', '', False),
     ('INFORMAT-STUDENT', cron_task_informat_get_student, 'VAN informat, leerlingen bijwerken', '', False),
+    ('INFORMAT-STAFF', cron_task_informat_get_staff, 'VAN informat, personeel bijwerken', '', False),
     ('VSK-NUMMERS', cron_task_vsk_numbers, 'NAAR SDH, Vsk nummers bijwerken', '', False),
     ('CARDPRESSO-NEW', cron_task_new_badges, 'NAAR cardpresso, nieuwe badges klaarmaken', '', False),
     ('CARDPRESSO-RFID', cron_task_new_rfid_to_database, 'VAN cardpresso, RFID van studenten bijwerken', '', False),
