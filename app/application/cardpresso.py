@@ -54,7 +54,7 @@ def badge_add(student_ids):
                     delete_badges.append(badge.id)
                 photo = saved_photos[student.foto_id] if student.foto_id in saved_photos else None
                 if photo:
-                    current_year = mutils.get_current_schoolyear()
+                    current_year = mutils.get_current_schoolyear(format=3)
                     data = {'photo': photo, "schooljaar": current_year}
                     student_dict = student.to_dict()
                     for p, r in badge_properties.items():

@@ -37,6 +37,8 @@ class Settings(db.Model):
 def get_setting(name, id=-1, convert_to_string=False):
     try:
         setting = Settings.query.filter_by(name=name, user_id=id if id > -1 else current_user.id).first()
+        if not setting:
+            return False, ""
         if setting.type == Settings.SETTING_TYPE.E_INT:
             value = int(setting.value)
         elif setting.type == Settings.SETTING_TYPE.E_FLOAT:
@@ -96,9 +98,8 @@ default_configuration_settings = {
     'generic-servername': ('', Settings.SETTING_TYPE.E_STRING),
 
     'sdh-inform-emails': ('t1', Settings.SETTING_TYPE.E_STRING),
-    'sdh-prev-schoolyear': ('', Settings.SETTING_TYPE.E_STRING),
-    'sdh-current-schoolyear': ('', Settings.SETTING_TYPE.E_STRING),
-    'sdh-schoolyear-changed': (False, Settings.SETTING_TYPE.E_BOOL),
+    'sdh-auto-current-schoolyear': (True, Settings.SETTING_TYPE.E_BOOL),
+    'sdh-select-current-schoolyear': (2023, Settings.SETTING_TYPE.E_INT),
 
     'user-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
 
@@ -114,20 +115,8 @@ default_configuration_settings = {
     'cardpresso-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
 
     'cron-scheduler-template': ('', Settings.SETTING_TYPE.E_STRING),
-    'cron-enable-update-student-from-wisa': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-enable-update-staff-from-wisa': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-enable-update-student-photo': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-enable-update-vsk-numbers': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-enable-update-student-badge': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-enable-update-student-rfid': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-enable-update-student-ad': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-enable-update-staff-ad': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-enable-update-student-smartschool': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-deactivate-deleted-students': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-deactivate-deleted-staff': (False, Settings.SETTING_TYPE.E_BOOL),
-    'cron-clear-changed-year-flag': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-enable-modules': ({}, Settings.SETTING_TYPE.E_JSON),
-
+    'cron-active-july-august': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-veyon-scheduler-template': ('', Settings.SETTING_TYPE.E_STRING),
 
     'smartschool-scheduler-cron': ('', Settings.SETTING_TYPE.E_STRING),

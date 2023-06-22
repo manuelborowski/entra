@@ -182,7 +182,7 @@ class StudentContext(PersonContext):
         self.students_move_to_current_year_ou = []
         self.students_change_cn = []
         self.students_must_update_password = []
-        self.current_year = mutils.get_current_schoolyear()
+        self.current_year = mutils.get_current_schoolyear(format=3)
 
 
 # translate a list of leerlingnummers to AD-DN's   If a leerlingnummer is not found in the local cache (not active) try to find in AD

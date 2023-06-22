@@ -469,73 +469,64 @@ settings_formio = \
                     "label": "Standaard paswoord",
                     "labelPosition": "left-left",
                     "tooltip": "Nieuwe studenten krijgen dit als standaard paswoord (computer en Smartschool)",
+                    "applyMaskOn": "change",
                     "tableView": true,
                     "key": "generic-standard-password",
                     "type": "textfield",
-                    "input": true
+                    "input": true,
+                    "labelWidth": 10
                   },
                   {
-                    "label": "Columns",
+                    "label": "schooljaar",
                     "columns": [
                       {
                         "components": [
                           {
-                            "label": "Nieuw schooljaar?",
-                            "disabled": true,
+                            "label": "Auto huidig schooljaar",
+                            "tooltip": "Bereken automatisch het huidig schooljaar.\nAnders, selecteer hier rechts het huidig schooljaar",
                             "tableView": false,
-                            "defaultValue": false,
-                            "key": "sdh-schoolyear-changed",
+                            "key": "sdh-auto-current-schoolyear",
                             "type": "checkbox",
-                            "input": true
+                            "input": true,
+                            "defaultValue": false
                           }
                         ],
-                        "width": 4,
+                        "width": 2,
                         "offset": 0,
                         "push": 0,
                         "pull": 0,
                         "size": "md",
-                        "currentWidth": 4
+                        "currentWidth": 2
                       },
                       {
                         "components": [
                           {
-                            "label": "Vorig schooljaar",
+                            "label": "Schooljaar",
                             "labelPosition": "left-left",
-                            "disabled": true,
+                            "tooltip": "Bv: '2023'.  Dit is het schooljaar 2023-2024",
+                            "applyMaskOn": "change",
                             "tableView": true,
-                            "key": "sdh-prev-schoolyear",
+                            "defaultValue": "2023",
+                            "key": "sdh-select-current-schoolyear",
+                            "conditional": {
+                              "show": true,
+                              "when": "sdh.sdh-auto-current-schoolyear",
+                              "eq": "false"
+                            },
                             "type": "textfield",
+                            "labelWidth": 10,
                             "input": true
                           }
                         ],
-                        "width": 4,
+                        "width": 6,
                         "offset": 0,
                         "push": 0,
                         "pull": 0,
                         "size": "md",
-                        "currentWidth": 4
-                      },
-                      {
-                        "components": [
-                          {
-                            "label": "Huidig schooljaar",
-                            "labelPosition": "left-left",
-                            "disabled": true,
-                            "tableView": true,
-                            "key": "sdh-current-schoolyear",
-                            "type": "textfield",
-                            "input": true
-                          }
-                        ],
-                        "size": "md",
-                        "width": 4,
-                        "offset": 0,
-                        "push": 0,
-                        "pull": 0,
-                        "currentWidth": 4
+                        "currentWidth": 6
                       }
                     ],
-                    "key": "columns",
+                    "key": "schooljaar",
                     "type": "columns",
                     "input": false,
                     "tableView": false
@@ -570,6 +561,15 @@ settings_formio = \
                     "key": "submit",
                     "type": "button",
                     "input": true
+                  },
+                  {
+                    "label": "Cron actief in juli en augustus?",
+                    "tooltip": "Is normaal niet actief.  Kan worden opgezet voor testdoeleinden.\nOpgelet, wordt na elke cron-cyclus en server-reboot terug op niet-actief gezet",
+                    "tableView": false,
+                    "key": "cron-active-july-august",
+                    "type": "checkbox",
+                    "input": true,
+                    "defaultValue": false
                   },
                   {
                     "label": "Cron template",
@@ -619,6 +619,51 @@ settings_formio = \
                             "type": "button",
                             "saveOnEnter": false,
                             "input": true
+                          },
+                          {
+                            "label": "Synchroniseer SUM",
+                            "showValidations": false,
+                            "theme": "warning",
+                            "tableView": false,
+                            "key": "button-sync-sum",
+                            "conditional": {
+                              "show": true,
+                              "when": "cron-generic.check-start-cron-cycle",
+                              "eq": "true"
+                            },
+                            "type": "button",
+                            "saveOnEnter": false,
+                            "input": true
+                          },
+                          {
+                            "label": "synchroniseer SUL",
+                            "showValidations": false,
+                            "theme": "warning",
+                            "tableView": false,
+                            "key": "button-sync-sul",
+                            "conditional": {
+                              "show": true,
+                              "when": "cron-generic.check-start-cron-cycle",
+                              "eq": "true"
+                            },
+                            "type": "button",
+                            "input": true,
+                            "saveOnEnter": false
+                          },
+                          {
+                            "label": "synchroniseer SUI",
+                            "showValidations": false,
+                            "theme": "warning",
+                            "tableView": false,
+                            "key": "button-sync-sui",
+                            "conditional": {
+                              "show": true,
+                              "when": "cron-generic.check-start-cron-cycle",
+                              "eq": "true"
+                            },
+                            "type": "button",
+                            "input": true,
+                            "saveOnEnter": false
                           }
                         ],
                         "width": 6,

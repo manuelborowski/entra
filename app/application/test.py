@@ -14,9 +14,6 @@ def test_cron_task(opaque=None):
         all_students = mstudent.student_get_m()
         all_students.extend(mstudent.student_get_m(active=False))
         mstudent.student_delete_m(students=all_students)
-        msettings.set_configuration_setting('sdh-prev-schoolyear', '')
-        msettings.set_configuration_setting('sdh-current-schoolyear', '')
-        msettings.set_configuration_setting('sdh-schoolyear-changed', False)
         msettings.set_configuration_setting('test-wisa-current-json', '')
 
     if msettings.get_configuration_setting('test-staff-prepare'):

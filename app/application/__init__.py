@@ -18,8 +18,6 @@ from app.application.staff import staff_post_processing
 # tag, cront-task, label, help
 cron_table = [
     ('PHOTO', cron_task_photo, 'VAN foto (windows share), leerlingen bijwerken', '', False),
-    # ('WISA-STUDENT', cron_task_wisa_get_student, 'VAN wisa, leerlingen bijwerken', '', False),
-    # ('WISA-STAFF', cron_task_wisa_get_staff, 'VAN wisa, personeel bijwerken', '', False),
     ('INFORMAT-STUDENT', cron_task_informat_get_student, 'VAN informat, leerlingen bijwerken', '', False),
     ('VSK-NUMMERS', cron_task_vsk_numbers, 'NAAR SDH, Vsk nummers bijwerken', '', False),
     ('CARDPRESSO-NEW', cron_task_new_badges, 'NAAR cardpresso, nieuwe badges klaarmaken', '', False),
@@ -29,7 +27,6 @@ cron_table = [
     ('AD-COMPUTER', student_cron_task_get_computer, 'NAAR SDH, computer van studenten bijwerken', '', False),
     ('SDH-MARKED-STUDENT', student_post_processing, 'NAAR SDH, verwijder gemarkeerde studenten', 'studenten die gemarkeerd zijn als delete worden uit de database verwijderd.  CHECK om de goede werking te verzekeren', False),
     ('SDH-MARKED-STAFF', staff_post_processing, 'NAAR SDH, verwijder gemarkeerde personeelsleden', 'personeelsleden die gemarkeerd zijn als delete worden uit de database verwijderd.  CHECK om de goede werking te verzekeren', False),
-    # ('SDH-SCHOOLYEAR-CHANGED', cron_task_schoolyear_clear_changed_flag, 'NAAR SDH, wis schooljaar-is-veranderd-vlag', '', False),
 ]
 
 import app.application.azure

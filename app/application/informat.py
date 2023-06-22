@@ -1,6 +1,5 @@
 from app import flask_app
 from app.data import student as mstudent, photo as mphoto, settings as msettings, staff as mstaff, utils as mutils
-from app.data.utils import belgische_gemeenten
 from app.application import warning as mwarning
 import datetime, xmltodict
 import json, requests, sys
@@ -25,67 +24,43 @@ normalize_letters = str.maketrans(normalMap)
 
 
 informat2sdh_student_keys = {
-    "Voornaam": "voornaam",
-    "Naam": "naam",
-    "rijksregnr": "rijksregisternummer",
-	"Stamnr_kort": "stamboeknummer",
-	"p_persoon": "leerlingnummer",
-	"Fietsnummer": "middag",
-	"instelnr": "instellingsnummer",
-	"school": "schoolnaam",
-	"Klascode": "klascode",
-	"afdelingsjaar": "klasgroep",
-	"nr_admgr": "adminstratievecode",
-	"Klasnr": "klasnummer",
-    "nr": "huisnummer",
-    "bus": "busnummer",
-    "hfdpostnr": "postnummer",
-    "hfdgem": "gemeente",
+    "Voornaam": "voornaam", "Naam": "naam", "rijksregnr": "rijksregisternummer", "Stamnr_kort": "stamboeknummer", "p_persoon": "leerlingnummer",
+	"Fietsnummer": "middag", "instelnr": "instellingsnummer", "school": "schoolnaam", "Klascode": "klascode", "afdelingsjaar": "klasgroep",
+	"nr_admgr": "adminstratievecode", "Klasnr": "klasnummer", "nr": "huisnummer", "bus": "busnummer", "hfdpostnr": "postnummer", "hfdgem": "gemeente",
 }
 
 sdh_allowed_student_keys = [
-    "voornaam",
-    "naam",
-    "roepnaam",
-    "rijksregisternummer",
-    "stamboeknummer",
-    "leerlingnummer",
-    "middag",
-    "vsknummer",
-    "rfid",
-    "foto",
-    "foto_id",
-    "geboortedatum",
-    "schooljaar",
-    "instellingsnummer",
-    "schoolnaam",
-    "klascode",
-    "klasgroep",
-    "adminstratievecode",
-    "klasnummer",
-    "computer",
-    "username",
-    "straat",
-    "huisnummer",
-    "busnummer",
-    "postnummer",
-    "gemeente",
-]
+    "voornaam", "naam", "roepnaam", "rijksregisternummer", "stamboeknummer", "leerlingnummer", "middag", "vsknummer", "rfid", "foto",
+    "foto_id", "geboortedatum", "schooljaar", "instellingsnummer", "schoolnaam", "klascode", "klasgroep", "adminstratievecode", "klasnummer",
+    "computer", "username", "straat", "huisnummer", "busnummer", "postnummer", "gemeente",]
 
+filter_school = {
+    "csu": [
+        {"instelling": "30569"},
+        {"instelling": "30593"},
+    ],
+    "sum": [
+        {"instelling": "30569", "klasprefix": ["1", "2"]},
+        {"instelling": "30593", "klasprefix": ["1", "2"]},
+    ],
+    "sul": [
+        {"instelling": "30593", "klasprefix": ["3", "4", "5", "6", "O"]},
+    ],
+    "sui": [
+        {"instelling": "30569", "klasprefix": ["3", "4", "5", "6", "7"]},
+    ]
+}
 
-def get_from_url(url, item_name, replace_keys={}):
+def get_from_informat_url(url, item_name, filter_on, replace_keys=None):
     try:
         out = []
         params = {"login": flask_app.config["INFORMAT_USERNAME"], "paswoord": flask_app.config["INFORMAT_PASSWORD"], "hoofdstructuur": ""}
         now = datetime.datetime.now()
         referentiedatum = now.strftime("%d-%m-%Y")
-        reference_year = now.year - 1 if now.month < 8 else now.year
-        schooljaar = f"{reference_year}-{reference_year-2000+1}"
-        params["schooljaar"] = schooljaar
+        params["schooljaar"] = mutils.get_current_schoolyear(format=2)
         params["referentiedatum"] = referentiedatum
-        instellingen = ["30569", "30593"]
-        for instelling in instellingen:
-            params["instelnr"] = instelling
+        for item in filter_school[filter_on]:
+            params["instelnr"] = item["instelling"]
             xml_data = requests.get(url=url, params=params).content
             if replace_keys:
                 for k,v in replace_keys.items():
@@ -93,6 +68,8 @@ def get_from_url(url, item_name, replace_keys={}):
             data = xmltodict.parse(xml_data)[f"ArrayOf{item_name[0].upper() + item_name[1::]}"][item_name]
             if not isinstance(data, list):
                 data = [data]
+            if "klasprefix" in item:
+                data = [d for d in data if d["klascode"][0] in item["klasprefix"]]
             out += data
         return out
     except Exception as e:
@@ -101,10 +78,31 @@ def get_from_url(url, item_name, replace_keys={}):
 
 
 
-def student_from_informat_to_database(local_file=None, max=0):
+def get_from_database(filter_on):
     try:
-        log.info('start student import from informat')
-        if local_file:
+        out = []
+        for item in filter_school[filter_on]:
+            if "klasprefix" in item:
+                for klasprefix in item["klasprefix"]:
+                    students = mstudent.student_get_m([("instellingsnummer", "=", f"0{item['instelling']}"),
+                                                   ("klascode", "like", f"{klasprefix}%")])
+                    out += students
+            else:
+                students = mstudent.student_get_m([("instellingsnummer", "=", f"0{item['instelling']}")])
+                out += students
+        return out
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return []
+
+
+
+def student_from_informat_to_database(settings=None):
+    try:
+        log.info(f'start student import from informat, with settings: {settings}')
+        max = settings["max"] if settings and "max" in settings else 0
+        if settings and "local_file" in settings:
+            local_file = settings["local_file"]
             log.error(f'Reading from local file NOT IMPLEMENTED')
             return
             log.info(f'Reading from local file {local_file}')
@@ -112,18 +110,22 @@ def student_from_informat_to_database(local_file=None, max=0):
             # prevent accidental import from informat
             # log.error("NO IMPORT FROM informat ALLOWED")
             # return
-
-            informat_students = get_from_url(flask_app.config["INFORMAT_URL_LLN"], "wsInschrijving", informat2sdh_student_keys)
-            informat_lln_extra = get_from_url(flask_app.config["INFORMAT_URL_LLN_EXTRA"], "wsLeerling", informat2sdh_student_keys)
+            if settings and "sync-school" in settings:
+                filter_on = settings["sync-school"]
+            else:
+                filter_on = "csu"
+            informat_students = get_from_informat_url(flask_app.config["INFORMAT_URL_LLN"], "wsInschrijving", filter_on, informat2sdh_student_keys)
+            informat_lln_extra = get_from_informat_url(flask_app.config["INFORMAT_URL_LLN_EXTRA"], "wsLeerling", "csu", informat2sdh_student_keys)
             informat_lln_extra_cache = {l["pointer"]: l for l in informat_lln_extra}
             for l in informat_students:
                 if l["leerlingnummer"] in informat_lln_extra_cache:
                     l.update(informat_lln_extra_cache[l["leerlingnummer"]])
-        schooljaar = mutils.get_current_schoolyear()
+        schooljaar = mutils.get_current_schoolyear(format=3)
         # (Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
         saved_photos = {p[1]: p[0] for p in mphoto.photo_get_size_all()}
         db_students = {} # the current, active students in the database
-        students = mstudent.student_get_m()
+        # students = mstudent.student_get_m([{""}])
+        students = get_from_database(filter_on)
         if students:
             db_students = {s.leerlingnummer: s for s in students}
         new_list = []
@@ -298,6 +300,7 @@ def staff_from_wisa_to_database(local_file=None, max=0):
 
 
 def cron_task_informat_get_student(opaque=None):
+    settings = opaque if opaque else {}
     informat_files = msettings.get_list('test-informat-xml-list')
     if informat_files:  # test with informat files
         current_informat_file = msettings.get_configuration_setting('test-informat-current-xml')
@@ -309,10 +312,9 @@ def cron_task_informat_get_student(opaque=None):
                 new_index = 0
             current_informat_file = informat_files[new_index]
         msettings.set_configuration_setting('test-informat-current-xml', current_informat_file)
-        student_from_informat_to_database(local_file=current_informat_file)
+        settings.extend({"local_file": current_informat_file})
     else:
-        # read_from_wisa_database(max=10)
-        student_from_informat_to_database()
+        student_from_informat_to_database(settings)
 
 
 def cron_task_informat_get_staff(opaque=None):

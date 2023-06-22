@@ -1,7 +1,7 @@
 from app import ap_scheduler, flask_app
 import datetime
 from apscheduler.triggers.cron import CronTrigger
-from app.application.settings import get_configuration_setting, subscribe_handle_button_clicked, subscribe_handle_update_setting
+from app.application.settings import get_configuration_setting, subscribe_handle_button_clicked, subscribe_handle_update_setting, set_configuration_setting
 from app.application.test import test_cron_task
 from . import cron_table
 
@@ -12,17 +12,31 @@ log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
 
-CRON_TASK = 'datacollector-task'
+CRON_TASK = 'school-data-hub-task'
+
+def disable_cron_active_july_august():
+    now_month = datetime.datetime.now().month
+    if now_month == 7 or now_month == 8:
+        set_configuration_setting("cron-active-july-august", False)
 
 
-def cron_task():
-    settings = get_configuration_setting('cron-enable-modules')
-    with flask_app.app_context():
-        test_cron_task()
-        for task in cron_table:
-            if task[0] in settings and settings[task[0]]:
-                task[1]()
-        log.error("FLUSH-TO-EMAIL") # this will trigger an email with ERROR-logs (if present)
+def check_cron_active_july_august():
+    now_month = datetime.datetime.now().month
+    if now_month == 7 or now_month == 8:
+        return get_configuration_setting("cron-active-july-august")
+    return True
+
+
+def cron_task(opaque=None):
+    if check_cron_active_july_august():
+        settings = get_configuration_setting('cron-enable-modules')
+        with flask_app.app_context():
+            test_cron_task(opaque)
+            for task in cron_table:
+                if task[0] in settings and settings[task[0]]:
+                    task[1](opaque)
+            log.error("FLUSH-TO-EMAIL") # this will trigger an email with ERROR-logs (if present)
+            disable_cron_active_july_august()
 
 
 def init_job(cron_template):
@@ -62,5 +76,13 @@ start_job()
 
 def emulate_cron_start(topic=None, opaque=None):
     with flask_app.app_context():
-        cron_task()
-subscribe_handle_button_clicked('button-start-cron-cycle', emulate_cron_start, None)
+        cron_task(opaque)
+
+
+subscribe_handle_button_clicked('button-start-cron-cycle', emulate_cron_start, {"sync-school": "csu"})
+subscribe_handle_button_clicked('button-sync-sum', emulate_cron_start, {"sync-school": "sum"})
+subscribe_handle_button_clicked('button-sync-sul', emulate_cron_start, {"sync-school": "sul"})
+subscribe_handle_button_clicked('button-sync-sui', emulate_cron_start, {"sync-school": "sui"})
+
+
+disable_cron_active_july_august() #disable cron in during summer
