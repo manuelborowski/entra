@@ -95,7 +95,7 @@ def cron_task_new_badges(opaque=None):
     badge_process_new()
 
 
-check_properties_changed = ['middag', 'vsknummer', 'photo', 'schooljaar', 'klascode', 'klasgroep']
+check_properties_changed = ['middag', 'vsknummer', 'photo', 'schooljaar', 'klascode', 'klasgroepcode']
 
 
 def badge_process_new(topic=None, opaque=None):

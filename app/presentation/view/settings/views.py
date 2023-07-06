@@ -572,6 +572,15 @@ settings_formio = \
                     "defaultValue": false
                   },
                   {
+                    "label": "Verwijder studenten/staf in juli en augustus?",
+                    "tooltip": "Is normaal niet actief.  Kan worden opgezet voor testdoeleinden.\nOpgelet, wordt na elke cron-cyclus en server-reboot terug op niet-actief gezet.",
+                    "tableView": false,
+                    "defaultValue": false,
+                    "key": "cron-delete-july-august",
+                    "type": "checkbox",
+                    "input": true
+                  },
+                  {
                     "label": "Cron template",
                     "labelPosition": "left-left",
                     "tooltip": "Check https://crontab.guru/ voor de layout van de cron template",
@@ -664,6 +673,22 @@ settings_formio = \
                             "type": "button",
                             "input": true,
                             "saveOnEnter": false
+                          },
+                          {
+                            "label": "synchroniseer TESTklassen",
+                            "showValidations": false,
+                            "theme": "warning",
+                            "tooltip": "Testklassen beginnen met een T",
+                            "tableView": false,
+                            "key": "button-sync-testklassen",
+                            "conditional": {
+                              "show": true,
+                              "when": "cron-generic.check-start-cron-cycle",
+                              "eq": "true"
+                            },
+                            "type": "button",
+                            "saveOnEnter": false,
+                            "input": true
                           }
                         ],
                         "width": 6,

@@ -14,10 +14,12 @@ log.addFilter(MyLogFilter())
 
 CRON_TASK = 'school-data-hub-task'
 
-def disable_cron_active_july_august():
+#In July and August, cron is normally disabled and students and staff are not deleted from the dabase if not present in the import
+def disable_features_in_july_august():
     now_month = datetime.datetime.now().month
     if now_month == 7 or now_month == 8:
         set_configuration_setting("cron-active-july-august", False)
+        set_configuration_setting("cron-delete-july-august", False)
 
 
 def check_cron_active_july_august():
@@ -36,7 +38,7 @@ def cron_task(opaque=None):
                 if task[0] in settings and settings[task[0]]:
                     task[1](opaque)
             log.error("FLUSH-TO-EMAIL") # this will trigger an email with ERROR-logs (if present)
-            disable_cron_active_july_august()
+            disable_features_in_july_august()
 
 
 def init_job(cron_template):
@@ -83,6 +85,7 @@ subscribe_handle_button_clicked('button-start-cron-cycle', emulate_cron_start, {
 subscribe_handle_button_clicked('button-sync-sum', emulate_cron_start, {"sync-school": "sum"})
 subscribe_handle_button_clicked('button-sync-sul', emulate_cron_start, {"sync-school": "sul"})
 subscribe_handle_button_clicked('button-sync-sui', emulate_cron_start, {"sync-school": "sui"})
+subscribe_handle_button_clicked('button-sync-testklassen', emulate_cron_start, {"sync-school": "testklassen"})
 
 
-disable_cron_active_july_august() #disable cron in during summer
+disable_features_in_july_august()

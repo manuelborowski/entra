@@ -219,7 +219,7 @@ def carpresso_delete():
 
 
 
-# ?fields=klasgroep,schooljaar
+# ?fields=klasgroepcode,schooljaar
 # sort=-gemeente
 # gemeente=nijlen   filter on gemeente equals nijlen
 

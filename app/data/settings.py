@@ -117,6 +117,7 @@ default_configuration_settings = {
     'cron-scheduler-template': ('', Settings.SETTING_TYPE.E_STRING),
     'cron-enable-modules': ({}, Settings.SETTING_TYPE.E_JSON),
     'cron-active-july-august': (False, Settings.SETTING_TYPE.E_BOOL),
+    'cron-delete-july-august': (False, Settings.SETTING_TYPE.E_BOOL),
     'cron-veyon-scheduler-template': ('', Settings.SETTING_TYPE.E_STRING),
 
     'smartschool-scheduler-cron': ('', Settings.SETTING_TYPE.E_STRING),
