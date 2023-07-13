@@ -19,6 +19,7 @@ class Klas(db.Model, SerializerMixin):
     klasgroepcode = db.Column(db.String(256), default='')
     administratievecode = db.Column(db.String(256), default='')
     klastitularis = db.Column(db.String(256), default='')
+    schooljaar = db.Column(db.Integer(), default=-1)
 
     timestamp = db.Column(db.DateTime, default=datetime.datetime.now())
 

@@ -71,7 +71,7 @@ Lln_keys = {
 
 
 LlnExtra_keys = {
-    "nr": "mhuisnumer",
+    "nr": "huisnummer",
     "bus": "busnummer",
     "hfdposthuisnummer": "postnummer",
     "hfdgem": "gemeente",
@@ -80,12 +80,12 @@ LlnExtra_keys = {
 }
 
 
-student_required_fields = [
+STUDENT_CHANGED_PROPERTIES_MASK = [
     "voornaam", "naam", "roepnaam", "rijksregisternummer", "stamboeknummer", "geboortedatum", "geboorteplaats", "geboorteland", "geslacht", "nationaliteit",
-    "levensbeschouwing", "straat", "huisnummer", "busnummer", "postnummer", "gemeente", "gsm", "email",
+    "levensbeschouwing", "straat", "huisnummer", "busnummer", "postnummer", "gemeente", "gsm", "email", "prive_email",
     "lpv1_type", "lpv1_naam", "lpv1_voornaam", "lpv1_geslacht", "lpv1_gsm", "lpv1_email",
     "lpv2_type", "lpv2_naam", "lpv2_voornaam", "lpv2_geslacht", "lpv2_gsm", "lpv2_email",
-    "leerlingnummer", "middag", "inschrijvingsdatum", "klascode", "klasnummer"
+    "leerlingnummer", "middag", "inschrijvingsdatum", "klascode", "klasnummer", "instellingsnummer", "schooljaar"
 ]
 
 
@@ -95,7 +95,7 @@ Subgroepen_keys = {
 
 
 klas_required_fields = [
-    "instellingsnummer", "klascode", "klasgroepcode", "administratievecode", "klastitularis",
+    "instellingsnummer", "klascode", "klasgroepcode", "administratievecode", "klastitularis", "schooljaar"
 ]
 
 
@@ -122,8 +122,12 @@ def __students_get_from_informat_raw(topic, item_name, filter_on, replace_keys=N
         url = f'{flask_app.config["INFORMAT_URL"]}/{topic}'
         params = {"login": flask_app.config["INFORMAT_USERNAME"], "paswoord": flask_app.config["INFORMAT_PASSWORD"],
                   "hoofdstructuur": ""}
-        now = datetime.datetime.now()
-        referentiedatum = now.strftime("%d-%m-%Y")
+        today = datetime.date.today()
+        start_schooljaar = datetime.date(int(mutils.get_current_schoolyear()), 9, 1)
+        if today < start_schooljaar:
+            referentiedatum = start_schooljaar.strftime("%d-%m-%Y")
+        else:
+            referentiedatum = today.strftime("%d-%m-%Y")
         params["schooljaar"] = mutils.get_current_schoolyear(format=2)
         params["referentiedatum"] = referentiedatum
         params["gewijzigdSinds"] = "1-1-2010"
@@ -179,20 +183,32 @@ def __students_get_from_informat(filter_on):
                         l[f"lpv{i}_PRelatie"] = lpv[i]["PRelatie"]
             if leerlingnummer in addressen_cache and "nickname" in addressen_cache[leerlingnummer]:
                 l["roepnaam"] = addressen_cache[leerlingnummer]["nickname"]
+            if "prive_email" in l:
+                if l["prive_email"] == "":
+                    l["prive_email"] = "emmanuel.borowski@gmail.com"
+            else:
+                l["prive_email"] = "emmanuel.borowski@gmail.com"
+
         comnummers_relatie = __students_get_from_informat_raw("ComnummersRelatie", "WsComnummers", "no_klasprefix", force_list={"Comnr"})
         comnr_relatie_cache = {comnr["PRelatie"]: comnr for comnummers in comnummers_relatie for comnr in comnummers["Comnrs"]["Comnr"] if "PRelatie" in comnr}
+        comnr_ppersoon_cache = {comnummers["PPersoon"]: comnr for comnummers in comnummers_relatie for comnr in comnummers["Comnrs"]["Comnr"] if comnr["Type"] == "Eigen"}
         email_relatie = __students_get_from_informat_raw("EmailRelatie", "WsEmailadressen", "no_klasprefix", force_list={"Email"})
         email_relatie_cache = {email["PRelatie"]: email for email_adressen in email_relatie for email in email_adressen["Emails"]["Email"] if "PRelatie" in email}
+        email_ppersoon_cache = {email_adressen["PPersoon"]: email for email_adressen in email_relatie for email in email_adressen["Emails"]["Email"] if email["Type"] == "Privé"}
         for l in lln:
             for i in range(1, 3):
                 if f"lpv{i}_PRelatie" in l and l[f"lpv{i}_PRelatie"] in email_relatie_cache:
                     l[f"lpv{i}_email"] = email_relatie_cache[l[f"lpv{i}_PRelatie"]]["Adres"]
                 else:
-                    l[f"lpv{i}_email"] = ""
+                    l[f"lpv{i}_email"] = "emmanuel.borowski@gmail.com"
                 if f"lpv{i}_PRelatie" in l and l[f"lpv{i}_PRelatie"] in comnr_relatie_cache:
                     l[f"lpv{i}_gsm"] = comnr_relatie_cache[l[f"lpv{i}_PRelatie"]]["Nummer"]
                 else:
                     l[f"lpv{i}_gsm"] = ""
+            if l["leerlingnummer"] in comnr_ppersoon_cache:
+                l["gsm"] = comnr_ppersoon_cache[l["leerlingnummer"]]["Nummer"]
+            if l["leerlingnummer"] in email_ppersoon_cache:
+                l["prive_email"] = email_ppersoon_cache[l["leerlingnummer"]]["Adres"]
         return lln
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
@@ -268,7 +284,7 @@ def student_from_informat_to_database(settings=None):
                 log.info(f'{sys._getframe().f_code.co_name}: No students to import, abort...')
                 return
             informat_klassen = __klas_get_from_informat(filter_on)
-        schooljaar = mutils.get_current_schoolyear(format=3)
+        schooljaar = int(mutils.get_current_schoolyear(format=1))
         # (Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
         saved_photos = {p[1]: p[0] for p in mphoto.photo_get_size_all()}
         students = __students_get_from_database(filter_on)
@@ -324,8 +340,8 @@ def student_from_informat_to_database(settings=None):
                 # check if a student has updated properties
                 changed_properties = []
                 db_student = db_students[informat_student['leerlingnummer']]
-                for k, v in informat_student.items():
-                    if k in student_required_fields and hasattr(db_student, k) and v != getattr(db_student, k):
+                for k in STUDENT_CHANGED_PROPERTIES_MASK:
+                    if k in informat_student and informat_student[k] != getattr(db_student, k):
                         changed_properties.append(k)
                 if changed_properties:
                     changed_properties.extend(['delete', 'new'])  # student already present, but has changed properties
@@ -367,7 +383,8 @@ def student_from_informat_to_database(settings=None):
         log.info(f'start klas import from informat, with settings: {settings}')
         klassen = __klas_get_from_database(filter_on)
         db_klassen = {k.klascode: k for k in klassen} if klassen else {}
-
+        db_staff = mstaff.staff_get_m()
+        staff_cache = {f"{s.naam} {s.voornaam}": s.code for s in db_staff} #required to translate titularis-naam-voornaam to code
         new_list = []
         changed_list = []
         flag_list = []
@@ -383,10 +400,11 @@ def student_from_informat_to_database(settings=None):
                 continue
             informat_klas["instellingsnummer"] = informat_klas["instellingsnummer"][1::] #remove leading 0
             informat_klas["administratievecode"] = administratievecode_cache[informat_klas["klascode"]]
+            informat_klas["schooljaar"] = schooljaar
             if "klasgroepcode" not in informat_klas:
                 informat_klas["klasgroepcode"] = ""
-            if "klastitularis" in informat_klas:
-                informat_klas["klastitularis"] = json.dumps(informat_klas["klastitularis"].split(","))
+            if "klastitularis" in informat_klas: # translate the titularis name to its code
+                informat_klas["klastitularis"] = json.dumps([staff_cache[k.strip()] for k in informat_klas["klastitularis"].split(",")])
             if informat_klas["klascode"] in db_klassen:
                 # klas already exists in database.  Check for updates
                 db_klas = db_klassen[informat_klas["klascode"]]
@@ -397,7 +415,7 @@ def student_from_informat_to_database(settings=None):
                         changed_properties.append(k)
                 if changed_properties:
                     changed_properties.extend(['delete', 'new'])  # klas already present, but has changed properties
-                    informat_klas.update({'changed': changed_properties, 'student': db_klas, 'delete': False, 'new': False})
+                    informat_klas.update({'changed': changed_properties, 'klas': db_klas, 'delete': False, 'new': False})
                     changed_list.append(informat_klas)
                     log.info(f'{sys._getframe().f_code.co_name}: updated, {db_klas.klascode}, {db_klas.klasgroepcode}, {changed_properties}')
                 else:

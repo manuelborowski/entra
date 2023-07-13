@@ -57,7 +57,7 @@ class Student(db.Model, SerializerMixin):
 
     inschrijvingsdatum = db.Column(db.Date, default=datetime.datetime(1900, 1, 1))
     instellingsnummer = db.Column(db.String(256), default='')
-    schooljaar = db.Column(db.String(256), default='')
+    schooljaar = db.Column(db.Integer(), default=-1)
     klascode = db.Column(db.String(256), default='')
     klasnummer = db.Column(db.Integer(), default=-1)
     computer = db.Column(db.String(256), default='')
