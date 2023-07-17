@@ -4,8 +4,8 @@ from app.application.formio import iterate_components_cb
 from app.data import student as mstudent, settings as msettings, photo as mphoto, person as mperson
 import app.data.settings
 from app.application import formio as mformio, email as memail, util as mutil, ad as mad, papercut as mpapercut
-import sys, base64
-
+import sys, base64, json, pandas as pd, datetime, io
+from flask import make_response
 
 def student_delete(ids):
     mstudent.student_delete_m(ids)
@@ -86,11 +86,110 @@ def student_post_processing(opaque=None):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
+def student_get_statuses(label=False):
+    return mstudent.Student.get_statuses(label=label)
+
+
 def klassen_get_unique():
     klassen = mstudent.student_get_m(fields=['klascode'])
     klassen = list(set([k[0] for k in klassen]))
     klassen.sort()
     return klassen
+
+
+def send_info_email(ids):
+    try:
+        students = mstudent.student_get_m(ids=ids)
+        for student in students:
+            passwd1 = mutil.ss_create_password(int(f"{student.leerlingnummer}1"))
+            passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
+            passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
+            if student.prive_email != "":
+                # email to student
+                subject = msettings.get_configuration_setting("smartschool-student-email-subject")
+                content = msettings.get_configuration_setting("smartschool-student-email-content")
+                content = content.replace("%%naam%%", student.naam)
+                content = content.replace("%%voornaam%%", student.voornaam)
+                content = content.replace("%%klascode%%", student.klascode)
+                content = content.replace("%%username%%", student.username)
+                content = content.replace("%%wachtwoord%%", passwd1)
+                memail.send_email([student.prive_email], subject, content)
+            emails = []
+            if student.lpv1_email != "":
+                emails.append(student.lpv1_email)
+            if student.lpv2_email != "":
+                emails.append(student.lpv2_email)
+            if emails:
+                # email to parents
+                lpv1_voornaam = student.lpv1_voornaam if student.lpv1_voornaam != "" else "/"
+                lpv1_naam = student.lpv1_naam if student.lpv1_naam != "" else "/"
+                lpv2_voornaam = student.lpv2_voornaam if student.lpv2_voornaam != "" else "/"
+                lpv2_naam = student.lpv2_naam if student.lpv2_naam != "" else "/"
+                subject = msettings.get_configuration_setting("smartschool-parents-email-subject")
+                content = msettings.get_configuration_setting("smartschool-parents-email-content")
+                content = content.replace("%%naam%%", student.naam)
+                content = content.replace("%%voornaam%%", student.voornaam)
+                content = content.replace("%%klascode%%", student.klascode)
+                content = content.replace("%%username%%", student.username)
+                content = content.replace("%%lpv1_naam%%", lpv1_naam)
+                content = content.replace("%%lpv1_voornaam%%", lpv1_voornaam)
+                content = content.replace("%%lpv1_wachtwoord%%", passwd2)
+                content = content.replace("%%lpv2_naam%%", lpv2_naam)
+                content = content.replace("%%lpv2_voornaam%%", lpv2_voornaam)
+                content = content.replace("%%lpv2_wachtwoord%%", passwd3)
+                memail.send_email(emails, subject, content)
+            status = json.loads(student.status) if student.status else []
+            if mstudent.Student.send_info_message in status:
+                status.remove(mstudent.Student.send_info_message)
+            mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
+        mstudent.commit()
+        return {"data": f"Info e-mails gestuurd naar {len(students)} student(en)"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"data": f"Fout: {e}"}
+
+export_header = [
+    "voornaam", "naam", "klas", "gebruikersnaam", "ww", "naam co1", "voornaam co1", "naam co2", "voornaam co2", "ww co1", "ww co2"
+]
+
+def export_passwords(ids):
+    try:
+        students = mstudent.student_get_m(ids=ids)
+        students_to_export = []
+        for student in students:
+            passwd1 = mutil.ss_create_password(int(f"{student.leerlingnummer}1"))
+            passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
+            passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
+            student_export = {}
+            student_export["voornaam"] = student.voornaam
+            student_export["naam"] = student.naam
+            student_export["klas"] = student.klascode
+            student_export["gebruikersnaam"] = student.username
+            student_export["ww"] = passwd1
+            student_export["naam co1"] = student.lpv1_naam
+            student_export["voornaam co1"] = student.lpv1_voornaam
+            student_export["naam co2"] = student.lpv2_naam
+            student_export["voornaam co2"] = student.lpv2_voornaam
+            student_export["ww co1"] = passwd2
+            student_export["ww co2"] = passwd3
+            students_to_export.append(student_export)
+            status = json.loads(student.status) if student.status else []
+            if mstudent.Student.export in status:
+                status.remove(mstudent.Student.export)
+            mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
+        mstudent.commit()
+        df = pd.DataFrame(students_to_export)
+        out = io.BytesIO()
+        excel_writer = pd.ExcelWriter(out, engine="xlsxwriter")
+        df.to_excel(excel_writer, index=False)
+        excel_writer.close()
+        res = make_response(out.getvalue())
+        res.headers["Content-Disposition"] = f"attachment; filename=smartschool-export-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')}.xlsx"
+        res.headers["Content-type"] = "data:text/xlsx"
+        return res
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"data": f"Fout: {e}"}
 
 
 ############## api ####################

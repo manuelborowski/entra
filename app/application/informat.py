@@ -38,7 +38,6 @@
 
 from app import flask_app
 from app.data import student as mstudent, photo as mphoto, settings as msettings, staff as mstaff, utils as mutils, klas as mklas
-from app.application import warning as mwarning
 import datetime, xmltodict
 import json, requests, sys
 
@@ -355,6 +354,7 @@ def student_from_informat_to_database(settings=None):
                 # student not present in database, i.e. a new student
                 informat_student['email'] = f"{informat_student['voornaam'].translate(normalize_letters).lower()}.{informat_student['naam'].translate(normalize_letters).lower()}@lln.campussintursula.be"
                 informat_student['username'] = f's{informat_student["leerlingnummer"]}'
+                informat_student["status"] = json.dumps(mstudent.Student.get_statuses())
                 new_list.append(informat_student)  # new student
                 log.info(
                     f'{sys._getframe().f_code.co_name}: new, {informat_student["leerlingnummer"]}, {informat_student["naam"]} {informat_student["voornaam"]}, {informat_student["username"]}, {informat_student["email"]}')

@@ -1,11 +1,10 @@
-import bdb, app
 from app import flask_app
-from app.data import klas as mklas, utils as mutils, student as mstudent, photo as mphoto
+from app.data import klas as mklas, student as mstudent, photo as mphoto
 from app.data import settings as msettings
-from app.application.email import  send_new_staff_message
-import ldap3, json, sys, datetime, xmltodict, base64
+from app.application.email import  send_email
+import json, sys, datetime, xmltodict, base64
 from functools import wraps
-from app.application.util import get_student_voornaam
+from app.application.util import ss_create_password
 from zeep import Client
 #logging on file level
 import logging
@@ -31,29 +30,6 @@ def exception_wrapper(func):
     return wrapper
 
 KLAS_CHANGED_PROPERTIES_MASK = ["klastitularis", "schooljaar"]
-
-PWD_ALLOWED_CHARS = [
-    ["a","b","c","d","e","f","g","h","i","j","k","m","n","p","q","r","s","t","u","v","w","x","y","z"],
-    ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","P","Q","R","S","T","U","V","W","X","Y","Z"],
-    ["1","2","3","4","5","6","7","8","9", "_","!","?","/"]
-]
-
-def __create_password(seed, length=8):
-    try:
-        a = pow(seed, 5)
-        b = 0
-        pwd1 = ""
-        while a > 0:
-            l = len(PWD_ALLOWED_CHARS[b])
-            c = a % l
-            a = (a - c) / l
-            pwd1 += PWD_ALLOWED_CHARS[b][int(c)]
-            b += 1
-            if b > 2:
-                b = 0
-        return pwd1[:length]
-    except Exception as e:
-        print(f"{sys._getframe().f_code.co_name}, error {e}")
 
 
 ###############################################################
@@ -274,9 +250,9 @@ def __student_process_new():
     for student in db_studenten:
         internnumber = student.leerlingnummer
         username = student.username
-        passwd1 = __create_password(int(f"{student.leerlingnummer}1"))
-        passwd2 = __create_password(int(f"{student.leerlingnummer}2"))
-        passwd3 = __create_password(int(f"{student.leerlingnummer}3"))
+        passwd1 = ss_create_password(int(f"{student.leerlingnummer}1"))
+        passwd2 = ss_create_password(int(f"{student.leerlingnummer}2"))
+        passwd3 = ss_create_password(int(f"{student.leerlingnummer}3"))
         name = student.voornaam
         surname = student.naam
         sex = student.geslacht
@@ -316,7 +292,6 @@ def __student_process_new():
                 log.error(f"{sys._getframe().f_code.co_name}, setAccountPhoto {internnumber} returned error {ret}")
         else:
             log.info(f"{sys._getframe().f_code.co_name}, Student {internnumber}, no photo found")
-
         ret = soap.service.saveUserToClass(flask_app.config["SS_API_KEY"], internnumber, student.klascode, str(student.inschrijvingsdatum))
         if ret == 0:
             log.info(f"{sys._getframe().f_code.co_name}, Student {internnumber} added to klas {student.klascode}")

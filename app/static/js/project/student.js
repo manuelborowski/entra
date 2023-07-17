@@ -73,7 +73,15 @@ async function new_vsk_numbers() {
     }
 }
 
+async function export_smartschool_info(ids) {
+    var hiddenElement = document.createElement('a');
+    hiddenElement.href = Flask.url_for('student.export_smartschool', {ids: JSON.stringify(ids)});
+    hiddenElement.target = '_blank';
+    hiddenElement.click();
+}
+
 subscribe_right_click('new-vsk-numbers', (item, ids) => new_vsk_numbers());
 subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.student_update'));
 subscribe_right_click('update-password', (item, ids) => update_password(ids,'api.student_update', ctx.popups['update-password']));
 subscribe_right_click('database-integrity-check', (item, ids) => database_integrity_check('api.database_integrity_check', ctx.popups['database-integrity-check']));
+subscribe_right_click('export-smartschool', (item, ids) => export_smartschool_info(ids));

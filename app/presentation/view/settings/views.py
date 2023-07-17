@@ -845,34 +845,38 @@ settings_formio = \
                     "input": true
                   },
                   {
-                    "label": "Teacher groupname",
-                    "labelPosition": "left-left",
+                    "label": "Leerlingen informatie e-mail, ONDERWERP",
+                    "applyMaskOn": "change",
                     "tableView": true,
-                    "persistent": false,
-                    "key": "smartschool-teacher-group",
+                    "key": "smartschool-student-email-subject",
                     "type": "textfield",
-                    "input": true,
-                    "labelWidth": 20
+                    "input": true
                   },
                   {
-                    "label": "WebAPI URL",
-                    "labelPosition": "left-left",
+                    "label": "Leerlingen informatie e-mail, INHOUD (html)",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
                     "tableView": true,
-                    "persistent": false,
-                    "key": "smartschool-api-url",
-                    "type": "textfield",
-                    "input": true,
-                    "labelWidth": 20
+                    "key": "smartschool-student-email-content",
+                    "type": "textarea",
+                    "input": true
                   },
                   {
-                    "label": "WebAPI Key",
-                    "labelPosition": "left-left",
+                    "label": "Ouders informatie e-mail, ONDERWERP",
+                    "applyMaskOn": "change",
                     "tableView": true,
-                    "persistent": false,
-                    "key": "smartschool-api-key",
+                    "key": "smartschool-parents-email-subject",
                     "type": "textfield",
-                    "input": true,
-                    "labelWidth": 20
+                    "input": true
+                  },
+                  {
+                    "label": "Ouders informatie e-mail, INHOUD (html)",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "smartschool-parents-email-content",
+                    "type": "textarea",
+                    "input": true
                   }
                 ],
                 "collapsed": true

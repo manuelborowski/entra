@@ -1,5 +1,10 @@
-import random, string
+import random, string, sys
 from app.data import utils as mutils
+
+import logging
+from app import MyLogFilter, top_log_handle
+log = logging.getLogger(f"{top_log_handle}.{__name__}")
+log.addFilter(MyLogFilter())
 
 
 def datetime_to_dutch_datetime_string(date):
@@ -43,3 +48,27 @@ def find_and_replace(text, data):
     for tag, value in data.items():
         text = text.replace(tag, value)
     return text
+
+
+PWD_ALLOWED_CHARS = [
+    ["a","b","c","d","e","f","g","h","i","j","k","m","n","p","q","r","s","t","u","v","w","x","y","z"],
+    ["A","B","C","D","E","F","G","H","I","J","K","L","M","N","P","Q","R","S","T","U","V","W","X","Y","Z"],
+    ["1","2","3","4","5","6","7","8","9", "_","!","?","/"]
+]
+
+def ss_create_password(seed, length=8):
+    try:
+        a = pow(seed, 5)
+        b = 0
+        pwd1 = ""
+        while a > 0:
+            l = len(PWD_ALLOWED_CHARS[b])
+            c = a % l
+            a = (a - c) / l
+            pwd1 += PWD_ALLOWED_CHARS[b][int(c)]
+            b += 1
+            if b > 2:
+                b = 0
+        return pwd1[:length]
+    except Exception as e:
+        log.error(f"{sys._getframe().f_code.co_name}, error {e}")

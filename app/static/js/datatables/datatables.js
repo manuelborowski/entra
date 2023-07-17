@@ -409,6 +409,8 @@ $(document).ready(function () {
         if ("status" in data) {
             if (data.status) {
                 ctx.table.ajax.reload();
+            } else if ("message" in data) {
+                alert(data.message)
             }
         } else if ("reload-table" in data) {
             ctx.table.ajax.reload();
@@ -446,11 +448,9 @@ $(document).ready(function () {
     }
 
     function cell_toggle_changed_cb(cell, row, value) {
-        data = {
-            'id': row.data().DT_RowId,
-            'column': cell.index().column,
-            'value': value
-        }
+        const column = cell.index().column;
+        let column_name = ctx.table.column(column).dataSrc()
+        let data = {id: row.data().DT_RowId, column: column_name, value: value}
         update_cell_changed(data);
     }
 

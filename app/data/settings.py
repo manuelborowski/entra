@@ -126,6 +126,10 @@ default_configuration_settings = {
     'smartschool-api-key': ('', Settings.SETTING_TYPE.E_STRING),
     'smartschool-update-teachers': (False, Settings.SETTING_TYPE.E_BOOL),
     'smartschool-update-students': (False, Settings.SETTING_TYPE.E_BOOL),
+    'smartschool-student-email-subject': ('', Settings.SETTING_TYPE.E_STRING),
+    'smartschool-student-email-content': ('', Settings.SETTING_TYPE.E_STRING),
+    'smartschool-parents-email-subject': ('', Settings.SETTING_TYPE.E_STRING),
+    'smartschool-parents-email-content': ('', Settings.SETTING_TYPE.E_STRING),
 
     'cardpresso-scheduler-cron': ('', Settings.SETTING_TYPE.E_STRING),
     'cardpresso-url': ('', Settings.SETTING_TYPE.E_STRING),

@@ -70,10 +70,19 @@ class Student(db.Model, SerializerMixin):
     active = db.Column(db.Boolean, default=True)    # long term
     enable = db.Column(db.Boolean, default=True)    # short term
     changed = db.Column(db.TEXT, default='')
+    status = db.Column(db.TEXT, default='')
 
     @property
     def person_id(self):
         return self.username
+
+    send_info_message = "INFO"
+    export = "EXP"
+
+    def get_statuses(label=False):
+        if label:
+            return [[Student.send_info_message, "Info nog te zenden"], [Student.export, "Nog te exporteren"]]
+        return [Student.send_info_message, Student.export]
 
 
 def get_columns():
@@ -88,7 +97,7 @@ def student_add(data = {}, commit=True):
     return app.data.models.add_single(Student, data, commit)
 
 
-def student_add_m(data = []):
+def student_add_m(data=[]):
     return app.data.models.add_multiple(Student, data)
 
 
@@ -100,8 +109,8 @@ def student_delete_m(ids=[], students=[]):
     return app.data.models.delete_multiple(ids, students)
 
 
-def student_get_m(filters=[], fields=[], order_by=None, first=False, count=False, active=True):
-    return app.data.models.get_multiple(Student, filters=filters, fields=fields, order_by=order_by, first=first, count=count, active=active)
+def student_get_m(filters=[], fields=[], ids=[], order_by=None, first=False, count=False, active=True):
+    return app.data.models.get_multiple(Student, filters=filters, fields=fields, ids=ids, order_by=order_by, first=first, count=count, active=active)
 
 
 def student_get(filters=[]):
@@ -169,6 +178,9 @@ def pre_sql_filter(query, filter):
         if f['name'] == 'filter-klas':
             if f['value'] != 'default':
                 query = query.filter(Student.klascode == f['value'])
+        if f['name'] == 'filter-status':
+            if f['value'] != 'default':
+                query = query.filter(Student.status.like(f"%{f['value']}%"))
     return query
 
 

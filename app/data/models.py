@@ -50,7 +50,7 @@ def commit():
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
-def add_single(model, data = {}, commit=True):
+def add_single(model, data={}, commit=True):
     try:
         obj = model()
         for k, v in data.items():
@@ -67,7 +67,7 @@ def add_single(model, data = {}, commit=True):
     return None
 
 
-def add_multiple(model, data = []):
+def add_multiple(model, data=[]):
     try:
         for d in data:
             add_single(model, d, commit=False)
@@ -107,7 +107,7 @@ def delete_multiple(ids=[], objs=[]):
     return None
 
 # filters is list of tupples: [(key, operator, value), ...]
-def get_multiple(model, filters=[], fields=[], order_by=None, first=False, count=False, active=True, start=None, stop=None):
+def get_multiple(model, filters=[], fields=[], ids=[], order_by=None, first=False, count=False, active=True, start=None, stop=None):
     try:
         tablename = model.__tablename__
         entities = [text(f'{tablename}.{f}') for f in fields]
@@ -137,6 +137,8 @@ def get_multiple(model, filters=[], fields=[], order_by=None, first=False, count
             else:
                 if hasattr(model, k):
                     q = q.filter(getattr(model, k) == v)
+        if ids:
+            q = q.filter(getattr(model, "id").in_(ids))
         if order_by:
             if order_by[0] == '-':
                 q = q.order_by(desc(getattr(model, order_by[1::])))

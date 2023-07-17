@@ -74,7 +74,8 @@ class DatatableConfig:
             "suppress_cell_content": self.suppress_cell_content,
             "default_order": self.default_order,
             "title": self.title,
-            "socketio_endpoint": self.socketio_endpoint
+            "socketio_endpoint": self.socketio_endpoint,
+            "view": self.view
         }
 
     def pre_sql_standard_order(self, q, on, direction):

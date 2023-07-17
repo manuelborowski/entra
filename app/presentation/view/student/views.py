@@ -75,6 +75,10 @@ def right_click():
                     max_ids = msettings.get_configuration_setting('student-max-students-to-view-with-one-click')
                     ids = data['item_ids'][:max_ids]
                     return {"redirect": {"url": f"/student/table_action/view", "ids": ids, "new_tab": True}}
+                if data['item'] == "info-email":
+                    ids = data['item_ids']
+                    ret = app.application.student.send_info_email(ids)
+                    return {"message": ret['data']}
     except Exception as e:
         log.error(f"Error in get_form: {e}")
         return {"message": f"get_form: {e}"}
@@ -85,6 +89,8 @@ def get_filters():
     klassen = app.application.student.klassen_get_unique()
     klassen = [[k, k] for k in klassen]
     klas_choices = [['default', 'Alles']] + klassen
+    statuses = app.application.student.student_get_statuses(label=True)
+    statuses = [['default', 'Alles']] + statuses
     return [
         {
             'type': 'select',
@@ -103,6 +109,13 @@ def get_filters():
             'choices': klas_choices,
             'default': 'default',
         },
+        {
+            'type': 'select',
+            'name': 'filter-status',
+            'label': 'Status',
+            'choices': statuses,
+            'default': 'default',
+        },
     ]
 
 
@@ -119,6 +132,9 @@ def get_right_click_settings():
             {'label': 'Nieuwe badge', 'item': 'new-badge', 'iconscout': 'credit-card'},
             {'label': 'RFID code aanpassen', 'item': 'check-rfid', 'iconscout': 'wifi'},
             {'label': 'Paswoord aanpassen', 'item': 'update-password', 'iconscout': 'key-skeleton'},
+            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
+            {'label': 'Stuur S info e-mail', 'item': 'info-email', 'iconscout': 'envelope-info'},
+            {'label': 'Exporteer S info', 'item': 'export-smartschool', 'iconscout': 'export'},
             {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
             {'label': 'Vsk nummers', 'item': 'new-vsk-numbers', 'iconscout': 'abacus'},
         ])
@@ -157,3 +173,17 @@ class Config(DatatableConfig):
 
 
 table_config = Config("student", "Overzicht Studenten")
+
+
+@student.route('/student/export_smartschool/<string:ids>', methods=['GET'])
+@login_required
+def export_smartschool(ids):
+    try:
+        ids = json.loads(ids)
+        ret = app.application.student.export_passwords(ids)
+        return ret
+    except Exception as e:
+        log.error(f"Error in get_form: {e}")
+        return {"message": f"get_form: {e}"}
+    return {"message": "iets is fout gelopen"}
+
