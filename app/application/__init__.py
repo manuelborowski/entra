@@ -1,9 +1,9 @@
-__all__ = ['tables', 'datatables', 'socketio', 'settings', 'warning', 'cron', 'cardpresso', 'photo', 'student', 'ad', 'test', 'staff', "azure", "informat", "smartschool"]
+__all__ = ['tables', 'datatables', 'socketio', 'settings', 'warning', 'cron', 'cardpresso', 'photo', 'student', 'ad', 'test', 'staff', "azure", "informat"]
 
 from app import flask_app
 
 from app.application.photo import cron_task_photo
-from app.application.informat import cron_task_informat_get_student
+from app.application.informat import cron_task_informat_get_student, cron_task_informat_get_staff
 from app.application.student import cron_task_vsk_numbers
 from app.application.cardpresso import cron_task_new_badges
 from app.application.cardpresso import cron_task_new_rfid_to_database
@@ -18,6 +18,7 @@ from app.application.smartschool import ss_student_process_flagged
 cron_table = [
     ('PHOTO', cron_task_photo, 'VAN foto (windows share), leerlingen bijwerken', '', False),
     ('INFORMAT-STUDENT', cron_task_informat_get_student, 'VAN informat, leerlingen bijwerken', '', False),
+    ('INFORMAT-STAFF', cron_task_informat_get_staff, 'VAN informat, personeel bijwerken', '', False),
     ('VSK-NUMMERS', cron_task_vsk_numbers, 'NAAR SDH, Vsk nummers bijwerken', '', False),
     ('CARDPRESSO-NEW', cron_task_new_badges, 'NAAR cardpresso, nieuwe badges klaarmaken', '', False),
     ('CARDPRESSO-RFID', cron_task_new_rfid_to_database, 'VAN cardpresso, RFID van studenten bijwerken', '', False),
