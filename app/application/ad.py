@@ -405,6 +405,8 @@ def __students_new(ctx):
             mstudent.student_update(student, {'email': email})
             if ctx.verbose_logging:
                 log.info(f'student with same email already in ad, {student.naam} {student.voornaam}, {student.leerlingnummer}, this email is {email}')
+        # for classroom.cloud, the email must be the same as the user login.
+        email = student.username + "@lln.campussintursula.be"
         attributes = {'samaccountname': student.username, 'wwwhomepage': f'{student.leerlingnummer}',
                       'userprincipalname': f'{student.username}{STUDENT_EMAIL_DOMAIN}',
                       'mail': email,
