@@ -149,14 +149,14 @@ def __klas_process_delete():
 SS_TOP_GROEPEN_TO_CHECK = ['leerlingen', 'test-leerlingen']
 
 
-def __travel_groepen(groepen, empty_groepen, check_key=True):
+def __iterate_over_groepen(groepen, empty_groepen, check_key=True):
     try:
         for groep in groepen:
             if check_key and (not groep["code"] or "klassenstructuur" not in groep["code"]): # process marked groepen only
                 continue
             if groep["type"] == "G":
                 if "children" in groep:
-                    __travel_groepen(groep["children"]["group"], empty_groepen, False)
+                    __iterate_over_groepen(groep["children"]["group"], empty_groepen, False)
                 else:
                     empty_groepen.append(groep["code"])
     except Exception as e:
@@ -172,7 +172,7 @@ def __klas_process_remove_empty_groepen():
     empty_groepen = []
     for top_groep in alle_groepen:
         if top_groep["code"] in SS_TOP_GROEPEN_TO_CHECK and "children" in top_groep:
-            __travel_groepen(top_groep["children"]["group"], empty_groepen)
+            __iterate_over_groepen(top_groep["children"]["group"], empty_groepen)
     groepen_to_delete = []
     for groep in empty_groepen:
         if not groep:
@@ -224,7 +224,6 @@ STUDENT_D2S_MAP = {
     "gemeente": "location",
     "prive_email": "email",
     "gsm": "mobilePhone",
-
 }
 
 STUDENT_NEW_PROPERTIES_MASK = [
@@ -357,15 +356,11 @@ def ss_student_process_flagged(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START, with settings {settings}")
     ss_teachers = __get_leerkrachten()
     ss_teacher_cache = {d["gebruikersnaam"]: d["internnummer"] for d in ss_teachers["accounts"]["account"]}
-
-
     __klas_process_new(ss_teacher_cache)
     __klas_process_update(ss_teacher_cache)
-
     __student_process_new()
     __student_process_update()
     __student_process_delete()
-
     __klas_process_delete()
     __klas_process_remove_empty_groepen()
 

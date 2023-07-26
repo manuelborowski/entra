@@ -42,12 +42,12 @@ def klas_add_m(data = []):
     return app.data.models.add_multiple(Klas, data)
 
 
-def klas_update(student, data={}, commit=True):
-    return app.data.models.update_single(Klas, student, data, commit)
+def klas_update(klas, data={}, commit=True):
+    return app.data.models.update_single(Klas, klas, data, commit)
 
 
-def klas_delete_m(ids=[], students=[]):
-    return app.data.models.delete_multiple(ids, students)
+def klas_delete_m(ids=[], klassen=[]):
+    return app.data.models.delete_multiple(ids, klassen)
 
 
 def klas_get_m(filters=[], fields=[], order_by=None, first=False, count=False, active=True):
@@ -59,7 +59,7 @@ def klas_get(filters=[]):
 
 
 # data is a list, with:
-# klas: the ORM-student-object
+# klas: the ORM-klas-object
 # changed: a list of properties that are changed
 # property#1: the first property changed
 # property#2: ....
@@ -73,7 +73,7 @@ def klas_change_m(data=[], overwrite=False):
                 if hasattr(klas, property):
                     if getattr(Klas, property).expression.type.python_type == type(v):
                         setattr(klas, property, v.strip() if isinstance(v, str) else v)
-            # if the klas is new, do not set the changed flag in order not to confuse other modules that need to process the students (new has priority over changed)
+            # if the klas is new, do not set the changed flag in order not to confuse other modules that need to process the klass (new has priority over changed)
             if klas.new:
                 klas.changed = ''
             else:
@@ -106,7 +106,7 @@ def klas_flag_m(data=[]):
 
 
 
-############ student overview list #########
+############ klas overview list #########
 def pre_sql_query():
     return db.session.query(Klas).filter(Klas.active == True)
 

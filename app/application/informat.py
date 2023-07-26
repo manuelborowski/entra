@@ -61,21 +61,21 @@ normalMap = {'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A', 'à': 'a', '
              '§': 'S', '³': '3', '²': '2', '¹': '1', ' ': '', '\'': ''}
 normalize_letters = str.maketrans(normalMap)
 
-Lln_keys = {
-    "Voornaam": "voornaam", "Naam": "naam", "rijksregnr": "rijksregisternummer", "Stamnr_kort": "stamboeknummer",  # geboortedatum geboorteplaats geboorteland
-    # geslacht "nationaliteit", ,  # codegetal "straat",
-    "p_persoon": "leerlingnummer", "Fietsnummer": "middag", "begindatum": "inschrijvingsdatum", "instelnr": "instellingsnummer", "Klascode": "klascode",
+STUDENT_MAP_I_Lln2DB_KEYS = {
+    "Voornaam": "voornaam", "Naam": "naam", "rijksregnr": "rijksregisternummer", "Stamnr_kort": "stamboeknummer",
+    "p_persoon": "leerlingnummer", "begindatum": "inschrijvingsdatum", "instelnr": "instellingsnummer", "Klascode": "klascode",
     "nr_admgr": "administratievecode", "Klasnr": "klasnummer", "Levensbeschouwing": "levensbeschouwing"
 }
 
 
-LlnExtra_keys = {
+STUDENT_MAP_I_LlnExtra2DB_KEYS = {
     "nr": "huisnummer",
     "bus": "busnummer",
-    "hfdposthuisnummer": "postnummer",
-    "hfdgem": "gemeente",
+    "dlpostnr": "postnummer",
+    "dlgem": "gemeente",
     "GSMeigen": "gsm",
     "EmailEigen": "prive_email",
+    "Fietsnummer": "middag"
 }
 
 
@@ -123,8 +123,11 @@ def __students_get_from_informat_raw(topic, item_name, filter_on, replace_keys=N
                   "hoofdstructuur": ""}
         today = datetime.date.today()
         start_schooljaar = datetime.date(int(mutils.get_current_schoolyear()), 9, 1)
+        stop_schooljaar = datetime.date(int(mutils.get_current_schoolyear()) + 1, 6, 30)
         if today < start_schooljaar:
             referentiedatum = start_schooljaar.strftime("%d-%m-%Y")
+        elif today > stop_schooljaar:
+            referentiedatum = stop_schooljaar.strftime("%d-%m-%Y")
         else:
             referentiedatum = today.strftime("%d-%m-%Y")
         params["schooljaar"] = mutils.get_current_schoolyear(format=2)
@@ -154,11 +157,11 @@ def __students_get_from_informat_raw(topic, item_name, filter_on, replace_keys=N
 
 def __students_get_from_informat(filter_on):
     try:
-        lln = __students_get_from_informat_raw("Lln", "wsInschrijving", filter_on, Lln_keys)
+        lln = __students_get_from_informat_raw("Lln", "wsInschrijving", filter_on, STUDENT_MAP_I_Lln2DB_KEYS)
         lln = [l for l in lln if l["inschrijvingsdatum"] != l["einddatum"]]
         if not lln:
             return []
-        lln_extra = __students_get_from_informat_raw("LlnExtra", "wsLeerling", "no_klasprefix", LlnExtra_keys)
+        lln_extra = __students_get_from_informat_raw("LlnExtra", "wsLeerling", "no_klasprefix", STUDENT_MAP_I_LlnExtra2DB_KEYS)
         lln_extra_cache = {l["pointer"]: l for l in lln_extra}
         relaties = __students_get_from_informat_raw("Relaties", "WsRelaties", "no_klasprefix", force_list={"Relatie"})
         relaties_cache = {r["PPersoon"]: r for r in relaties}
@@ -175,31 +178,39 @@ def __students_get_from_informat(filter_on):
                         lpv[int(relatie["Lpv"])] = relatie
                 for i in range(1, 3):
                     if lpv[i]:
-                        l[f"lpv{i}_type"] = lpv[i]["Type"]
+                        l[f"lpv{i}_type"] = "Begeleider" if lpv[i]["Type"] == "trajectbegeleider" else lpv[i]["Type"]
                         l[f"lpv{i}_naam"] = lpv[i]["Naam"]
                         l[f"lpv{i}_voornaam"] = lpv[i]["Voornaam"]
                         l[f"lpv{i}_geslacht"] = lpv[i]["Geslacht"]
-                        l[f"lpv{i}_PRelatie"] = lpv[i]["PRelatie"]
-            if leerlingnummer in addressen_cache and "nickname" in addressen_cache[leerlingnummer]:
-                l["roepnaam"] = addressen_cache[leerlingnummer]["nickname"]
-            if "prive_email" in l:
-                if l["prive_email"] == "":
-                    l["prive_email"] = "emmanuel.borowski@gmail.com"
-            else:
-                l["prive_email"] = "emmanuel.borowski@gmail.com"
+                        l[f"lpv{i}_PRelatie"] = lpv[i]["PRelatie"] + lpv[i]["Type"]
+                    else:
+                        l[f"lpv{i}_type"] = ""
+                        l[f"lpv{i}_naam"] = ""
+                        l[f"lpv{i}_voornaam"] = ""
+                        l[f"lpv{i}_geslacht"] = ""
+            if leerlingnummer in addressen_cache:
+                addressen = addressen_cache[leerlingnummer]
+                if "nickname" in addressen:
+                    l["roepnaam"] = addressen["nickname"]
+                if "dlpostnr" in addressen:
+                    l["postnummer"] = addressen["dlpostnr"]
+                if "dlgem" in addressen:
+                    l["gemeente"] = addressen["dlgem"]
 
+            if "prive_email" not in l:
+                l["prive_email"] = ""
         comnummers_relatie = __students_get_from_informat_raw("ComnummersRelatie", "WsComnummers", "no_klasprefix", force_list={"Comnr"})
-        comnr_relatie_cache = {comnr["PRelatie"]: comnr for comnummers in comnummers_relatie for comnr in comnummers["Comnrs"]["Comnr"] if "PRelatie" in comnr}
+        comnr_relatie_cache = {comnr["PRelatie"] + comnr["Type"]: comnr for comnummers in comnummers_relatie for comnr in comnummers["Comnrs"]["Comnr"] if "PRelatie" in comnr and comnr["Soort"] in ["Gsm"]}
         comnr_ppersoon_cache = {comnummers["PPersoon"]: comnr for comnummers in comnummers_relatie for comnr in comnummers["Comnrs"]["Comnr"] if comnr["Type"] == "Eigen"}
         email_relatie = __students_get_from_informat_raw("EmailRelatie", "WsEmailadressen", "no_klasprefix", force_list={"Email"})
-        email_relatie_cache = {email["PRelatie"]: email for email_adressen in email_relatie for email in email_adressen["Emails"]["Email"] if "PRelatie" in email}
-        email_ppersoon_cache = {email_adressen["PPersoon"]: email for email_adressen in email_relatie for email in email_adressen["Emails"]["Email"] if email["Type"] == "Privé"}
+        email_relatie_cache = {email["PRelatie"] + email["Type"]: email for email_adressen in email_relatie for email in email_adressen["Emails"]["Email"] if "PRelatie" in email}
+        email_ppersoon_cache = {email_adressen["PPersoon"]: email for email_adressen in email_relatie for email in email_adressen["Emails"]["Email"] if email["Type"] in ["Privé", "Eigen"]}
         for l in lln:
             for i in range(1, 3):
                 if f"lpv{i}_PRelatie" in l and l[f"lpv{i}_PRelatie"] in email_relatie_cache:
                     l[f"lpv{i}_email"] = email_relatie_cache[l[f"lpv{i}_PRelatie"]]["Adres"]
                 else:
-                    l[f"lpv{i}_email"] = "emmanuel.borowski@gmail.com"
+                    l[f"lpv{i}_email"] = ""
                 if f"lpv{i}_PRelatie" in l and l[f"lpv{i}_PRelatie"] in comnr_relatie_cache:
                     l[f"lpv{i}_gsm"] = comnr_relatie_cache[l[f"lpv{i}_PRelatie"]]["Nummer"]
                 else:
@@ -312,8 +323,8 @@ def student_from_informat_to_database(settings=None):
             else:
                 informat_student["roepnaam"] = informat_student["voornaam"]
 
-            if informat_student["roepnaam"] != informat_student["voornaam"]:
-                log.info(f"ROEPNAAM, {informat_student['naam']} {informat_student['voornaam']}, {informat_student['roepnaam']}")
+            # if informat_student["roepnaam"] != informat_student["voornaam"]:
+            #     log.info(f"ROEPNAAM, {informat_student['naam']} {informat_student['voornaam']}, {informat_student['roepnaam']}")
 
             if f"{informat_student['leerlingnummer']}.jpg" in saved_photos:
                 informat_student['foto_id'] = saved_photos[f"{informat_student['leerlingnummer']}.jpg"]

@@ -9,6 +9,7 @@ from app.application.cardpresso import cron_task_new_badges
 from app.application.cardpresso import cron_task_new_rfid_to_database
 from app.application.ad import student_process_flagged, staff_process_flagged, student_cron_task_get_computer
 from app.application.student import student_post_processing
+from app.application.klas import klas_post_processing
 from app.application.staff import staff_post_processing
 from app.application.smartschool import ss_student_process_flagged
 
@@ -24,8 +25,9 @@ cron_table = [
     ('AD-STAFF', staff_process_flagged, 'NAAR AD, personeel bijwerken', '', True),
     ('SS-STUDENT', ss_student_process_flagged, 'NAAR Smartschool, studenten bijwerken', '', True),
     ('AD-COMPUTER', student_cron_task_get_computer, 'NAAR SDH, computer van studenten bijwerken', '', False),
-    ('SDH-MARKED-STUDENT', student_post_processing, 'NAAR SDH, verwijder gemarkeerde studenten', 'studenten die gemarkeerd zijn als delete worden uit de database verwijderd.  CHECK om de goede werking te verzekeren', False),
-    ('SDH-MARKED-STAFF', staff_post_processing, 'NAAR SDH, verwijder gemarkeerde personeelsleden', 'personeelsleden die gemarkeerd zijn als delete worden uit de database verwijderd.  CHECK om de goede werking te verzekeren', False),
+    ('SDH-MARKED-STUDENT', student_post_processing, 'NAAR SDH, reset new/delete/change flag, verwijder deleted studenten uit database', 'CHECK om de goede werking te verzekeren', False),
+    ('SDH-MARKED-KLAS', klas_post_processing, 'NAAR SDH, reset new/delete/change flag, verwijder deleted klassen uit database', 'CHECK om de goede werking te verzekeren', False),
+    ('SDH-MARKED-STAFF', staff_post_processing, 'NAAR SDH, reset new/delete/change flag, verwijder deleted personeelsleden uit database', 'CHECK om de goede werking te verzekeren', False),
 ]
 
 import app.application.azure

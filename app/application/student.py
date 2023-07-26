@@ -120,24 +120,29 @@ def send_info_email(ids):
             if student.lpv2_email != "":
                 emails.append(student.lpv2_email)
             if emails:
+                co_accounts = ""
                 # email to parents
-                lpv1_voornaam = student.lpv1_voornaam if student.lpv1_voornaam != "" else "/"
-                lpv1_naam = student.lpv1_naam if student.lpv1_naam != "" else "/"
-                lpv2_voornaam = student.lpv2_voornaam if student.lpv2_voornaam != "" else "/"
-                lpv2_naam = student.lpv2_naam if student.lpv2_naam != "" else "/"
-                subject = msettings.get_configuration_setting("smartschool-parents-email-subject")
-                content = msettings.get_configuration_setting("smartschool-parents-email-content")
-                content = content.replace("%%naam%%", student.naam)
-                content = content.replace("%%voornaam%%", student.voornaam)
-                content = content.replace("%%klascode%%", student.klascode)
-                content = content.replace("%%username%%", student.username)
-                content = content.replace("%%lpv1_naam%%", lpv1_naam)
-                content = content.replace("%%lpv1_voornaam%%", lpv1_voornaam)
-                content = content.replace("%%lpv1_wachtwoord%%", passwd2)
-                content = content.replace("%%lpv2_naam%%", lpv2_naam)
-                content = content.replace("%%lpv2_voornaam%%", lpv2_voornaam)
-                content = content.replace("%%lpv2_wachtwoord%%", passwd3)
-                memail.send_email(emails, subject, content)
+                if student.lpv1_naam != "":
+                    co_accounts += f'''
+                        Co-account 1: <b>{student.lpv1_voornaam} {student.lpv1_naam}</b></br> 
+                        Gebruikersnaam: <b>{student.username}</b></br>
+                        Wachtwoord: <b>{passwd2}</b></br></br>
+                    '''
+                if student.lpv2_naam != "":
+                    co_accounts += f'''
+                        Co-account 2: <b>{student.lpv2_voornaam} {student.lpv2_naam}</b></br> 
+                        Gebruikersnaam: <b>{student.username}</b></br>
+                        Wachtwoord: <b>{passwd3}</b></br>
+                    '''
+                if co_accounts != "":
+                    subject = msettings.get_configuration_setting("smartschool-parents-email-subject")
+                    content = msettings.get_configuration_setting("smartschool-parents-email-content")
+                    content = content.replace("%%naam%%", student.naam)
+                    content = content.replace("%%voornaam%%", student.voornaam)
+                    content = content.replace("%%klascode%%", student.klascode)
+                    content = content.replace("%%username%%", student.username)
+                    content = content.replace("%%co-accounts%%", co_accounts)
+                    memail.send_email(emails, subject, content)
             status = json.loads(student.status) if student.status else []
             if mstudent.Student.send_info_message in status:
                 status.remove(mstudent.Student.send_info_message)
@@ -168,10 +173,10 @@ def export_passwords(ids):
             student_export["ww"] = passwd1
             student_export["naam co1"] = student.lpv1_naam
             student_export["voornaam co1"] = student.lpv1_voornaam
+            student_export["ww co1"] = passwd2 if student.lpv1_naam != "" else ""
             student_export["naam co2"] = student.lpv2_naam
             student_export["voornaam co2"] = student.lpv2_voornaam
-            student_export["ww co1"] = passwd2
-            student_export["ww co2"] = passwd3
+            student_export["ww co2"] = passwd3 if student.lpv2_naam != "" else ""
             students_to_export.append(student_export)
             status = json.loads(student.status) if student.status else []
             if mstudent.Student.export in status:
@@ -186,6 +191,7 @@ def export_passwords(ids):
         res = make_response(out.getvalue())
         res.headers["Content-Disposition"] = f"attachment; filename=smartschool-export-{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M')}.xlsx"
         res.headers["Content-type"] = "data:text/xlsx"
+        log.error(f'{sys._getframe().f_code.co_name}: Exported Smartschool info, {len(students)} students')
         return res
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
