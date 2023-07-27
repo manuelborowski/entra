@@ -71,7 +71,7 @@ def prepare_data_for_ajax(table_config, paginate=True):
             order_on = template[order_column_nbr]['data']
             order_direction = check_string_in_form('order[0][dir]', request.values)
         if order_on and "post_order" not in template[order_column_nbr]:
-            sql_query = table_config.pre_sql_order(sql_query, order_on, order_direction)
+            sql_query = table_config.pre_sql_order(sql_query, f"`{order_on}`", order_direction)
 
         paginate_start = paginate_length = None
         if paginate:

@@ -119,11 +119,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.21-informat_student_smartschool-4: added student-status, export and send info-email.  Get multiple, added ids-field
 # 1.21-informat_student_smartschool-5: update import from informat.  Update export to smartschool
 # 1.21-informat_student_smartschool-6: classroom.cloud specific: use user-login as email
+# 1.21-informat_student_smartschool-7: merged import-staff-from-informat.
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.21-informat_student_smartschool-6', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.21-informat_student_smartschool-7', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

@@ -457,8 +457,7 @@ def student_from_informat_to_database(settings=None):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
-
-informat2sdh_staff_keys = {
+STAFF_MAP_I2DB_KEYS = {
     "Voornaam": "voornaam",
     "Naam": "naam",
     "Rijksregnr": "rijksregisternummer",
@@ -468,112 +467,96 @@ informat2sdh_staff_keys = {
     "Geboorteplaats": "geboorteplaats",
     "Prive_email": "prive_email",
     "School_email": "email",
-    "Instelnr": "instellingsnummer"
+    "Instelnr": "instellingsnummer",
 }
+
+
+def __staff_get_from_informat_raw(topic, item_name, replace_keys=None, force_list=None):
+    try:
+        out = []
+        url = f'{flask_app.config["INFORMAT_URL"]}/{topic}'
+        params = {"login": flask_app.config["INFORMAT_USERNAME"], "paswoord": flask_app.config["INFORMAT_PASSWORD"]}
+        params["schooljaar"] = mutils.get_current_schoolyear(format=2)
+        params["personeelsgroep_is_een_optie"] = ""
+        for instelling in ["30569", "30593"]:
+            params["instelnr"] = instelling
+            xml_data = requests.get(url=url, params=params).content
+            log.info(f"from Informat, {url}, {params['instelnr']}, {params['schooljaar']}")
+            if replace_keys:
+                for k, v in replace_keys.items():
+                    xml_data = xml_data.replace(bytes(f"<{k}", "utf-8"), bytes(f"<{v}", "utf-8"))
+                    xml_data = xml_data.replace(bytes(f"{k}>", "utf-8"), bytes(f"{v}>", "utf-8"))
+            data = xmltodict.parse(xml_data, force_list=force_list)[f"ArrayOf{item_name[0].upper() + item_name[1::]}"]
+            if item_name in data:
+                data = data[item_name]
+                if not isinstance(data, list):
+                    data = [data]
+                out += data
+        return out
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e, xml_data}')
+        return []
 
 
 def staff_from_informat_to_database(local_file=None, max=0):
     try:
         log.info('start staff import from informat')
-        now = datetime.datetime.now()
-        reference_year = now.year - 1 if now.month < 8 else now.year
-        schooljaar = f"{reference_year}-{reference_year - 2000 + 1}"
-        params = {"schooljaar": schooljaar, "personeelsgroep_is_een_optie": ""}
-        informat_staffs = get_from_url(flask_app.config["INFORMAT_URL_LKR"], "wsPersoneelslid", informat2sdh_staff_keys, params)
+        informat_staffs = __staff_get_from_informat_raw("Leerkrachten", "wsPersoneelslid", STAFF_MAP_I2DB_KEYS)
+        staff_vrijevelden = __staff_get_from_informat_raw("LeerkrachtenVrijevelden", "wsPersoneelVrijVeld")
+        vrijevelden_cache = {s["Stamnummer"]: s for s in staff_vrijevelden if s["OmschrijvingVrijVeld"] == "CODE"}
+        for informat_staff in informat_staffs:
+            if informat_staff["stamboeknummer"] in vrijevelden_cache:
+                informat_staff["code"] = vrijevelden_cache[informat_staff["stamboeknummer"]]["WaardeVrijVeld"]
 
-        #flatten informat list and process instellingsnummer
-        rijksregisternummers_staffs = {}
         for informat_staff in informat_staffs:
             if informat_staff["Actief"] == "N":
                 continue
 
-            rijksregisternummer = informat_staff["rijksregisternummer"]
-            if rijksregisternummer in rijksregisternummers_staffs:
-                saved_instellingnummers = json.loads(rijksregisternummers_staffs[rijksregisternummer]["instellingsnummer"])
-                if informat_staff["instellingsnummer"] not in saved_instellingnummers:
-                    saved_instellingnummers.append(informat_staff["instellingsnummer"])
-                    rijksregisternummers_staffs[rijksregisternummer]["instellingsnummer"] = json.dumps(saved_instellingnummers)
-            else:
-                informat_staff["instellingsnummer"] = json.dumps([informat_staff["instellingsnummer"]])
-                rijksregisternummers_staffs[rijksregisternummer] = informat_staff
-
-
-        # if local_file:
-        #     log.info(f'Reading from local file {local_file}')
-        #     response_text = open(local_file).read()
-        # else:
-        #     # prevent accidental import from WISA
-        #     # log.error("NO IMPORT FROM WISA ALLOWED")
-        #     # return
-        #     login = msettings.get_configuration_setting('wisa-login')
-        #     password = msettings.get_configuration_setting('wisa-password')
-        #     base_url = msettings.get_configuration_setting('wisa-url')
-        #     query = msettings.get_configuration_setting('wisa-staff-query')
-        #     werkdatum = str(datetime.date.today())
-        #     url = f'{base_url}/{query}?werkdatum={werkdatum}&_username_={login}&_password_={password}&format=json'
-        #     response = requests.get(url)
-        #     response_text = response.text.encode("iso-8859-1").decode("utf-8")
-        # The query returns with the keys in uppercase.  Convert to lowercase first
-
-        # keys = mstaff.get_columns()
-        # for key in keys:
-        #     response_text = response_text.replace(f'"{key.upper()}"', f'"{key}"')
-        # informat_staffs = json.loads(response_text)
         db_staff = mstaff.staff_get_m()
-        staff_in_db = {s.rijksregisternummer: s for s in db_staff}
+        staff_in_db = {s.code: s for s in db_staff}
         new_list = []
         changed_list = []
         flag_list = []
         already_processed = []
         nbr_deleted = 0
         nbr_processed = 0
-        # clean up, remove leading and trailing spaces
-        for _, informat_staff in rijksregisternummers_staffs.items():
-            for k, v in informat_staff.items():
-                if not v:
-                    informat_staff[k] = ""
-                informat_staff[k] = informat_staff[k].strip()
-
-        for _, informat_staff in rijksregisternummers_staffs.items():
-            log.info(f"CHECK1 {informat_staff['rijksregisternummer']}, {informat_staff['naam']} {informat_staff['voornaam']}")
-
-        if "70011716031" in rijksregisternummers_staffs:
-            log.info("FOUND IN INFORMAT")
-
 
         # massage the imported data so that it fits the database.
         # for each staff-member in the import, check if it's new or changed
-        for _, informat_staff in rijksregisternummers_staffs.items():
+        for informat_staff in informat_staffs:
             #skip double or inactive items
-            if informat_staff['rijksregisternummer'] in already_processed or informat_staff["Actief"] == "N":
+            if "code" not in informat_staff or informat_staff['code'] in already_processed or informat_staff["Actief"] == "N" or not informat_staff["stamboeknummer"]:
                 continue
 
             informat_staff["geboortedatum"] = datetime.datetime.strptime(informat_staff["geboortedatum"], "%d.%m.%Y").date()
             informat_staff["geslacht"] = "V" if informat_staff["geslacht"] == "2" else "M"
+            if not informat_staff["prive_email"]:
+                informat_staff["prive_email"] = ""
+            if not informat_staff["email"]:
+                informat_staff["email"] = ""
 
-
-
-            # informat_staff['geboortedatum'] = datetime.datetime.strptime(informat_staff['geboortedatum'].split(' ')[0], '%Y-%m-%d').date()
-            email = informat_staff['email'] if 'campussintursula.be' in informat_staff['email'] else informat_staff['prive_email'] if 'campussintursula.be' in informat_staff['prive_email'] else ""
+            if 'campussintursula.be' in informat_staff['email']:
+                email = informat_staff['email']
+            elif 'campussintursula.be' in informat_staff['prive_email']:
+                email = informat_staff['prive_email']
+            else:
+                email = ""
             if 'campussintursula.be' not in informat_staff['email'] and informat_staff["email"] != "":
                 prive_email = informat_staff['email']
-            elif 'campussintursula.be' not in informat_staff['prive_email'] and informat_staff["prive_email"] != "":
+            elif 'campussintursula.be' not in informat_staff['prive_email'] and informat_staff['prive_email'] != "":
                 prive_email = informat_staff['prive_email']
             else:
-                prive_email = ''
+                prive_email = ""
             if email != "":
                 informat_staff['email'] = email
             else:
                 informat_staff['email'] = f"{informat_staff['voornaam'].translate(normalize_letters).lower()}.{informat_staff['naam'].translate(normalize_letters).lower()}@campussintursula.be"
             informat_staff["prive_email"] = prive_email
 
-            log.info(f"CHECK {informat_staff['rijksregisternummer']}, {informat_staff['naam']} {informat_staff['voornaam']}")
-
-            if informat_staff['rijksregisternummer'] in staff_in_db:
-                log.info(f"GEVONDEN {informat_staff['rijksregisternummer']}, {informat_staff['naam']} {informat_staff['voornaam']}")
+            if informat_staff['code'] in staff_in_db:
                 # staff-member already exists in database, check if a staff-member has updated properties
                 changed_properties = []
-                db_staff = staff_in_db[informat_staff['rijksregisternummer']]
+                db_staff = staff_in_db[informat_staff['code']]
                 for k, v in informat_staff.items():
                     if hasattr(db_staff, k) and v != getattr(db_staff, k):
                         changed_properties.append(k)
@@ -581,28 +564,26 @@ def staff_from_informat_to_database(local_file=None, max=0):
                 if "email" in changed_properties and db_staff.email != "":
                     changed_properties.remove("email")
                 if changed_properties:
+                    log.info(f"UPDATE {informat_staff['code']}, {informat_staff['naam']} {informat_staff['voornaam']}, {changed_properties}")
                     changed_properties.extend(['delete', 'new'])  # staff-member already present, but has changed properties
                     informat_staff.update({'changed': changed_properties, 'staff': db_staff, 'delete': False, 'new': False})
                     changed_list.append(informat_staff)
                 else:
                     flag_list.append({'changed': '', 'delete': False, 'new': False, 'staff': db_staff}) # staff already present, no change
-                del(staff_in_db[informat_staff['rijksregisternummer']])
+                del(staff_in_db[informat_staff['code']])
             else:
                 # staff-member not present in database, i.e. a new staff-member
+                log.info(f"NEW {informat_staff['code']}, {informat_staff['naam']} {informat_staff['voornaam']}")
                 new_list.append(informat_staff)  # new staff-mmeber
-            already_processed.append(informat_staff['rijksregisternummer'])
+            already_processed.append(informat_staff['code'])
             nbr_processed += 1
             if max > 0 and nbr_processed >= max:
                 break
 
-            if "70011716031" not in rijksregisternummers_staffs:
-                log.info("NOT FOUND IN INFORMAT")
-
-
         # at this point, staff_in_db contains the staff-member not present in the informat-import, i.e. the deleted staff-members
         for k, v in staff_in_db.items():
             if not v.delete and v.stamboeknummer != "":
-                log.info(f"Delete staff {v.code}")
+                log.info(f"DELETED {v.code} {v.naam} {v.voornaam}")
                 flag_list.append({'changed': '', 'delete': True, 'new': False, 'staff': v})
                 nbr_deleted += 1
         # add the new staff-members to the database
