@@ -12,8 +12,8 @@ class Student(db.Model, SerializerMixin):
     date_format = '%d/%m/%Y'
     datetime_format = '%d/%m/%Y %H:%M'
 
-    id = db.Column(db.Integer(), primary_key=True)
 
+    id = db.Column(db.Integer(), primary_key=True)
     voornaam = db.Column(db.String(256), default='')
     naam = db.Column(db.String(256), default='')
     roepnaam = db.Column(db.String(256), default='')
@@ -76,6 +76,18 @@ class Student(db.Model, SerializerMixin):
     def person_id(self):
         return self.username
 
+    @property
+    def schoolnaam(self):
+        if self.klascode == "OK":
+            schoolnaam = " Sint-Ursulalyceum"
+        elif int(self.klascode[0]) < 3:
+            schoolnaam = " Sint-Ursulamiddenschool"
+        elif self.instellingsnummer == "30569":
+            schoolnaam = " Sint-Ursula-instituut"
+        else:
+            schoolnaam = " Sint-Ursulalyceum"
+        return schoolnaam
+
     send_info_message = "INFO"
     export = "EXP"
 
@@ -106,7 +118,7 @@ def student_update(student, data={}, commit=True):
 
 
 def student_delete_m(ids=[], students=[]):
-    return app.data.models.delete_multiple(ids, students)
+    return app.data.models.delete_multiple(Student, ids, students)
 
 
 def student_get_m(filters=[], fields=[], ids=[], order_by=None, first=False, count=False, active=True):

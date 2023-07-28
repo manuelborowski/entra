@@ -3,6 +3,7 @@ from app import log, db
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy.dialects.mysql import MEDIUMBLOB
 from sqlalchemy import delete
+import app.data.models
 
 class Cardpresso(db.Model, SerializerMixin):
     __tablename__ = 'cardpresso'
@@ -43,72 +44,24 @@ def commit():
         db.session.rollback()
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
-def add_badge(data = {}, commit=True):
-    try:
-        item = Cardpresso()
-        for k, v in data.items():
-            if hasattr(item, k):
-                if getattr(Cardpresso, k).expression.type.python_type == type(v):
-                    setattr(item, k, v.strip() if isinstance(v, str) else v)
-        db.session.add(item)
-        if commit:
-            db.session.commit()
-        return item
-    except Exception as e:
-        db.session.rollback()
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+def badge_add(data={}, commit=True):
+    return app.data.models.add_single(Cardpresso, data, commit)
 
 
-def add_badges(data = []):
-    try:
-        for d in data:
-            add_badge(d, commit=False)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+def badge_add_m(data=[]):
+    return app.data.models.add_multiple(Cardpresso, data)
 
 
-def delete_badges(ids):
-    try:
-        statement = delete(Cardpresso).where(Cardpresso.id.in_(ids))
-        db.session.execute(statement)
-        db.session.commit()
-    except Exception as e:
-        db.session.rollback()
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+def badge_delete(ids=[], badges=[]):
+    return app.data.models.delete_multiple(Cardpresso, ids, badges)
 
 
-def get_badges(data={}, order_by=None, first=False, count=False):
-    try:
-        q = Cardpresso.query
-        for k, v in data.items():
-            if hasattr(Cardpresso, k):
-                q = q.filter(getattr(Cardpresso, k) == v)
-        if order_by:
-            q = q.order_by(getattr(Cardpresso, order_by))
-        if first:
-            item = q.first()
-            return item
-        if count:
-            return q.count()
-        items = q.all()
-        return items
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+def badge_get_m(filters=[], fields=[], ids=[], order_by=None, first=False, count=False, active=True):
+    return app.data.models.get_multiple(Cardpresso, filters=filters, fields=fields, ids=ids, order_by=order_by, first=first, count=count, active=active)
 
 
-def get_first_badge(data={}):
-    try:
-        item = get_badges(data, first=True)
-        return item
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+def badge_get(filters=[]):
+    return app.data.models.get_first_single(Cardpresso, filters)
 
 
 

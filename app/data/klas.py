@@ -47,7 +47,7 @@ def klas_update(klas, data={}, commit=True):
 
 
 def klas_delete_m(ids=[], klassen=[]):
-    return app.data.models.delete_multiple(ids, klassen)
+    return app.data.models.delete_multiple(Klas, ids, klassen)
 
 
 def klas_get_m(filters=[], fields=[], order_by=None, first=False, count=False, active=True):

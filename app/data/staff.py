@@ -88,7 +88,7 @@ def staff_update(staff, data={}, commit=True):
 
 
 def staff_delete_m(ids=[], staffs=[]):
-    return app.data.models.delete_multiple(ids, staffs)
+    return app.data.models.delete_multiple(Staff, ids, staffs)
 
 
 def staff_get_m(filters=[], fields=[], order_by=None, first=False, count=False, active=True):

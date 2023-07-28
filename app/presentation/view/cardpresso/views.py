@@ -37,6 +37,7 @@ def table_action(action, ids=None):
 def get_right_click_settings():
     return {
         'menu': [
+            {'label': 'Update RFID van studenten', 'item': 'update-rfid', 'iconscout': 'corner-left-down'},
             {'label': 'Verwijder', 'item': 'delete', 'iconscout': 'trash-alt'},
         ]
     }

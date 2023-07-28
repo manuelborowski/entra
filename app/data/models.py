@@ -93,11 +93,10 @@ def update_single(model, obj, data={}, commit=True):
     return None
 
 
-def delete_multiple(ids=[], objs=[]):
+def delete_multiple(model, ids=[], objs=[]):
     try:
-        for id in ids:
-            obj = get_first_single([("id", "=", id)])
-            db.session.delete(obj)
+        if ids:
+            objs = get_multiple(model, ids=ids)
         for obj in objs:
             db.session.delete(obj)
         db.session.commit()

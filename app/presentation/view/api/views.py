@@ -218,6 +218,15 @@ def carpresso_delete():
 
 
 
+@api.route('/api/cardpresso/update_rfid', methods=['POST'])
+@supervisor_key_required
+def carpresso_update_rfid():
+    data = json.loads(request.data)
+    ret = mcardpresso.badge_update_rfid(data)
+    return(json.dumps(ret))
+
+
+
 
 # ?fields=klasgroepcode,schooljaar
 # sort=-gemeente
