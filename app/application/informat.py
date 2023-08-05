@@ -503,14 +503,10 @@ def staff_from_informat_to_database(local_file=None, max=0):
         log.info('start staff import from informat')
         informat_staffs = __staff_get_from_informat_raw("Leerkrachten", "wsPersoneelslid", STAFF_MAP_I2DB_KEYS)
         staff_vrijevelden = __staff_get_from_informat_raw("LeerkrachtenVrijevelden", "wsPersoneelVrijVeld")
-        vrijevelden_cache = {s["Stamnummer"]: s for s in staff_vrijevelden if s["OmschrijvingVrijVeld"] == "CODE"}
+        vrijevelden_cache = {s["pPersoon"]: s for s in staff_vrijevelden if s["OmschrijvingVrijVeld"] == "CODE"}
         for informat_staff in informat_staffs:
-            if informat_staff["stamboeknummer"] in vrijevelden_cache:
-                informat_staff["code"] = vrijevelden_cache[informat_staff["stamboeknummer"]]["WaardeVrijVeld"]
-
-        for informat_staff in informat_staffs:
-            if informat_staff["Actief"] == "N":
-                continue
+            if informat_staff["p_persoon"] in vrijevelden_cache:
+                informat_staff["code"] = vrijevelden_cache[informat_staff["p_persoon"]]["WaardeVrijVeld"]
 
         db_staff = mstaff.staff_get_m()
         staff_in_db = {s.code: s for s in db_staff}
@@ -525,7 +521,7 @@ def staff_from_informat_to_database(local_file=None, max=0):
         # for each staff-member in the import, check if it's new or changed
         for informat_staff in informat_staffs:
             #skip double or inactive items
-            if "code" not in informat_staff or informat_staff['code'] in already_processed or informat_staff["Actief"] == "N" or not informat_staff["stamboeknummer"]:
+            if "code" not in informat_staff or informat_staff['code'] in already_processed or informat_staff["Actief"] == "N":
                 continue
 
             informat_staff["geboortedatum"] = datetime.datetime.strptime(informat_staff["geboortedatum"], "%d.%m.%Y").date()
@@ -612,7 +608,7 @@ def cron_task_informat_get_student(opaque=None):
         student_from_informat_to_database(local_file=current_informat_file)
     else:
         # read_from_wisa_database(max=10)
-        student_from_informat_to_database()
+        student_from_informat_to_database(opaque)
 
 
 def cron_task_informat_get_staff(opaque=None):

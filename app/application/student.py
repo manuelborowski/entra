@@ -293,6 +293,8 @@ def form_prepare_for_edit(form, flat={}, unfold=False):
 
     iterate_components_cb(form, cb)
     return form
+
+
 ############ datatables: student overview list #########
 def format_data(db_list, total_count=None, filtered_count=None):
     out = []

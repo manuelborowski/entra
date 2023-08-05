@@ -709,8 +709,8 @@ class StaffContext(PersonContext):
 def staff_process_flagged(opaque=None, **kwargs):
     all_ok = True
     ctx = kwargs["ctx"]
-    log.info(f"{sys._getframe().f_code.co_name}, START")
-    staff_list = opaque
+    log.info(f"{sys._getframe().f_code.co_name}, START", opaque)
+    staff_list = opaque["staff"] if "staff" in opaque else None
     if staff_list:
         log.info(f"{sys._getframe().f_code.co_name}, staff: {staff_list}")
     # check for new staff
@@ -739,10 +739,10 @@ def staff_process_flagged(opaque=None, **kwargs):
     if staff_list:
         changed_staff = [s for s in staff_list if s.changed != "" and not s.new]
     else:
-        changed_staff = mstaff.staff_get_m([("changed", "!" ""), ("new", "=", False)])
+        changed_staff = mstaff.staff_get_m([("changed", "!", ""), ("new", "=", False)])
     for db_staff in changed_staff:
             res = __staff_update(ctx, db_staff)
-            # check if the invitation email needs to be resend: only when the private email address has changed AND the password is never updated (is still default)
+            # check if the invitation email needs to be resent: only when the private email address has changed AND the password is never updated (is still default)
             if res and "prive_email" in db_staff.changed and db_staff.prive_email:
                 ad_staff = __person_get(ctx, db_staff.code, ["pwdLastSet"])
                 #If the password is never changed (still default), the year is 1601(?)
@@ -883,9 +883,9 @@ def __staff_set_active_state(ctx, staff, active=False):
             # change active state
             account_control = staff_ad['attributes']['userAccountControl']
             if active:
-                account_control &= ~2  # deactivate
+                account_control &= ~2  # activate
             else:
-                account_control |= 2  # activate
+                account_control |= 2  # deactivate
             changes = {'userAccountControl': [(ldap3.MODIFY_REPLACE, [account_control])]}
             res = ctx.ldap.modify(staff_ad["dn"], changes)
             all_ok = all_ok and res
