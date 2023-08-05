@@ -71,7 +71,7 @@ def api_staff_add(data):
         db_staff = mstaff.staff_add(data)
         if db_staff:
             db_ok = True
-            ad_ok = mad.staff_process_flagged({"staff": db_staff})
+            ad_ok = mad.staff_process_flagged({"staff": [db_staff]})
             papercut_ok = mpapercut.person_add(db_staff)
             db_staff = mstaff.staff_update(db_staff, {"changed": "", "new": False, "delete": False})
         if db_ok and ad_ok and papercut_ok:
@@ -109,7 +109,7 @@ def api_staff_update(data):
             db_staff = mstaff.staff_update(db_staff, data)
             db_ok = db_staff is not None
             if db_staff:
-                ad_ok = ad_ok and mad.staff_process_flagged({"staff": db_staff})
+                ad_ok = ad_ok and mad.staff_process_flagged({"staff": [db_staff]})
                 papercut_ok = papercut_ok and mpapercut.person_update(db_staff, data)
             db_staff = mstaff.staff_update(db_staff, {"changed": "", "new": False, "delete": False})
         if db_ok and ad_ok and papercut_ok:
@@ -143,7 +143,7 @@ def api_staff_delete(data):
         if staff_to_delete:
             for staff in staff_to_delete:
                 mstaff.staff_update(staff, {"changed": "", "new": False, "delete": True})
-            mad.staff_process_flagged({"staff": staff_to_delete})
+            mad.staff_process_flagged({"staff": [staff_to_delete]})
             mpapercut.person_delete_m(staff_to_delete)
             mstaff.staff_delete_m(staffs=staff_to_delete)
         if staff_from_wisa:
@@ -170,7 +170,7 @@ def form_prepare_new_update_staff(form):
     try:
         profiles = msettings.get_configuration_setting("ad-staff-profiles")
         profielen = {"values": [{"value": p[0], "label": p[0]} for p in profiles if [1]]}
-        form_update = {"update-properties": {"profiel": [{"name": "data", "value": profielen}, {"name": "defaultValue", "value": profiles[0][0]} ]}}
+        form_update = {"update-properties": {"profiel": [{"name": "data", "value": profielen}, {"name": "defaultValue", "value": [profiles[0][0]]} ]}}
         iterate_components_cb(form, form_update_cb, form_update)
         return form
     except Exception as e:

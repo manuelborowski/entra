@@ -98,13 +98,13 @@ export const formio_popup_create = async (template, cb = null, defaults = null, 
     if (width)
         document.querySelector('#formio-popup-dialog').style.maxWidth = width;
     formio_popup_form = await Formio.createForm(document.getElementById('formio-popup-content'), template, form_options)
-        if (defaults != null) {
-            Object.entries(defaults).forEach(([k, v]) => {
-                try {
-                    formio_popup_form.getComponent(k).setValue(v);
-                } catch (error) {
-                }
-        });
+    if (defaults != null) {
+        Object.entries(defaults).forEach(([k, v]) => {
+            try {
+                formio_popup_form.getComponent(k).setValue(v);
+            } catch (error) {
+            }
+    });
     }
     formio_popup_form.on('submit', async submitted => {
         $('#formio-popup').modal("hide");
