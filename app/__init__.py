@@ -124,11 +124,11 @@ flask_app.config.from_pyfile('config.py')
 # 1.23: badges: added functionality to manually transfer the rfid to the students.  Small updates and small bugfixes
 # 1.24: bugfix use of cron-opaque-parameter.  Bugfix import staff from informat.
 # 1.25: bugfix staff-popup.  Small bugfixes
-
+# 1.26: bugfix informat import: ignore None-values
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.25', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.26', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

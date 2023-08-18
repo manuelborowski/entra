@@ -554,6 +554,8 @@ def staff_from_informat_to_database(local_file=None, max=0):
                 changed_properties = []
                 db_staff = staff_in_db[informat_staff['code']]
                 for k, v in informat_staff.items():
+                    if v is None:
+                        v = ""
                     if hasattr(db_staff, k) and v != getattr(db_staff, k):
                         changed_properties.append(k)
                 # if the naam or voornaam changes AND the email is already set in the database THEN ignore the new email (will cause confusion)
