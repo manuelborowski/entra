@@ -478,13 +478,16 @@ def __students_deleted(ctx):
     if deleted_students:
         for student in deleted_students:
             if deactivate_student:
-                ad_student = ctx.ad_active_students_leerlingnummer[student.leerlingnummer]
-                dn = ad_student['dn']
-                account_control = ad_student['attributes']['userAccountControl']  # to activate
-                account_control |= 2  # set bit 2 to deactivate
-                changes = {'userAccountControl': [(ldap3.MODIFY_REPLACE, [account_control])]}
-                res = ctx.ldap.modify(dn, changes)
-                __handle_ldap_response(ctx, student, res, 'deactivate')
+                if student.leerlingnummer in ctx.ad_active_students_leerlingnummer:
+                    ad_student = ctx.ad_active_students_leerlingnummer[student.leerlingnummer]
+                    dn = ad_student['dn']
+                    account_control = ad_student['attributes']['userAccountControl']  # to activate
+                    account_control |= 2  # set bit 2 to deactivate
+                    changes = {'userAccountControl': [(ldap3.MODIFY_REPLACE, [account_control])]}
+                    res = ctx.ldap.modify(dn, changes)
+                    __handle_ldap_response(ctx, student, res, 'deactivate')
+                else:
+                    log.info(f"{sys._getframe().f_code.co_name}, {student.leerlingnummer}, {student.naam} {student.voornaam} is not active anymore")
     log.info(f"{sys._getframe().f_code.co_name}, STOP")
 
 
@@ -708,6 +711,7 @@ class StaffContext(PersonContext):
 @ad_ctx_wrapper(StaffContext)
 def staff_process_flagged(opaque=None, **kwargs):
     all_ok = True
+    set_default_password = send_email = False
     ctx = kwargs["ctx"]
     log.info(f"{sys._getframe().f_code.co_name}, START", opaque)
     staff_list = opaque["staff"] if "staff" in opaque else None
@@ -727,13 +731,15 @@ def staff_process_flagged(opaque=None, **kwargs):
         else:
             res = __staff_add(ctx, db_staff)
             all_ok = all_ok and res
-        default_password = msettings.get_configuration_setting("generic-standard-password")
-        res = person_set_password(db_staff, default_password, must_update=True, never_expires=True)
-        all_ok = all_ok and res
+            set_default_password = send_email = True
+        if set_default_password:
+            default_password = msettings.get_configuration_setting("generic-standard-password")
+            res = person_set_password(db_staff, default_password, must_update=True, never_expires=True)
+            all_ok = all_ok and res
         db_staff.changed = json.dumps(STAFF_CHANGED_PROPERTIES_MASK)
         res = __staff_update(ctx, db_staff)
         all_ok = all_ok and res
-        if all_ok and db_staff.prive_email:
+        if all_ok and db_staff.prive_email and send_email:
             send_new_staff_message(db_staff, default_password)
     # check for changed staff
     if staff_list:

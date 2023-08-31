@@ -101,7 +101,7 @@ def send_info_email(ids):
     try:
         students = mstudent.student_get_m(ids=ids)
         for student in students:
-            passwd1 = mutil.ss_create_password(int(f"{student.leerlingnummer}1"))
+            passwd1 = mutil.ss_create_password(None, use_standard_password=True)
             passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
             passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
             if student.prive_email != "":
@@ -162,7 +162,7 @@ def export_passwords(ids):
         students = mstudent.student_get_m(ids=ids)
         students_to_export = []
         for student in students:
-            passwd1 = mutil.ss_create_password(int(f"{student.leerlingnummer}1"))
+            passwd1 = mutil.ss_create_password(None, use_standard_password=True)
             passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
             passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
             student_export = {}

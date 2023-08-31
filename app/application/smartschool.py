@@ -64,19 +64,20 @@ def __klas_process(db_klassen, teacher_cache):
         if klasindex == "O":
             continue # do nothing in case of OKAN
         if int(klasindex) < 3:
-            oudergroep = f"jaar-sum-{klasindex}"
+            oudergroep_code = f"jaar-sum-{klasindex}"
         else:
             if klas.instellingsnummer == "30593":
-                oudergroep = f"jaar-sul-{klasindex}"
+                oudergroep_code = f"jaar-sul-{klasindex}"
             else:
-                oudergroep = f"jaar-sui-{klasindex}"
+                oudergroep_code = f"jaar-sui-{klasindex}"
         if klasgroep[0] == "T":
-            oudergroep = f"t{oudergroep}"
-        ret = soap.service.saveGroup(flask_app.config["SS_API_KEY"], klasgroep, titularissen_string, klasgroep, oudergroep, "")
+            oudergroep_code = f"t{oudergroep_code}"
+        klasgroep_code = klasgroep + "G"
+        ret = soap.service.saveGroup(flask_app.config["SS_API_KEY"], klasgroep, titularissen_string, klasgroep_code, oudergroep_code, "")
         if ret == 0:
-            log.info(f"{sys._getframe().f_code.co_name}, Groep {oudergroep}/{klasgroep} added/updated")
+            log.info(f"{sys._getframe().f_code.co_name}, Groep {oudergroep_code}/{klasgroep} added/updated")
         else:
-            log.error(f"{sys._getframe().f_code.co_name}, saveGroup {oudergroep}/{klasgroep} returned error {ret}")
+            log.error(f"{sys._getframe().f_code.co_name}, saveGroup {oudergroep_code}/{klasgroep} returned error {ret}")
         if titularissen:
             for k in titularissen:
                 if k not in teacher_cache:
@@ -85,28 +86,28 @@ def __klas_process(db_klassen, teacher_cache):
 
     for klas in db_klassen:
         if klas.klasgroepcode != "":
-            oudergroep = klas.klasgroepcode
+            oudergroep_code = klas.klasgroepcode + "G"
         else:
             klasindex = klas.klascode[1] if klas.klascode[0] == "T" else klas.klascode[0]
             if klasindex == "O":
                 continue # do nothing in case of OKAN
             if int(klasindex) < 3:
-                oudergroep = f"jaar-sum-{klasindex}"
+                oudergroep_code = f"jaar-sum-{klasindex}"
             else:
                 if klas.instellingsnummer == "30593":
-                    oudergroep = f"jaar-sul-{klasindex}"
+                    oudergroep_code = f"jaar-sul-{klasindex}"
                 else:
-                    oudergroep = f"jaar-sui-{klasindex}"
+                    oudergroep_code = f"jaar-sui-{klasindex}"
             if klas.klascode[0] == "T":
-                oudergroep = f"t{oudergroep}"
+                oudergroep_code = f"t{oudergroep_code}"
         klas_datum = f"{klas.schooljaar}-09-01"
         titularissen = json.loads(klas.klastitularis)
         titularissen_string = ','.join(titularissen) if titularissen else "/"
-        ret = soap.service.saveClass(flask_app.config["SS_API_KEY"], klas.klascode, titularissen_string, klas.klascode, oudergroep, "", klas.instellingsnummer, klas.administratievecode, klas_datum)
+        ret = soap.service.saveClass(flask_app.config["SS_API_KEY"], klas.klascode, titularissen_string, klas.klascode, oudergroep_code, klas.klascode, klas.instellingsnummer, klas.administratievecode, klas_datum)
         if ret == 0:
-            log.info(f"{sys._getframe().f_code.co_name}, Klas {oudergroep}/{klas.klascode} added/updated")
+            log.info(f"{sys._getframe().f_code.co_name}, Klas {oudergroep_code}/{klas.klascode} added/updated")
         else:
-            log.error(f"{sys._getframe().f_code.co_name}, saveClass {oudergroep}/{klas.klascode} returned error {ret}")
+            log.error(f"{sys._getframe().f_code.co_name}, saveClass {oudergroep_code}/{klas.klascode} returned error {ret}")
         if titularissen:
             for k in titularissen:
                 if k not in teacher_cache:
@@ -138,27 +139,32 @@ def __klas_process_delete():
     db_klassen = mklas.klas_get_m([("delete", "=", True)])
     if db_klassen:
         for klas in db_klassen:
-            ret = soap.service.delClass(flask_app.config["SS_API_KEY"], klas.klascode)
-            if ret == 0:
-                log.info(f"{sys._getframe().f_code.co_name}, Klas {klas.klascode} deleted")
-            else:
-                log.error(f"{sys._getframe().f_code.co_name}, delClass {klas.klascode} returned error {ret}")
+            try:
+                ret = soap.service.delClass(flask_app.config["SS_API_KEY"], klas.klascode)
+                if ret == 0:
+                    log.info(f"{sys._getframe().f_code.co_name}, Klas {klas.klascode} deleted")
+                else:
+                    log.error(f"{sys._getframe().f_code.co_name}, delClass {klas.klascode} returned error {ret}")
+            except Exception as e:
+                log.error(f"{sys._getframe().f_code.co_name}, delClass {klas.klascode} threw error {e}")
     log.info(f"{sys._getframe().f_code.co_name}, STOP, processed {len(db_klassen)} klassen")
 
 
 SS_TOP_GROEPEN_TO_CHECK = ['leerlingen', 'test-leerlingen']
 
 
-def __iterate_over_groepen(groepen, empty_groepen, check_key=True):
+def __iterate_over_groepen(groepen, leaf_groepen, klassen, check_key=True):
     try:
         for groep in groepen:
             if check_key and (not groep["code"] or "klassenstructuur" not in groep["code"]): # process marked groepen only
                 continue
             if groep["type"] == "G":
                 if "children" in groep:
-                    __iterate_over_groepen(groep["children"]["group"], empty_groepen, False)
+                    __iterate_over_groepen(groep["children"]["group"], leaf_groepen, klassen, False)
                 else:
-                    empty_groepen.append(groep["code"])
+                    leaf_groepen.append(groep["code"])
+            elif groep["isOfficial"] == "1":
+                klassen.append(groep["code"])
     except Exception as e:
         print(e)
 
@@ -169,12 +175,13 @@ def __klas_process_remove_empty_groepen():
     ret = soap.service.getAllGroupsAndClasses(flask_app.config["SS_API_KEY"])
     xml_string = base64.b64decode(ret)
     alle_groepen = xmltodict.parse(xml_string, force_list="group")["groups"]["group"][0]["children"]["group"]
-    empty_groepen = []
+    leaf_groepen = []
+    klassen = []
     for top_groep in alle_groepen:
         if top_groep["code"] in SS_TOP_GROEPEN_TO_CHECK and "children" in top_groep:
-            __iterate_over_groepen(top_groep["children"]["group"], empty_groepen)
+            __iterate_over_groepen(top_groep["children"]["group"], leaf_groepen, klassen)
     groepen_to_delete = []
-    for groep in empty_groepen:
+    for groep in leaf_groepen:
         if not groep:
             continue    # skip groepen with code None
         ret = soap.service.getAllAccounts(flask_app.config["SS_API_KEY"], groep, "0")
@@ -188,7 +195,21 @@ def __klas_process_remove_empty_groepen():
             log.info(f"{sys._getframe().f_code.co_name}, Groep {groep} deleted")
         else:
             log.error(f"{sys._getframe().f_code.co_name}, delClass {groep} returned error {ret}")
-    log.info(f"{sys._getframe().f_code.co_name}, STOP, processed {len(empty_groepen)} klassen")
+
+    # empty_klassen = []
+    # for klas in klassen:
+    #     ret = soap.service.getAllAccounts(flask_app.config["SS_API_KEY"], klas, "0")
+    #     xml_string = base64.b64decode(ret)
+    #     data = xmltodict.parse(xml_string, force_list='account')
+    #     if not data["accounts"]:
+    #         empty_klassen.append(klas)
+    # for klas in empty_klassen:
+    #     ret = soap.service.delClass(flask_app.config["SS_API_KEY"], klas)
+    #     if ret == 0:
+    #         log.info(f"{sys._getframe().f_code.co_name}, empty klas {klas} deleted")
+    #     else:
+    #         log.error(f"{sys._getframe().f_code.co_name}, delClass {klas} returned error {ret}")
+    log.info(f"{sys._getframe().f_code.co_name}, STOP, processed {len(leaf_groepen)} groepen and {len(klassen)} klassen")
 
 
 STUDENT_GODSDIENSTEN_MAP = {"0140": "CAT"}
@@ -249,7 +270,7 @@ def __student_process_new():
     for student in db_studenten:
         internnumber = student.leerlingnummer
         username = student.username
-        passwd1 = ss_create_password(int(f"{student.leerlingnummer}1"))
+        passwd1 = ss_create_password(None, use_standard_password=True)
         passwd2 = ss_create_password(int(f"{student.leerlingnummer}2"))
         passwd3 = ss_create_password(int(f"{student.leerlingnummer}3"))
         name = student.voornaam
@@ -332,7 +353,8 @@ def __student_process_update():
                 ret = soap.service.saveUserParameter(flask_app.config["SS_API_KEY"], student.leerlingnummer, STUDENT_D2S_MAP[db_key], v)
                 if ret != 0:
                     log.error(f"{sys._getframe().f_code.co_name}, saveUserParameter {student.leerlingnummer}/{db_key}/{v} returned error {ret}")
-        log.info(f"{sys._getframe().f_code.co_name}, Student {student.leerlingnummer}/{student.naam} {student.voornaam} update {changed}")
+        else:
+            log.info(f"{sys._getframe().f_code.co_name}, Student {student.leerlingnummer}/{student.naam} {student.voornaam} update {list(set(STUDENT_CHANGED_PROPERTIES_MASK).intersection(changed))}")
     log.info(f"{sys._getframe().f_code.co_name}, STOP, processed {len(db_studenten)} students")
 
 

@@ -99,12 +99,12 @@ klas_required_fields = [
 
 
 filter_school = {
-    "no_klasprefix": {"instelling": ["30569", "30593"]},
-    "csu": {"instelling": ["30569", "30593"], "klasprefix": ["1", "2", "3", "4", "5", "6", "7", "O"]},
-    "sum": {"instelling": ["30569", "30593"], "klasprefix": ["1", "2"]},
-    "sul": {"instelling": ["30593"], "klasprefix": ["3", "4", "5", "6", "O"]},
-    "sui": {"instelling": ["30569"], "klasprefix": ["3", "4", "5", "6", "7"]},
-    "testklassen": {"instelling": ["30569", "30593"], "klasprefix": ["T"]}
+    "no_klasprefix": {"instelling": ["30569", "30593"], "deelschool": False},
+    "csu": {"instelling": ["30569", "30593"], "klasprefix": ["1", "2", "3", "4", "5", "6", "7", "O"], "deelschool": False},
+    "sum": {"instelling": ["30569", "30593"], "klasprefix": ["1", "2"], "deelschool": True},
+    "sul": {"instelling": ["30593"], "klasprefix": ["3", "4", "5", "6", "O"], "deelschool": True},
+    "sui": {"instelling": ["30569"], "klasprefix": ["3", "4", "5", "6", "7"], "deelschool": True},
+    "testklassen": {"instelling": ["30569", "30593"], "klasprefix": ["T"], "deelschool": True}
 }
 
 
@@ -227,8 +227,19 @@ def __students_get_from_informat(filter_on):
 
 def __klas_get_from_informat(filter_on):
     try:
-        klas_cache = {}
         subgroepen = __students_get_from_informat_raw("Subgroepen", "wsKlasgroep", filter_on, Subgroepen_keys)
+
+        klas_cache = {k["klascode"]: k for k in subgroepen if k["Groeptype"] == "0"}
+        for code, klas in klas_cache.items():
+            if int(klas["Graad"]) > 1 and klas["instellingsnummer"] == "030569" or len(code) == 2 or code == "OKAN":
+                klas["klasgroepcode"] = ""
+            else:
+                klas["klasgroepcode"] = code[:2]
+        return list(klas_cache.values())
+
+
+
+
         klasgroep_cache = {k["p_persoon"]: k for k in subgroepen if k["Groeptype"] == "1"}
         for klas in subgroepen:
             if klas["klascode"] not in klas_cache and klas["Groeptype"] == "0":
@@ -237,8 +248,10 @@ def __klas_get_from_informat(filter_on):
                     klas["klasgroepcode"] = klasgroep_cache[klas["p_persoon"]]["klascode"]
                     if "klastitularis" in klasgroep_cache[klas["p_persoon"]]:
                         klas["klastitularis"] = klasgroep_cache[klas["p_persoon"]]["klastitularis"]
-        klassen = list(klas_cache.values())
-        return klassen
+        klas_cache = {i["klascode"]: i for i  in klas_cache.values() if "klasgroepcode" in i}
+        return klas_cache
+        # klassen = list(klas_cache.values())
+        # return klassen
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return []
@@ -276,28 +289,23 @@ def student_from_informat_to_database(settings=None):
     try:
         log.info(f'start student import from informat, with settings: {settings}')
         max = settings["max"] if settings and "max" in settings else 0
-        if settings and "local_file" in settings:
-            local_file = settings["local_file"]
-            log.error(f'Reading from local file NOT IMPLEMENTED')
-            return
-            log.info(f'Reading from local file {local_file}')
+        # prevent accidental import from informat
+        # log.error("NO IMPORT FROM informat ALLOWED")
+        # return
+        if settings and "sync-school" in settings:
+            filter_on = settings["sync-school"]
         else:
-            # prevent accidental import from informat
-            # log.error("NO IMPORT FROM informat ALLOWED")
-            # return
-            if settings and "sync-school" in settings:
-                filter_on = settings["sync-school"]
-            else:
-                filter_on = "csu"
-            informat_students = __students_get_from_informat(filter_on)
-            if not informat_students:
-                log.info(f'{sys._getframe().f_code.co_name}: No students to import, abort...')
-                return
-            informat_klassen = __klas_get_from_informat(filter_on)
+            filter_on = "csu"
+
+        informat_students = __students_get_from_informat(filter_on)
+        if not informat_students:
+            log.info(f'{sys._getframe().f_code.co_name}: No students to import, abort...')
+            return
         schooljaar = int(mutils.get_current_schoolyear(format=1))
         # (Photo.id, Photo.filename, Photo.new, Photo.changed, Photo.delete, func.octet_length(Photo.photo))
         saved_photos = {p[1]: p[0] for p in mphoto.photo_get_size_all()}
-        students = __students_get_from_database(filter_on)
+        # students = __students_get_from_database(filter_on)
+        students = mstudent.student_get_m()
         db_students = {s.leerlingnummer: s for s in students} if students else {}
         new_list = []
         changed_list = []
@@ -376,12 +384,15 @@ def student_from_informat_to_database(settings=None):
         # at this point, saved_students contains the students not present in the informat-import, i.e. the deleted students
         # Normally, in July and August it is not possible to delete students from the database.  During these months, students are being transferred to the new schoolyear on a daily basis
         # So, imports do not contain all students yet.
+        # In addition, when only a deelschool is imported from Informat and db_students contains ALL students (not only from the deelschool), then a lot of students are going to be deleted.  So,
+        # skip if importing a deelschool.
         if __check_if_can_delete_in_july_august():
-            for k, v in db_students.items():
-                if not v.delete:
-                    flag_list.append({'changed': '', 'delete': True, 'new': False, 'student': v})
-                    log.info(f'{sys._getframe().f_code.co_name}: delete, {v.leerlingnummer}, {v.naam} {v.voornaam}')
-                    nbr_deleted += 1
+            if "deelschool" in filter_school[filter_on] and not filter_school[filter_on]["deelschool"]:
+                for k, v in db_students.items():
+                    if not v.delete:
+                        flag_list.append({'changed': '', 'delete': True, 'new': False, 'student': v})
+                        log.info(f'{sys._getframe().f_code.co_name}: delete, {v.leerlingnummer}, {v.naam} {v.voornaam}')
+                        nbr_deleted += 1
         # add the new students to the database
         mstudent.student_add_m(new_list)
         # update the changed properties of the students
@@ -392,6 +403,7 @@ def student_from_informat_to_database(settings=None):
 
         #process klassen
         log.info(f'start klas import from informat, with settings: {settings}')
+        informat_klassen = __klas_get_from_informat(filter_on)
         klassen = __klas_get_from_database(filter_on)
         db_klassen = {k.klascode: k for k in klassen} if klassen else {}
         db_staff = mstaff.staff_get_m()
@@ -406,16 +418,15 @@ def student_from_informat_to_database(settings=None):
             if informat_klas["klascode"] not in administratievecode_cache:
                 log.error(f"Empty klas {informat_klas['klascode']}")
                 continue
-            if informat_klas["klascode"] in processed_list or informat_klas["klascode"] not in administratievecode_cache:
-                log.error(f"Klas already imported {informat_klas['klascode']}")
-                continue
             informat_klas["instellingsnummer"] = informat_klas["instellingsnummer"][1::] #remove leading 0
             informat_klas["administratievecode"] = administratievecode_cache[informat_klas["klascode"]]
             informat_klas["schooljaar"] = schooljaar
-            if "klasgroepcode" not in informat_klas:
-                informat_klas["klasgroepcode"] = ""
+            # if "klasgroepcode" not in informat_klas:
+            #     informat_klas["klasgroepcode"] = ""
             if "klastitularis" in informat_klas: # translate the titularis name to its code
                 informat_klas["klastitularis"] = json.dumps([staff_cache[k.strip()] for k in informat_klas["klastitularis"].split(",")])
+            else:
+                informat_klas["klastitularis"] = "[]"
             if informat_klas["klascode"] in db_klassen:
                 # klas already exists in database.  Check for updates
                 db_klas = db_klassen[informat_klas["klascode"]]
@@ -441,11 +452,13 @@ def student_from_informat_to_database(settings=None):
             if max > 0 and nbr_processed >= max:
                 break
         # at this point, saved_klas contains the students not present in the informat-import, i.e. the deleted students
-        for k, v in db_klassen.items():
-            if not v.delete:
-                flag_list.append({'changed': '', 'delete': True, 'new': False, 'klas': v})
-                log.info(f'{sys._getframe().f_code.co_name}: delete, {v.klascode}, {v.klasgroepcode}')
-                nbr_deleted += 1
+        if __check_if_can_delete_in_july_august():
+            if "deelschool" in filter_school[filter_on] and not filter_school[filter_on]["deelschool"]:
+                for k, v in db_klassen.items():
+                    if not v.delete:
+                        flag_list.append({'changed': '', 'delete': True, 'new': False, 'klas': v})
+                        log.info(f'{sys._getframe().f_code.co_name}: delete, {v.klascode}, {v.klasgroepcode}')
+                        nbr_deleted += 1
         # add the new klassen to the database
         mklas.klas_add_m(new_list)
         # update the changed properties of the klassen
@@ -596,25 +609,11 @@ def staff_from_informat_to_database(local_file=None, max=0):
 
 
 def cron_task_informat_get_student(opaque=None):
-    informat_files = msettings.get_list('test-informat-xml-list')
-    if informat_files:  # test with informat files
-        current_informat_file = msettings.get_configuration_setting('test-informat-current-xml')
-        if current_informat_file == '' or current_informat_file not in informat_files:
-            current_informat_file = informat_files[0]
-        else:
-            new_index = informat_files.index(current_informat_file) + 1
-            if new_index >= len(informat_files):
-                new_index = 0
-            current_informat_file = informat_files[new_index]
-        msettings.set_configuration_setting('test-informat-current-xml', current_informat_file)
-        student_from_informat_to_database(local_file=current_informat_file)
-    else:
-        # read_from_wisa_database(max=10)
-        student_from_informat_to_database(opaque)
+    student_from_informat_to_database(opaque)
 
 
 def cron_task_informat_get_staff(opaque=None):
-        staff_from_informat_to_database()
+    staff_from_informat_to_database()
 
 
 

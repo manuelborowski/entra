@@ -1,5 +1,5 @@
 import random, string, sys
-from app.data import utils as mutils
+from app.data import utils as mutils, settings as msettings
 
 import logging
 from app import MyLogFilter, top_log_handle
@@ -56,19 +56,23 @@ PWD_ALLOWED_CHARS = [
     ["1","2","3","4","5","6","7","8","9", "_","!","?","/"]
 ]
 
-def ss_create_password(seed, length=8):
+def ss_create_password(seed, length=8, use_standard_password=False):
     try:
-        a = pow(seed, 5)
-        b = 0
-        pwd1 = ""
-        while a > 0:
-            l = len(PWD_ALLOWED_CHARS[b])
-            c = a % l
-            a = (a - c) / l
-            pwd1 += PWD_ALLOWED_CHARS[b][int(c)]
-            b += 1
-            if b > 2:
-                b = 0
-        return pwd1[:length]
+        if use_standard_password:
+            default_password = msettings.get_configuration_setting('generic-standard-password')
+            return default_password
+        else:
+            a = pow(seed, 5)
+            b = 0
+            pwd1 = ""
+            while a > 0:
+                l = len(PWD_ALLOWED_CHARS[b])
+                c = a % l
+                a = (a - c) / l
+                pwd1 += PWD_ALLOWED_CHARS[b][int(c)]
+                b += 1
+                if b > 2:
+                    b = 0
+            return pwd1[:length]
     except Exception as e:
         log.error(f"{sys._getframe().f_code.co_name}, error {e}")
