@@ -316,9 +316,11 @@ def student_from_informat_to_database(settings=None):
         nbr_processed = 0
         # clean up, remove leading and trailing spaces, convert datetime-string to datetime
         for informat_student in informat_students:
+            if informat_student["voorlopig"] == "1":
+                log.info(f"Student is voorlopig, skip {informat_student['leerlingnummer']}, {informat_student['naam']} {informat_student['voornaam']}")
+                continue
             if informat_student["leerlingnummer"] in processed_list:
-                log.error(
-                    f"Student already imported {informat_student['leerlingnummer']}, {informat_student['naam']} {informat_student['voornaam']}")
+                log.error(f"Student already imported {informat_student['leerlingnummer']}, {informat_student['naam']} {informat_student['voornaam']}")
                 continue
             if informat_student["administratievecode"] not in administratievecode_cache:
                 administratievecode_cache[informat_student["klascode"]] = informat_student["administratievecode"]

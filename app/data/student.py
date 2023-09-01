@@ -90,10 +90,11 @@ class Student(db.Model, SerializerMixin):
 
     send_info_message = "INFO"
     export = "EXP"
+    nieuw = "NIEUW"
 
     def get_statuses(label=False):
         if label:
-            return [[Student.send_info_message, "Info nog te zenden"], [Student.export, "Nog te exporteren"]]
+            return [[Student.send_info_message, "Info nog te zenden"], [Student.export, "Nog te exporteren"], [Student.nieuw, "Nieuwe student"]]
         return [Student.send_info_message, Student.export]
 
 
