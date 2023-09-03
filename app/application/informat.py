@@ -377,8 +377,7 @@ def student_from_informat_to_database(settings=None):
                 informat_student['username'] = f's{informat_student["leerlingnummer"]}'
                 informat_student["status"] = json.dumps(mstudent.Student.get_statuses())
                 new_list.append(informat_student)  # new student
-                log.info(
-                    f'{sys._getframe().f_code.co_name}: new, {informat_student["leerlingnummer"]}, {informat_student["naam"]} {informat_student["voornaam"]}, {informat_student["username"]}, {informat_student["email"]}')
+                log.info(f'{sys._getframe().f_code.co_name}: new, {informat_student["leerlingnummer"]}, {informat_student["naam"]} {informat_student["voornaam"]}, {informat_student["username"]}, {informat_student["email"]}')
             processed_list.append(informat_student["leerlingnummer"])
             nbr_processed += 1
             if max > 0 and nbr_processed >= max:
