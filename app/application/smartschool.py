@@ -80,9 +80,10 @@ def __klas_process(db_klassen, teacher_cache):
             log.error(f"{sys._getframe().f_code.co_name}, saveGroup {oudergroep_code}/{klasgroep} returned error {ret}")
         if titularissen:
             for k in titularissen:
+                k = k.upper()
                 if k not in teacher_cache:
                     raise Exception(f"{k} is NOT found in Smartschool")
-            __update_titularis(klasgroep, [teacher_cache[k] for k in titularissen])
+            __update_titularis(klasgroep, [teacher_cache[k.upper()] for k in titularissen])
 
     for klas in db_klassen:
         if klas.klasgroepcode != "":
@@ -377,7 +378,7 @@ def ss_student_process_flagged(opaque=None, **kwargs):
     settings = opaque if opaque else {}
     log.info(f"{sys._getframe().f_code.co_name}, START, with settings {settings}")
     ss_teachers = __get_leerkrachten()
-    ss_teacher_cache = {d["gebruikersnaam"]: d["internnummer"] for d in ss_teachers["accounts"]["account"]}
+    ss_teacher_cache = {d["gebruikersnaam"].upper(): d["internnummer"] for d in ss_teachers["accounts"]["account"]}
     __klas_process_new(ss_teacher_cache)
     __klas_process_update(ss_teacher_cache)
     __student_process_new()
