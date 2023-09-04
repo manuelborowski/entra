@@ -77,7 +77,11 @@ def right_click():
                     return {"redirect": {"url": f"/student/table_action/view", "ids": ids, "new_tab": True}}
                 if data['item'] == "info-email":
                     ids = data['item_ids']
-                    ret = app.application.student.send_info_email(ids)
+                    ret = app.application.student.send_info_email(ids, leerlingen=True)
+                    return {"message": ret['data']}
+                if data['item'] == "info-email-ouders":
+                    ids = data['item_ids']
+                    ret = app.application.student.send_info_email(ids, leerlingen=False)
                     return {"message": ret['data']}
     except Exception as e:
         log.error(f"Error in get_form: {e}")
@@ -133,7 +137,8 @@ def get_right_click_settings():
             {'label': 'RFID code aanpassen', 'item': 'check-rfid', 'iconscout': 'wifi'},
             {'label': 'Paswoord aanpassen', 'item': 'update-password', 'iconscout': 'key-skeleton'},
             {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
-            {'label': 'Stuur S info e-mail', 'item': 'info-email', 'iconscout': 'envelope-info'},
+            {'label': 'Stuur S info e-mail leerling', 'item': 'info-email', 'iconscout': 'envelope-info'},
+            {'label': 'Stuur S info e-mail ouders', 'item': 'info-email-ouders', 'iconscout': 'envelope-info'},
             {'label': 'Exporteer S info', 'item': 'export-smartschool', 'iconscout': 'export'},
             {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
             {'label': 'Vsk nummers', 'item': 'new-vsk-numbers', 'iconscout': 'abacus'},

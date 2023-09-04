@@ -89,13 +89,14 @@ class Student(db.Model, SerializerMixin):
         return schoolnaam
 
     send_info_message = "INFO"
+    send_info_message_ouders = "INFO-OUDER"
     export = "EXP"
     nieuw = "NIEUW"
 
     def get_statuses(label=False):
         if label:
-            return [[Student.send_info_message, "Info nog te zenden"], [Student.export, "Nog te exporteren"], [Student.nieuw, "Nieuwe student"]]
-        return [Student.send_info_message, Student.export, Student.nieuw]
+            return [[Student.send_info_message, "Info naar leerlingen"], [Student.send_info_message_ouders, "Info naar ouders"], [Student.export, "Nog te exporteren"], [Student.nieuw, "Nieuwe student"]]
+        return [Student.send_info_message, Student.send_info_message_ouders, Student.export, Student.nieuw]
 
 
 def get_columns():

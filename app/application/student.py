@@ -97,14 +97,15 @@ def klassen_get_unique():
     return klassen
 
 
-def send_info_email(ids):
+def send_info_email(ids, leerlingen):
     try:
         students = mstudent.student_get_m(ids=ids)
         for student in students:
             passwd1 = mutil.ss_create_password(None, use_standard_password=True)
             passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
             passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
-            if student.prive_email != "":
+            status = json.loads(student.status) if student.status else []
+            if student.prive_email != "" and leerlingen:
                 # email to student
                 subject = msettings.get_configuration_setting("smartschool-student-email-subject")
                 content = msettings.get_configuration_setting("smartschool-student-email-content")
@@ -114,12 +115,14 @@ def send_info_email(ids):
                 content = content.replace("%%username%%", student.username)
                 content = content.replace("%%wachtwoord%%", passwd1)
                 memail.send_email([student.prive_email], subject, content)
+                if mstudent.Student.send_info_message in status:
+                    status.remove(mstudent.Student.send_info_message)
             emails = []
             if student.lpv1_email != "":
                 emails.append(student.lpv1_email)
             if student.lpv2_email != "":
                 emails.append(student.lpv2_email)
-            if emails:
+            if emails and not leerlingen:
                 co_accounts = ""
                 # email to parents
                 if student.lpv1_naam != "":
@@ -143,12 +146,11 @@ def send_info_email(ids):
                     content = content.replace("%%username%%", student.username)
                     content = content.replace("%%co-accounts%%", co_accounts)
                     memail.send_email(emails, subject, content)
-            status = json.loads(student.status) if student.status else []
-            if mstudent.Student.send_info_message in status:
-                status.remove(mstudent.Student.send_info_message)
+                if mstudent.Student.send_info_message_ouders in status:
+                    status.remove(mstudent.Student.send_info_message_ouders)
             mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
         mstudent.commit()
-        return {"data": f"Info e-mails gestuurd naar {len(students)} student(en)"}
+        return {"data": f"Info e-mails gestuurd naar {len(students)} student(en) en/of ouders"}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"data": f"Fout: {e}"}
