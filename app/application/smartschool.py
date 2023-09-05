@@ -111,9 +111,10 @@ def __klas_process(db_klassen, teacher_cache):
             log.error(f"{sys._getframe().f_code.co_name}, saveClass {oudergroep_code}/{klas.klascode} returned error {ret}")
         if titularissen:
             for k in titularissen:
+                k = k.upper()
                 if k not in teacher_cache:
                     raise Exception(f"{k} is NOT found in Smartschool")
-            __update_titularis(klas.klascode, [teacher_cache[k] for k in titularissen])
+            __update_titularis(klas.klascode, [teacher_cache[k.upper()] for k in titularissen])
 
 
 @exception_wrapper

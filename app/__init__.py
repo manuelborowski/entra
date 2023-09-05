@@ -129,11 +129,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.28: small bugfix
 # 1.29: infomail smartschool, chose parents or student
 # 1.30: smartschool, teacher-code bugfix
+# 1.31: smartschool, bugfix
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.30', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.31', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
