@@ -117,7 +117,7 @@ def __klas_process(db_klassen, teacher_cache):
                 if k not in teacher_cache:
                     raise Exception(f"{k} is NOT found in Smartschool")
             titularissen_list = [teacher_cache[k.upper()] for k in titularissen]
-            log.info(f"TEST2 titularissen_list {titularissen_list}")
+            log.info(f"TEST2 titularissen_list {titularissen}, {titularissen_list}")
             __update_titularis(klas.klascode, titularissen_list)
 
 
