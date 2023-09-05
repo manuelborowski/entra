@@ -115,6 +115,7 @@ def __klas_process(db_klassen, teacher_cache):
             for k in titularissen:
                 k = k.upper()
                 if k not in teacher_cache:
+                    log.info(f"TEST3 titularissen_list {k}")
                     raise Exception(f"{k} is NOT found in Smartschool")
             titularissen_list = [teacher_cache[k.upper()] for k in titularissen]
             log.info(f"TEST2 titularissen_list {titularissen}, {titularissen_list}")
