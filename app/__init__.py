@@ -130,6 +130,7 @@ flask_app.config.from_pyfile('config.py')
 # 1.29: infomail smartschool, chose parents or student
 # 1.30: smartschool, teacher-code bugfix
 # 1.31: smartschool, bugfix
+# 1.31: smartschool, bugfix teachers without internal number
 
 
 @flask_app.context_processor

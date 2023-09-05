@@ -83,8 +83,9 @@ def __klas_process(db_klassen, teacher_cache):
                 k = k.upper()
                 if k not in teacher_cache:
                     raise Exception(f"{k} is NOT found in Smartschool")
+                elif teacher_cache[k] is None:
+                        raise Exception(f"{k} has no Smartschool internal number")
             titularissen_list = [teacher_cache[k.upper()] for k in titularissen]
-            log.info(f"TEST1 titularissen_list {titularissen_list}")
             __update_titularis(klas.klascode, titularissen_list)
 
     for klas in db_klassen:
@@ -115,10 +116,10 @@ def __klas_process(db_klassen, teacher_cache):
             for k in titularissen:
                 k = k.upper()
                 if k not in teacher_cache:
-                    log.info(f"TEST3 titularissen_list {k}")
                     raise Exception(f"{k} is NOT found in Smartschool")
+                elif teacher_cache[k] is None:
+                        raise Exception(f"{k} has no Smartschool internal number")
             titularissen_list = [teacher_cache[k.upper()] for k in titularissen]
-            log.info(f"TEST2 titularissen_list {titularissen}, {titularissen_list}")
             __update_titularis(klas.klascode, titularissen_list)
 
 
