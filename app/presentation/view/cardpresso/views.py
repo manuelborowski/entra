@@ -34,6 +34,21 @@ def table_action(action, ids=None):
     return redirect(url_for('cardpresso.show'))
 
 
+def get_filters():
+    klassen = app.application.student.klassen_get_unique()
+    klassen = [[k, k] for k in klassen]
+    klas_choices = [['default', 'Alles']] + klassen
+    return [
+        {
+            'type': 'select',
+            'name': 'filter-klas',
+            'label': 'Klassen',
+            'choices': klas_choices,
+            'default': 'default',
+        },
+    ]
+
+
 def get_right_click_settings():
     return {
         'menu': [
@@ -60,6 +75,11 @@ class Config(DatatableConfig):
 
     def get_right_click(self):
         return get_right_click_settings()
+
+    def show_filter_elements(self):
+        return get_filters()
+
+
 
 
 table_config = Config("cardpresso", "Overzicht Studentenbadges")

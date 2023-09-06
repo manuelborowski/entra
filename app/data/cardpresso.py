@@ -71,6 +71,10 @@ def pre_filter():
 
 
 def filter_data(query, filter):
+    for f in filter:
+        if f['name'] == 'filter-klas':
+            if f['value'] != 'default':
+                query = query.filter(Cardpresso.klascode == f['value'])
     return query
 
 
