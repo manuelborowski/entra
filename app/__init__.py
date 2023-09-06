@@ -133,10 +133,11 @@ flask_app.config.from_pyfile('config.py')
 # 1.31: smartschool, bugfix teachers without internal number
 # 1.32: update version number
 # 1.33: cardpresso, add klas filter
+# 1.34: smartschool, detect teachers without internnummer
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.33', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.34', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

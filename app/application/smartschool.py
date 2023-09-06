@@ -385,7 +385,13 @@ def ss_student_process_flagged(opaque=None, **kwargs):
     settings = opaque if opaque else {}
     log.info(f"{sys._getframe().f_code.co_name}, START, with settings {settings}")
     ss_teachers = __get_leerkrachten()
-    ss_teacher_cache = {d["gebruikersnaam"].upper(): d["internnummer"] for d in ss_teachers["accounts"]["account"]}
+    # ss_teacher_cache = {d["gebruikersnaam"].upper(): d["internnummer"] for d in ss_teachers["accounts"]["account"]}
+    ss_teacher_cache = {}
+    for teacher in ss_teachers["accounts"]["account"]:
+        if teacher["internnummer"] is None:
+            log.error(f"{sys._getframe().f_code.co_name}, teacher {teacher['gebruikersnaam']} has NO SS internal number")
+            teacher["internnummer"] = "UNKNOWN"
+        ss_teacher_cache[teacher["gebruikersnaam"]] = teacher["internnummer"]
     __klas_process_new(ss_teacher_cache)
     __klas_process_update(ss_teacher_cache)
     __student_process_new()
