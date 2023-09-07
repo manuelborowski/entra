@@ -156,7 +156,7 @@ def send_info_email(ids, leerlingen):
         return {"data": f"Fout: {e}"}
 
 export_header = [
-    "voornaam", "naam", "klas", "gebruikersnaam", "ww", "naam co1", "voornaam co1", "naam co2", "voornaam co2", "ww co1", "ww co2"
+    "voornaam", "naam", "klas", "gebruikersnaam", "ww", "email", "naam co1", "voornaam co1", "email co1", "ww co1","naam co2", "voornaam co2", "email co2",  "ww co2"
 ]
 
 def export_passwords(ids):
@@ -173,11 +173,14 @@ def export_passwords(ids):
             student_export["klas"] = student.klascode
             student_export["gebruikersnaam"] = student.username
             student_export["ww"] = passwd1
+            student_export["email"] = student.prive_email if student.prive_email != "" else "-"
             student_export["naam co1"] = student.lpv1_naam
             student_export["voornaam co1"] = student.lpv1_voornaam
+            student_export["email co1"] = student.lpv1_email if student.lpv1_email != "" else "-"
             student_export["ww co1"] = passwd2 if student.lpv1_naam != "" else ""
             student_export["naam co2"] = student.lpv2_naam
             student_export["voornaam co2"] = student.lpv2_voornaam
+            student_export["email co2"] = student.lpv2_email if student.lpv2_email != "" else "-"
             student_export["ww co2"] = passwd3 if student.lpv2_naam != "" else ""
             students_to_export.append(student_export)
             status = json.loads(student.status) if student.status else []
