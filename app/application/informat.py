@@ -84,7 +84,7 @@ STUDENT_CHANGED_PROPERTIES_MASK = [
     "levensbeschouwing", "straat", "huisnummer", "busnummer", "postnummer", "gemeente", "gsm", "email", "prive_email",
     "lpv1_type", "lpv1_naam", "lpv1_voornaam", "lpv1_geslacht", "lpv1_gsm", "lpv1_email",
     "lpv2_type", "lpv2_naam", "lpv2_voornaam", "lpv2_geslacht", "lpv2_gsm", "lpv2_email",
-    "leerlingnummer", "middag", "inschrijvingsdatum", "klascode", "klasnummer", "instellingsnummer", "schooljaar"
+    "leerlingnummer", "middag", "inschrijvingsdatum", "klascode", "klasnummer", "instellingsnummer", "schooljaar", "foto", "foto_id"
 ]
 
 
