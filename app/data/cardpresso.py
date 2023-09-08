@@ -75,6 +75,9 @@ def filter_data(query, filter):
         if f['name'] == 'filter-klas':
             if f['value'] != 'default':
                 query = query.filter(Cardpresso.klascode == f['value'])
+        if f['name'] == 'filter-klasgroep':
+            if f['value'] != 'default':
+                query = query.filter(Cardpresso.klascode.in_(f['value'].split(",")))
     return query
 
 

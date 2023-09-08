@@ -38,12 +38,25 @@ def get_filters():
     klassen = app.application.student.klassen_get_unique()
     klassen = [[k, k] for k in klassen]
     klas_choices = [['default', 'Alles']] + klassen
+    klasgroepen = app.application.klas.get_klassen_klasgroepen()
+    klasgroep_choices = []
+    for klasgroep, klas_list in klasgroepen.items():
+        klasgroep_choices.append([",".join(klas_list), klasgroep ])
+    klasgroep_choices =  sorted(klasgroep_choices, key = lambda x: x[0])
+    klasgroep_choices = [["default", "Alles"]] + klasgroep_choices
     return [
+        # {
+        #     'type': 'select',
+        #     'name': 'filter-klas',
+        #     'label': 'Klassen',
+        #     'choices': klas_choices,
+        #     'default': 'default',
+        # },
         {
             'type': 'select',
-            'name': 'filter-klas',
-            'label': 'Klassen',
-            'choices': klas_choices,
+            'name': 'filter-klasgroep',
+            'label': 'Klasgroepen',
+            'choices': klasgroep_choices,
             'default': 'default',
         },
     ]

@@ -192,6 +192,9 @@ def pre_sql_filter(query, filter):
         if f['name'] == 'filter-klas':
             if f['value'] != 'default':
                 query = query.filter(Student.klascode == f['value'])
+        if f['name'] == 'filter-klasgroep':
+            if f['value'] != 'default':
+                query = query.filter(Student.klascode.in_(f['value'].split(",")))
         if f['name'] == 'filter-status':
             if f['value'] != 'default':
                 query = query.filter(Student.status.like(f"%{f['value']}%"))

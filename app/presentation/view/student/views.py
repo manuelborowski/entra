@@ -95,6 +95,12 @@ def get_filters():
     klas_choices = [['default', 'Alles']] + klassen
     statuses = app.application.student.student_get_statuses(label=True)
     statuses = [['default', 'Alles']] + statuses
+    klasgroepen = app.application.klas.get_klassen_klasgroepen()
+    klasgroep_choices = []
+    for klasgroep, klas_list in klasgroepen.items():
+        klasgroep_choices.append([",".join(klas_list), klasgroep ])
+    klasgroep_choices =  sorted(klasgroep_choices, key = lambda x: x[0])
+    klasgroep_choices = [["default", "Alles"]] + klasgroep_choices
     return [
         {
             'type': 'select',
@@ -106,11 +112,18 @@ def get_filters():
             ],
             'default': 'default',
         },
+        # {
+        #     'type': 'select',
+        #     'name': 'filter-klas',
+        #     'label': 'Klassen',
+        #     'choices': klas_choices,
+        #     'default': 'default',
+        # },
         {
             'type': 'select',
-            'name': 'filter-klas',
-            'label': 'Klassen',
-            'choices': klas_choices,
+            'name': 'filter-klasgroep',
+            'label': 'Klasgroepen',
+            'choices': klasgroep_choices,
             'default': 'default',
         },
         {
