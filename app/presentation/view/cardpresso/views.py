@@ -43,7 +43,12 @@ def get_filters():
     for klasgroep, klas_list in klasgroepen.items():
         klasgroep_choices.append([",".join(klas_list), klasgroep ])
     klasgroep_choices =  sorted(klasgroep_choices, key = lambda x: x[0])
-    klasgroep_choices = [["default", "Alles"]] + klasgroep_choices
+    deelscholen = app.application.klas.get_klassen_deelscholen()
+    deelschool_choices = []
+    for deelschool, klas_list in deelscholen.items():
+        deelschool_choices.append([",".join(klas_list), deelschool])
+    deelschool_choices = sorted(deelschool_choices, key=lambda x: x[0])
+    klasgroep_choices = [["default", "Alles"]] + deelschool_choices + klasgroep_choices
     return [
         # {
         #     'type': 'select',

@@ -31,3 +31,23 @@ def get_klassen_klasgroepen():
         else:
             data[klasgroepcode] = [klas.klascode]
     return data
+
+
+def get_klassen_deelscholen():
+    klassen = mklas.klas_get_m()
+    data = {}
+    for klas in klassen:
+        if klas.klascode == "OKAN":
+            key = "Lyceum"
+        elif int(klas.klascode[0]) < 3:
+            key = "Middenschool"
+        elif klas.instellingsnummer == "30569":
+            key = "Instituut"
+        else:
+            key = "Lyceum"
+        if key in data:
+            data[key].append(klas.klascode)
+        else:
+            data[key] = [klas.klascode]
+    return data
+
