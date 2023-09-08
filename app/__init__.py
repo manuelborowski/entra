@@ -137,10 +137,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.35: smartschool export, add emailaddress
 # 1.36: student, cardpresso overview, filter on klasgroep iso klas
 # 1.37: photo, changed photos were not picked up
+# 1.38: added script to check if lln/klassen are correct over informat, sdh and smartschool
+
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.37', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.38', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
