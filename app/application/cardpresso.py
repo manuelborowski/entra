@@ -82,7 +82,7 @@ def badge_add(student_ids):
         nbr_no_photo = 0
         nbr_empty_propery = 0
         delete_badge_ids = []
-        saved_photos = {p.id : p.photo for p in mphoto.photo_get_m()}
+        saved_photos = {p.id: p.photo for p in mphoto.photo_get_m()}
         students = mstudent.student_get_m(ids=student_ids)
         for student in students:
             badge = mcardpresso.badge_get([('leerlingnummer', "=", student.leerlingnummer)])

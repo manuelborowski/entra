@@ -78,7 +78,7 @@ class Student(db.Model, SerializerMixin):
 
     @property
     def schoolnaam(self):
-        if self.klascode == "OK":
+        if self.klascode == "OKAN":
             schoolnaam = " Sint-Ursulalyceum"
         elif int(self.klascode[0]) < 3:
             schoolnaam = " Sint-Ursulamiddenschool"
