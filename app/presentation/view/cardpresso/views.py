@@ -70,6 +70,8 @@ def get_filters():
 def get_right_click_settings():
     return {
         'menu': [
+            {'label': 'RFID code aanpassen', 'item': 'check-rfid', 'iconscout': 'wifi'},
+            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
             {'label': 'Update RFID van studenten', 'item': 'update-rfid', 'iconscout': 'corner-left-down'},
             {'label': 'Verwijder', 'item': 'delete', 'iconscout': 'trash-alt'},
         ]

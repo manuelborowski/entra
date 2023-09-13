@@ -127,6 +127,23 @@ def badge_add(student_ids):
 
 
 
+def cardpresso_entry_update(data):
+    try:
+        if not data or "id" not in data or "rfid" not in data:
+            return {"status": False, "data": f"Fout, onvoldoende gegevens, {data}"}
+        db_cardpresso = mcardpresso.badge_get([("id", "=", data["id"])])
+        if db_cardpresso:
+            db_cardpresso.rfid = data["rfid"]
+            db_cardpresso.changed = '["rfid"]'
+            mcardpresso.commit()
+            return {"status": True, "data": f"rfid van {db_cardpresso.leerlingnummer}, {db_cardpresso.naam} {db_cardpresso.voornaam} is aangepast"}
+        return {"status": False, "data": f"Fout, kan student {data} niet vinden in database."}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": f'generic error {e}'}
+
+
+
 
 check_properties_changed = ['middag', 'vsknummer', 'photo', 'schooljaar', 'klascode', 'klasgroepcode']
 

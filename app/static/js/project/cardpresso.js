@@ -1,5 +1,6 @@
 import { subscribe_right_click } from "../base/right_click.js";
 import { ctx } from "../datatables/datatables.js"
+import {check_rfid} from "./rfid.js";
 
 
 const student_delete = async (item, ids) => {
@@ -34,3 +35,4 @@ const student_update_rfid = async (item, ids) => {
 
 subscribe_right_click('delete', (item, ids) => student_delete(item, ids));
 subscribe_right_click('update-rfid', (item, ids) => student_update_rfid(item, ids));
+subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.cardpresso_update'));

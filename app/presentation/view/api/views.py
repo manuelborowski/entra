@@ -125,6 +125,14 @@ def clear_vsk_numbers():
     return json.dumps(ret)
 
 
+@api.route('/api/cardpresso/update', methods=['POST'])
+@supervisor_key_required
+def cardpresso_update():
+    data = json.loads(request.data)
+    ret = mcardpresso.cardpresso_entry_update(data)
+    return json.dumps(ret, ensure_ascii=False)
+
+
 @api.route('/api/fields/', methods=['GET'])
 @api.route('/api/fields/<string:table>', methods=['GET'])
 @user_key_required
