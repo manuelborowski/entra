@@ -69,10 +69,6 @@ STUDENT_MAP_I_Lln2DB_KEYS = {
 
 
 STUDENT_MAP_I_LlnExtra2DB_KEYS = {
-    "nr": "huisnummer",
-    "bus": "busnummer",
-    "dlpostnr": "postnummer",
-    "dlgem": "gemeente",
     "GSMeigen": "gsm",
     "EmailEigen": "prive_email",
     "Fietsnummer": "middag"
@@ -139,8 +135,8 @@ def __students_get_from_informat_raw(topic, item_name, filter_on, replace_keys=N
             log.info(f"from Informat, {url}, {params['instelnr']}, {params['schooljaar']}, {params['referentiedatum']}, {params['gewijzigdSinds']}")
             if replace_keys:
                 for k, v in replace_keys.items():
-                    xml_data = xml_data.replace(bytes(f"<{k}", "utf-8"), bytes(f"<{v}", "utf-8"))
-                    xml_data = xml_data.replace(bytes(f"{k}>", "utf-8"), bytes(f"{v}>", "utf-8"))
+                    xml_data = xml_data.replace(bytes(f"<{k}>", "utf-8"), bytes(f"<{v}>", "utf-8"))
+                    xml_data = xml_data.replace(bytes(f"</{k}>", "utf-8"), bytes(f"</{v}>", "utf-8"))
             data = xmltodict.parse(xml_data, force_list=force_list)[f"ArrayOf{item_name[0].upper() + item_name[1::]}"]
             if item_name in data:
                 data = data[item_name]
@@ -151,7 +147,7 @@ def __students_get_from_informat_raw(topic, item_name, filter_on, replace_keys=N
                 out += data
         return out
     except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e, xml_data}')
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return []
 
 
@@ -166,7 +162,7 @@ def __students_get_from_informat(filter_on):
         relaties = __students_get_from_informat_raw("Relaties", "WsRelaties", "no_klasprefix", force_list={"Relatie"})
         relaties_cache = {r["PPersoon"]: r for r in relaties}
         adressen = __students_get_from_informat_raw("Adressen", "wsAdres", "no_klasprefix", force_list={"wsAdres"})
-        addressen_cache = {a["p_persoon"]: a for a in adressen}
+        addressen_cache = {a["p_persoon"]: a for a in adressen if a["Domicilie"] == "1"}
         for l in lln:
             leerlingnummer = l["leerlingnummer"]
             if leerlingnummer in lln_extra_cache:
@@ -189,13 +185,15 @@ def __students_get_from_informat(filter_on):
                         l[f"lpv{i}_voornaam"] = ""
                         l[f"lpv{i}_geslacht"] = ""
             if leerlingnummer in addressen_cache:
-                addressen = addressen_cache[leerlingnummer]
-                if "nickname" in addressen:
-                    l["roepnaam"] = addressen["nickname"]
-                if "dlpostnr" in addressen:
-                    l["postnummer"] = addressen["dlpostnr"]
-                if "dlgem" in addressen:
-                    l["gemeente"] = addressen["dlgem"]
+                adres = addressen_cache[leerlingnummer]
+                l["roepnaam"] = adres["nickname"]
+                l["straat"] = adres["straat"]
+                l["huisnummer"] = adres["nr"]
+                l["busnummer"] = adres["dombus"]
+                l["postnummer"] = adres["dlpostnr"]
+                l["gemeente"] = adres["dlgem"]
+            else:
+                log.error(f'{sys._getframe().f_code.co_name}: {l["leerlingnummer"]}, {l["naam"]} {l["voornaam"]} does not have an address')
 
             if "prive_email" not in l:
                 l["prive_email"] = ""
