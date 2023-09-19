@@ -336,7 +336,8 @@ def __student_process_update():
     foto_cache = {p.id: p for p in fotos}
     for student in db_studenten:
         changed = json.loads(student.changed)
-        for db_key in list(set(STUDENT_CHANGED_PROPERTIES_MASK).intersection(changed)):
+        changed_masked = list(set(STUDENT_CHANGED_PROPERTIES_MASK).intersection(changed))
+        for db_key in changed_masked:
             if db_key == "foto_id":
                 if student.foto_id in foto_cache:
                     encoded_foto = base64.b64encode(foto_cache[student.foto_id].photo)
@@ -361,7 +362,8 @@ def __student_process_update():
                 if ret != 0:
                     log.error(f"{sys._getframe().f_code.co_name}, saveUserParameter {student.leerlingnummer}/{db_key}/{v} returned error {ret}")
         else:
-            log.info(f"{sys._getframe().f_code.co_name}, Student {student.leerlingnummer}/{student.naam} {student.voornaam} update {list(set(STUDENT_CHANGED_PROPERTIES_MASK).intersection(changed))}")
+            if changed_masked:
+                log.info(f"{sys._getframe().f_code.co_name}, Student {student.leerlingnummer}/{student.naam} {student.voornaam} update {changed_masked}")
     log.info(f"{sys._getframe().f_code.co_name}, STOP, processed {len(db_studenten)} students")
 
 

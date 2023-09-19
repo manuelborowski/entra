@@ -148,11 +148,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.45: bugfix send email with smartschool info, take into account that ids can be empty
 # 1.46: bugfix, do not reset changed flag at informat import
 # 1.47: bugfix AD, remove empty rfid code
+# 1.48: small update
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.47', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.48', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
