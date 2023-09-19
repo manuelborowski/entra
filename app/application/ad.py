@@ -225,6 +225,7 @@ def __klas_put_students_in_correct_klas(ctx):
             sdh_klas_cache[student.klascode] = [student.leerlingnummer]
     # Create AD klas cache
     ad_klas_cache = {}  # {"1A": [9234, 9233, ...], "1B": [...]}
+    inactive_student_klas_cache = {}
     res = ctx.ldap.search(KLAS_OU, '(objectclass=group)', ldap3.SUBTREE, attributes=['member', 'cn'])
     if res:
         for klas in ctx.ldap.response:
@@ -235,6 +236,10 @@ def __klas_put_students_in_correct_klas(ctx):
                     ad_klas_cache[klascode].append(ctx.ad_active_students_dn[member]['attributes']['wwwhomepage'])
                 else:
                     log.info(f'{sys._getframe().f_code.co_name}, student {member}, klas {klascode} not found in cache')
+                    if klascode in inactive_student_klas_cache:
+                        inactive_student_klas_cache[klascode].append(member)
+                    else:
+                        inactive_student_klas_cache[klascode] = [member]
         for klascode, sdh_leerlingnummers in sdh_klas_cache.items():
             klas_dn = f'CN={klascode},{KLAS_OU}'
             if klascode not in ad_klas_cache:
@@ -266,8 +271,13 @@ def __klas_put_students_in_correct_klas(ctx):
                     else:
                         e = ctx.ldap.result
                         log.error(f'AD: could not add to klas {klas_dn} members {members}, {e}')
+                members = []
                 if delete_leerlingnummers:
                     members = __leerlingnummers_to_ad_dn(ctx, delete_leerlingnummers)
+                if klascode in inactive_student_klas_cache:
+                    members += inactive_student_klas_cache[klascode]
+                    del(inactive_student_klas_cache[klascode])
+                if members:
                     res = ctx.ldap.modify(klas_dn, {'member': [(ldap3.MODIFY_DELETE, members)]})
                     if res:
                         if ctx.verbose_logging:
@@ -275,6 +285,17 @@ def __klas_put_students_in_correct_klas(ctx):
                     else:
                         e = ctx.ldap.result
                         log.error(f'AD: could not delete from klas {klas_dn} members {members}, {e}')
+        # remove inactive students from inactive klassen
+        for klascode, members in inactive_student_klas_cache.items():
+            klas_dn = f'CN={klascode},{KLAS_OU}'
+            res = ctx.ldap.modify(klas_dn, {'member': [(ldap3.MODIFY_DELETE, members)]})
+            if res:
+                if ctx.verbose_logging:
+                    log.info(f'AD: deleted from klas {klas_dn} members {members}')
+            else:
+                e = ctx.ldap.result
+                log.error(f'AD: could not delete from klas {klas_dn} members {members}, {e}')
+
         log.info(f'{sys._getframe().f_code.co_name}, end')
     else:
         e = ctx.ldap.result
@@ -454,7 +475,10 @@ def __students_changed(ctx):
                     if 'email' in changed:
                         changes.update({'mail': [ldap3.MODIFY_REPLACE, (student.email)]})
                     if 'rfid' in changed:
-                        changes.update({'pager': [ldap3.MODIFY_REPLACE, (student.rfid)]})
+                        if student.rfid == "":
+                            changes.update({'pager': [ldap3.MODIFY_DELETE]})
+                        else:
+                            changes.update({'pager': [ldap3.MODIFY_REPLACE, (student.rfid)]})
                     if 'schooljaar' in changed or 'klascode' in changed:
                         changes.update(
                             {'description': [ldap3.MODIFY_REPLACE, (f'{student.schooljaar} {student.klascode}')],

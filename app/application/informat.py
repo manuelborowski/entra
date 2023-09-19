@@ -318,7 +318,7 @@ def student_from_informat_to_database(settings=None):
                 log.info(f"Student is voorlopig, skip {informat_student['leerlingnummer']}, {informat_student['naam']} {informat_student['voornaam']}")
                 continue
             if informat_student["leerlingnummer"] in processed_list:
-                log.error(f"Student already imported {informat_student['leerlingnummer']}, {informat_student['naam']} {informat_student['voornaam']}")
+                log.info(f"Student already imported {informat_student['leerlingnummer']}, {informat_student['naam']} {informat_student['voornaam']}")
                 continue
             if informat_student["administratievecode"] not in administratievecode_cache:
                 administratievecode_cache[informat_student["klascode"]] = informat_student["administratievecode"]
@@ -395,7 +395,7 @@ def student_from_informat_to_database(settings=None):
         # add the new students to the database
         mstudent.student_add_m(new_list)
         # update the changed properties of the students
-        mstudent.student_change_m(changed_list, overwrite=True)  # previous changes are lost
+        mstudent.student_change_m(changed_list)
         # deleted students and students that are not changed, set the flags correctly
         mstudent.student_flag_m(flag_list)
         log.info(f'{sys._getframe().f_code.co_name}, Studenten processed {nbr_processed}, new {len(new_list)}, updated {len(changed_list)}, deleted {nbr_deleted}')
@@ -423,7 +423,13 @@ def student_from_informat_to_database(settings=None):
             # if "klasgroepcode" not in informat_klas:
             #     informat_klas["klasgroepcode"] = ""
             if "klastitularis" in informat_klas: # translate the titularis name to its code
-                informat_klas["klastitularis"] = json.dumps([staff_cache[k.strip()] for k in informat_klas["klastitularis"].split(",")])
+                teachers = []
+                for teacher in informat_klas["klastitularis"].split(","):
+                    if teacher.strip() in staff_cache:
+                        teachers.append(staff_cache[teacher.strip()])
+                    else:
+                        log.error(f'{sys._getframe().f_code.co_name}: Klastitularis not found in SDH, {teacher}')
+                informat_klas["klastitularis"] = json.dumps(teachers)
             else:
                 informat_klas["klastitularis"] = "[]"
             if informat_klas["klascode"] in db_klassen:

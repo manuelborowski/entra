@@ -142,11 +142,13 @@ flask_app.config.from_pyfile('config.py')
 # 1.40: small bugfix, OKAN iso OK
 # 1.41: cardpresso, use badge to update rfid
 # 1.42: address of student: use Domicilie-adres
+# 1.43: bugfix inactive students, remove from klas.  AD bugfix, delete pager if empty rfid.  Bugfix cardpresso rfid to main database, could be overwritten when other parameters were changed.
+# Informat bugfix, do not crash when teacher has no smartschool internal code
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.42', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.43', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
