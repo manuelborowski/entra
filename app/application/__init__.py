@@ -7,11 +7,11 @@ from app.application.informat import cron_task_informat_get_student, cron_task_i
 from app.application.student import cron_task_vsk_numbers
 from app.application.cardpresso import cron_task_new_badges
 from app.application.cardpresso import cron_task_new_rfid_to_database
-from app.application.ad import student_process_flagged, staff_process_flagged, student_cron_task_get_computer
+from app.application.ad import ad_student_process_flagged, ad_staff_process_flagged, ad_student_cron_task_get_computer
 from app.application.student import student_post_processing
 from app.application.klas import klas_post_processing
 from app.application.staff import staff_post_processing
-from app.application.smartschool import ss_student_process_flagged
+from app.application.smartschool import ss_student_process_flagged, ss_student_send_email
 
 
 # tag, cront-task, label, help
@@ -22,10 +22,11 @@ cron_table = [
     ('VSK-NUMMERS', cron_task_vsk_numbers, 'NAAR SDH, Vsk nummers bijwerken', '', False),
     ('CARDPRESSO-NEW', cron_task_new_badges, 'NAAR cardpresso, nieuwe badges klaarmaken', '', False),
     ('CARDPRESSO-RFID', cron_task_new_rfid_to_database, 'VAN cardpresso, RFID van studenten bijwerken', '', False),
-    ('AD-STUDENT', student_process_flagged, 'NAAR AD, studenten bijwerken', '', True),
-    ('AD-STAFF', staff_process_flagged, 'NAAR AD, personeel bijwerken', '', True),
+    ('AD-STUDENT', ad_student_process_flagged, 'NAAR AD, studenten bijwerken', '', True),
+    ('AD-STAFF', ad_staff_process_flagged, 'NAAR AD, personeel bijwerken', '', True),
     ('SS-STUDENT', ss_student_process_flagged, 'NAAR Smartschool, studenten bijwerken', '', True),
-    ('AD-COMPUTER', student_cron_task_get_computer, 'NAAR SDH, computer van studenten bijwerken', '', False),
+    ('SS-STUDENT-EMAIL', ss_student_send_email, 'Nieuwe student: e-mail Smartschool gegevens', '', True),
+    ('AD-COMPUTER', ad_student_cron_task_get_computer, 'NAAR SDH, computer van studenten bijwerken', '', False),
     ('SDH-MARKED-STUDENT', student_post_processing, 'NAAR SDH, reset new/delete/change flag, verwijder deleted studenten uit database', 'CHECK om de goede werking te verzekeren', False),
     ('SDH-MARKED-KLAS', klas_post_processing, 'NAAR SDH, reset new/delete/change flag, verwijder deleted klassen uit database', 'CHECK om de goede werking te verzekeren', False),
     ('SDH-MARKED-STAFF', staff_post_processing, 'NAAR SDH, reset new/delete/change flag, verwijder deleted personeelsleden uit database', 'CHECK om de goede werking te verzekeren', False),

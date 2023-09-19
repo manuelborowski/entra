@@ -97,7 +97,7 @@ def klassen_get_unique():
     return klassen
 
 
-def send_info_email(ids, leerlingen):
+def send_info_email(ids, naar_leerling=True):
     try:
         students = mstudent.student_get_m(ids=ids)
         for student in students:
@@ -105,7 +105,7 @@ def send_info_email(ids, leerlingen):
             passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
             passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
             status = json.loads(student.status) if student.status else []
-            if student.prive_email != "" and leerlingen:
+            if student.prive_email != "" and naar_leerling:
                 # email to student
                 subject = msettings.get_configuration_setting("smartschool-student-email-subject")
                 content = msettings.get_configuration_setting("smartschool-student-email-content")
@@ -122,7 +122,7 @@ def send_info_email(ids, leerlingen):
                 emails.append(student.lpv1_email)
             if student.lpv2_email != "":
                 emails.append(student.lpv2_email)
-            if emails and not leerlingen:
+            if emails and not naar_leerling:
                 co_accounts = ""
                 # email to parents
                 if student.lpv1_naam != "":
@@ -263,7 +263,7 @@ def api_database_integrity_check(data):
             if data['event'] == 'event-update-database':
                 ret = mad.database_integrity_check(return_log=True, mark_changes_in_db=True)
                 if ret['status']:
-                    ret = mad.student_process_flagged()
+                    ret = mad.ad_student_process_flagged()
             elif data['event'] == 'event-start-integrity-check':
                 ret = mad.database_integrity_check(return_log=True)
         return ret

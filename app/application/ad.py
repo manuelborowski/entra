@@ -661,7 +661,7 @@ def student_cn_and_displayname_update():
 
 
 @ad_ctx_wrapper(StudentContext)
-def student_process_flagged(opaque=None, **kwargs):
+def ad_student_process_flagged(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     ctx = kwargs["ctx"]
     __students_cache_init(ctx)
@@ -686,7 +686,7 @@ def student_process_flagged(opaque=None, **kwargs):
 
 
 @ad_ctx_wrapper(StudentContext)
-def student_cron_task_get_computer(opaque=None, **kwargs):
+def ad_student_cron_task_get_computer(opaque=None, **kwargs):
     try:
         log.info(f"{sys._getframe().f_code.co_name}, START")
         ctx = kwargs["ctx"]
@@ -733,7 +733,7 @@ class StaffContext(PersonContext):
 # for new staff, the new and changed properties are valid.  So, a staff is considered changed only when its changed property is set AND new is FALSE
 # opaque can be used to pass a list of staff.  In that case, only the list is considered for new, changed or delete
 @ad_ctx_wrapper(StaffContext)
-def staff_process_flagged(opaque=None, **kwargs):
+def ad_staff_process_flagged(opaque=None, **kwargs):
     all_ok = True
     set_default_password = send_email = False
     ctx = kwargs["ctx"]

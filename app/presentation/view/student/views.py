@@ -77,11 +77,11 @@ def right_click():
                     return {"redirect": {"url": f"/student/table_action/view", "ids": ids, "new_tab": True}}
                 if data['item'] == "info-email":
                     ids = data['item_ids']
-                    ret = app.application.student.send_info_email(ids, leerlingen=True)
+                    ret = app.application.student.send_info_email(ids, naar_leerling=True)
                     return {"message": ret['data']}
                 if data['item'] == "info-email-ouders":
                     ids = data['item_ids']
-                    ret = app.application.student.send_info_email(ids, leerlingen=False)
+                    ret = app.application.student.send_info_email(ids, naar_leerling=False)
                     return {"message": ret['data']}
     except Exception as e:
         log.error(f"Error in get_form: {e}")

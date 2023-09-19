@@ -1,7 +1,6 @@
 from app import flask_app
 from app.data import klas as mklas, student as mstudent, photo as mphoto
-from app.data import settings as msettings
-from app.application.email import  send_email
+import app.application.student
 import json, sys, datetime, xmltodict, base64
 from functools import wraps
 from app.application.util import ss_create_password
@@ -400,6 +399,16 @@ def ss_student_process_flagged(opaque=None, **kwargs):
     __klas_process_delete()
     __klas_process_remove_empty_groepen()
 
+    log.info(f"{sys._getframe().f_code.co_name}, STOP")
+    return True
+
+
+@exception_wrapper
+def ss_student_send_email(opaque=None, **kwargs):
+    log.info(f"{sys._getframe().f_code.co_name}, START")
+    db_studenten = mstudent.student_get_m([("new", "=", True)])
+    ids = [s.id for s in db_studenten]
+    app.application.student.send_info_email(ids, naar_leerling=True)
     log.info(f"{sys._getframe().f_code.co_name}, STOP")
     return True
 
