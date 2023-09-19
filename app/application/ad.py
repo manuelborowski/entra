@@ -476,7 +476,7 @@ def __students_changed(ctx):
                         changes.update({'mail': [ldap3.MODIFY_REPLACE, (student.email)]})
                     if 'rfid' in changed:
                         if student.rfid == "":
-                            changes.update({'pager': [ldap3.MODIFY_DELETE]})
+                            changes.update({'pager': [ldap3.MODIFY_DELETE, ([])]})
                         else:
                             changes.update({'pager': [ldap3.MODIFY_REPLACE, (student.rfid)]})
                     if 'schooljaar' in changed or 'klascode' in changed:
