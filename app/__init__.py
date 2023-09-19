@@ -145,11 +145,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.43: bugfix inactive students, remove from klas.  AD bugfix, delete pager if empty rfid.  Bugfix cardpresso rfid to main database, could be overwritten when other parameters were changed.
 # Informat bugfix, do not crash when teacher has no smartschool internal code
 # 1.44: new students get automatically smartschool info via email
+# 1.45: bugfix send email with smartschool info, take into account that ids can be empty
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.44', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.45', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

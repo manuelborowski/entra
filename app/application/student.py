@@ -99,58 +99,60 @@ def klassen_get_unique():
 
 def send_info_email(ids, naar_leerling=True):
     try:
-        students = mstudent.student_get_m(ids=ids)
-        for student in students:
-            passwd1 = mutil.ss_create_password(None, use_standard_password=True)
-            passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
-            passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
-            status = json.loads(student.status) if student.status else []
-            if student.prive_email != "" and naar_leerling:
-                # email to student
-                subject = msettings.get_configuration_setting("smartschool-student-email-subject")
-                content = msettings.get_configuration_setting("smartschool-student-email-content")
-                content = content.replace("%%naam%%", student.naam)
-                content = content.replace("%%voornaam%%", student.voornaam)
-                content = content.replace("%%klascode%%", student.klascode)
-                content = content.replace("%%username%%", student.username)
-                content = content.replace("%%wachtwoord%%", passwd1)
-                memail.send_email([student.prive_email], subject, content)
-                if mstudent.Student.send_info_message in status:
-                    status.remove(mstudent.Student.send_info_message)
-            emails = []
-            if student.lpv1_email != "":
-                emails.append(student.lpv1_email)
-            if student.lpv2_email != "":
-                emails.append(student.lpv2_email)
-            if emails and not naar_leerling:
-                co_accounts = ""
-                # email to parents
-                if student.lpv1_naam != "":
-                    co_accounts += f'''
-                        Co-account 1: <b>{student.lpv1_voornaam} {student.lpv1_naam}</b></br> 
-                        Gebruikersnaam: <b>{student.username}</b></br>
-                        Wachtwoord: <b>{passwd2}</b></br></br>
-                    '''
-                if student.lpv2_naam != "":
-                    co_accounts += f'''
-                        Co-account 2: <b>{student.lpv2_voornaam} {student.lpv2_naam}</b></br> 
-                        Gebruikersnaam: <b>{student.username}</b></br>
-                        Wachtwoord: <b>{passwd3}</b></br>
-                    '''
-                if co_accounts != "":
-                    subject = msettings.get_configuration_setting("smartschool-parents-email-subject")
-                    content = msettings.get_configuration_setting("smartschool-parents-email-content")
+        if ids:
+            students = mstudent.student_get_m(ids=ids)
+            for student in students:
+                passwd1 = mutil.ss_create_password(None, use_standard_password=True)
+                passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
+                passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
+                status = json.loads(student.status) if student.status else []
+                if student.prive_email != "" and naar_leerling:
+                    # email to student
+                    subject = msettings.get_configuration_setting("smartschool-student-email-subject")
+                    content = msettings.get_configuration_setting("smartschool-student-email-content")
                     content = content.replace("%%naam%%", student.naam)
                     content = content.replace("%%voornaam%%", student.voornaam)
                     content = content.replace("%%klascode%%", student.klascode)
                     content = content.replace("%%username%%", student.username)
-                    content = content.replace("%%co-accounts%%", co_accounts)
-                    memail.send_email(emails, subject, content)
-                if mstudent.Student.send_info_message_ouders in status:
-                    status.remove(mstudent.Student.send_info_message_ouders)
-            mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
-        mstudent.commit()
-        return {"data": f"Info e-mails gestuurd naar {len(students)} student(en) en/of ouders"}
+                    content = content.replace("%%wachtwoord%%", passwd1)
+                    memail.send_email([student.prive_email], subject, content)
+                    if mstudent.Student.send_info_message in status:
+                        status.remove(mstudent.Student.send_info_message)
+                emails = []
+                if student.lpv1_email != "":
+                    emails.append(student.lpv1_email)
+                if student.lpv2_email != "":
+                    emails.append(student.lpv2_email)
+                if emails and not naar_leerling:
+                    co_accounts = ""
+                    # email to parents
+                    if student.lpv1_naam != "":
+                        co_accounts += f'''
+                            Co-account 1: <b>{student.lpv1_voornaam} {student.lpv1_naam}</b></br> 
+                            Gebruikersnaam: <b>{student.username}</b></br>
+                            Wachtwoord: <b>{passwd2}</b></br></br>
+                        '''
+                    if student.lpv2_naam != "":
+                        co_accounts += f'''
+                            Co-account 2: <b>{student.lpv2_voornaam} {student.lpv2_naam}</b></br> 
+                            Gebruikersnaam: <b>{student.username}</b></br>
+                            Wachtwoord: <b>{passwd3}</b></br>
+                        '''
+                    if co_accounts != "":
+                        subject = msettings.get_configuration_setting("smartschool-parents-email-subject")
+                        content = msettings.get_configuration_setting("smartschool-parents-email-content")
+                        content = content.replace("%%naam%%", student.naam)
+                        content = content.replace("%%voornaam%%", student.voornaam)
+                        content = content.replace("%%klascode%%", student.klascode)
+                        content = content.replace("%%username%%", student.username)
+                        content = content.replace("%%co-accounts%%", co_accounts)
+                        memail.send_email(emails, subject, content)
+                    if mstudent.Student.send_info_message_ouders in status:
+                        status.remove(mstudent.Student.send_info_message_ouders)
+                mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
+            mstudent.commit()
+            return {"data": f"Info e-mails gestuurd naar {len(students)} student(en) en/of ouders"}
+        return {"data": f"Geen leerlingen geselecteerd"}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"data": f"Fout: {e}"}
