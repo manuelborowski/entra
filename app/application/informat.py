@@ -366,8 +366,6 @@ def student_from_informat_to_database(settings=None):
                     informat_student.update({'changed': changed_properties, 'student': db_student, 'delete': False, 'new': False})
                     changed_list.append(informat_student)
                     log.info(f'{sys._getframe().f_code.co_name}: updated, {db_student.leerlingnummer}, {db_student.naam} {db_student.voornaam}, {changed_properties}')
-                else:
-                    flag_list.append({'changed': '', 'delete': False, 'new': False, 'student': db_student})  # student already present, no change
                 del (db_students[informat_student['leerlingnummer']])
             else:
                 # student not present in database, i.e. a new student
