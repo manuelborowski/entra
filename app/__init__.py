@@ -150,11 +150,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.47: bugfix AD, remove empty rfid code
 # 1.48: small update
 # 1.49: new student, send smartschool info also to parents
+# 1.50: send smartschool info: show confirmation window
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.49', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.50', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

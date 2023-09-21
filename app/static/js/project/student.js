@@ -1,8 +1,8 @@
-import { subscribe_right_click } from "../base/right_click.js";
-import { check_rfid } from "./rfid.js";
-import { update_password } from "./password.js";
-import { database_integrity_check } from "./database.js";
-import { ctx } from "../datatables/datatables.js"
+import {subscribe_right_click} from "../base/right_click.js";
+import {check_rfid} from "./rfid.js";
+import {update_password} from "./password.js";
+import {database_integrity_check} from "./database.js";
+import {ctx, get_data_of_row} from "../datatables/datatables.js"
 
 async function update_vsk_numbers(start) {
     const ret = await fetch(Flask.url_for('api.update_vsk_number'), {headers: {'x-api-key': ctx.api_key,}, method: 'POST', body: JSON.stringify({start}),});
@@ -80,8 +80,32 @@ async function export_smartschool_info(ids) {
     hiddenElement.click();
 }
 
+async function smartschoolinfo_to_student(ids, to_student) {
+    const target = to_student ? "leerling(en)" : "ouders";
+    bootbox.confirm(`Smartschool info naar ${target} sturen?`,
+        async result => {
+            if (result) {
+                const ret = await fetch(Flask.url_for('api.smartschool_send_info'), {headers: {'x-api-key': ctx.api_key,},
+                    method: 'POST', body: JSON.stringify({ids, to_student}),});
+                const status = await ret.json();
+                if (status.status) {
+                    if (to_student)
+                        bootbox.alert(`Smartschool info is naar ${status.data} leerling(en) gestuurd`)
+                    else
+                        bootbox.alert(`Smartschool info is naar de ouders van ${status.data} leerlingen gestuurd`)
+                } else {
+                    bootbox.alert(`Fout: ${status.data}`)
+                }
+            }
+
+        });
+}
+
+
 subscribe_right_click('new-vsk-numbers', (item, ids) => new_vsk_numbers());
 subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.student_update'));
-subscribe_right_click('update-password', (item, ids) => update_password(ids,'api.student_update', ctx.popups['update-password']));
+subscribe_right_click('update-password', (item, ids) => update_password(ids, 'api.student_update', ctx.popups['update-password']));
 subscribe_right_click('database-integrity-check', (item, ids) => database_integrity_check('api.database_integrity_check', ctx.popups['database-integrity-check']));
 subscribe_right_click('export-smartschool', (item, ids) => export_smartschool_info(ids));
+subscribe_right_click('info-email', (item, ids) => smartschoolinfo_to_student(ids, true));
+subscribe_right_click('info-email-ouders', (item, ids) => smartschoolinfo_to_student(ids, false));

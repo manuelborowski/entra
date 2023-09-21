@@ -234,6 +234,18 @@ def carpresso_update_rfid():
     return(json.dumps(ret))
 
 
+@api.route('/api/smartschool/send_info', methods=['POST'])
+@supervisor_key_required
+def smartschool_send_info():
+    data = json.loads(request.data)
+    ids = data["ids"]
+    if data["to_student"]:
+        status, msg = mstudent.send_info_email(ids, naar_leerling=True)
+    else:
+        status, msg = mstudent.send_info_email(ids, naar_leerling=False)
+    return(json.dumps({"status": status, "data": msg}))
+
+
 
 
 # ?fields=klasgroepcode,schooljaar

@@ -151,11 +151,11 @@ def send_info_email(ids, naar_leerling=True):
                         status.remove(mstudent.Student.send_info_message_ouders)
                 mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
             mstudent.commit()
-            return {"data": f"Info e-mails gestuurd naar {len(students)} student(en) en/of ouders"}
-        return {"data": f"Geen leerlingen geselecteerd"}
+            return True, len(students)
+        return True, 0
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
-        return {"data": f"Fout: {e}"}
+        return False, str(e)
 
 export_header = [
     "voornaam", "naam", "klas", "gebruikersnaam", "ww", "email", "naam co1", "voornaam co1", "email co1", "ww co1","naam co2", "voornaam co2", "email co2",  "ww co2"

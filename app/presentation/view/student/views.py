@@ -75,14 +75,6 @@ def right_click():
                     max_ids = msettings.get_configuration_setting('student-max-students-to-view-with-one-click')
                     ids = data['item_ids'][:max_ids]
                     return {"redirect": {"url": f"/student/table_action/view", "ids": ids, "new_tab": True}}
-                if data['item'] == "info-email":
-                    ids = data['item_ids']
-                    ret = app.application.student.send_info_email(ids, naar_leerling=True)
-                    return {"message": ret['data']}
-                if data['item'] == "info-email-ouders":
-                    ids = data['item_ids']
-                    ret = app.application.student.send_info_email(ids, naar_leerling=False)
-                    return {"message": ret['data']}
     except Exception as e:
         log.error(f"Error in get_form: {e}")
         return {"message": f"get_form: {e}"}
@@ -90,9 +82,6 @@ def right_click():
 
 
 def get_filters():
-    klassen = app.application.student.klassen_get_unique()
-    klassen = [[k, k] for k in klassen]
-    klas_choices = [['default', 'Alles']] + klassen
     statuses = app.application.student.student_get_statuses(label=True)
     statuses = [['default', 'Alles']] + statuses
     klasgroepen = app.application.klas.get_klassen_klasgroepen()
@@ -117,13 +106,7 @@ def get_filters():
             ],
             'default': 'default',
         },
-        # {
-        #     'type': 'select',
-        #     'name': 'filter-klas',
-        #     'label': 'Klassen',
-        #     'choices': klas_choices,
-        #     'default': 'default',
-        # },
+
         {
             'type': 'select',
             'name': 'filter-klasgroep',
@@ -158,11 +141,11 @@ def get_right_click_settings():
             {'label': 'Stuur S info e-mail leerling', 'item': 'info-email', 'iconscout': 'envelope-info'},
             {'label': 'Stuur S info e-mail ouders', 'item': 'info-email-ouders', 'iconscout': 'envelope-info'},
             {'label': 'Exporteer S info', 'item': 'export-smartschool', 'iconscout': 'export'},
-            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
-            {'label': 'Vsk nummers', 'item': 'new-vsk-numbers', 'iconscout': 'abacus'},
         ])
     if current_user.is_at_least_admin:
         settings['menu'].extend([
+            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
+            {'label': 'Vsk nummers', 'item': 'new-vsk-numbers', 'iconscout': 'abacus'},
             {'label': 'Database Integriteitscontrole', 'item': 'database-integrity-check', 'iconscout': 'database'},
         ])
     return settings
