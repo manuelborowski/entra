@@ -409,8 +409,9 @@ def ss_student_process_flagged(opaque=None, **kwargs):
 def ss_student_send_email(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     db_studenten = mstudent.student_get_m([("new", "=", True)])
-    ids = [s.id for s in db_studenten]
-    app.application.student.send_info_email(ids, naar_leerling=True)
-    app.application.student.send_info_email(ids, naar_leerling=False)
+    for student in db_studenten:
+        app.application.student.send_print_info_to_student(student, send=True)
+        app.application.student.send_print_info_to_coaccount(student, 1, send=True)
+        app.application.student.send_print_info_to_coaccount(student, 2, send=True)
     log.info(f"{sys._getframe().f_code.co_name}, STOP")
     return True

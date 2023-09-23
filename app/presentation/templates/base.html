@@ -58,6 +58,9 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('cardpresso.show') }}">Cardpresso</a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logging.show') }}">Logging</a>
+                    </li>
                     {% endif %}
                     {% if  current_user.is_at_least_admin %}
                         <li class="nav-item">

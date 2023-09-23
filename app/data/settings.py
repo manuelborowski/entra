@@ -203,6 +203,7 @@ default_configuration_settings = {
     'popup-new-update-staff': ({}, Settings.SETTING_TYPE.E_JSON),
 
     'logging-inform-emails': ('', Settings.SETTING_TYPE.E_STRING),
+    'logging-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
 
 }
 

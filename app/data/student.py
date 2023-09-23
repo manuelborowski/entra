@@ -2,7 +2,6 @@ import sys, json, datetime
 
 import app.data.models
 from app import log, db
-from sqlalchemy import text, func, desc
 from sqlalchemy_serializer import SerializerMixin
 
 

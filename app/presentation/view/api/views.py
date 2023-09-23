@@ -17,7 +17,7 @@ def api_core(api_level, func, *args, **kwargs):
         for i, keys_per_level in  enumerate(all_keys[(api_level - 1)::]):
             if header_key in keys_per_level:
                 key_level = api_level + i
-                log.info(f"API access by '{keys_per_level[header_key]}', keylevel {key_level}, from {remote_ip}, URI {request.url}")
+                log.info(f"API access by '{keys_per_level[header_key]}', keylevel {key_level}, from {remote_ip}, URI {request.url[:150]}")
                 try:
                     return func(*args, **kwargs)
                 except Exception as e:
@@ -240,9 +240,9 @@ def smartschool_send_info():
     data = json.loads(request.data)
     ids = data["ids"]
     if data["to_student"]:
-        status, msg = mstudent.send_info_email(ids, naar_leerling=True)
+        status, msg = mstudent.send_info_email2(ids, naar_leerling=True)
     else:
-        status, msg = mstudent.send_info_email(ids, naar_leerling=False)
+        status, msg = mstudent.send_info_email2(ids, naar_leerling=False)
     return(json.dumps({"status": status, "data": msg}))
 
 

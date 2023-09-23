@@ -151,11 +151,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.48: small update
 # 1.49: new student, send smartschool info also to parents
 # 1.50: send smartschool info: show confirmation window
+# 1.51: added Logging, to log/display user actions/results.  Bugfix datatables.html, do not include right_click.js if not needed.  Reworked send-ss-info to students/parents.
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.50', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.51', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
@@ -289,7 +290,7 @@ else:
             return func(*args, **kwargs)
         return decorated_view
 
-    from app.presentation.view import auth, user, settings,  api, warning, student, staff, cardpresso
+    from app.presentation.view import auth, user, settings,  api, logging, student, staff, cardpresso
     flask_app.register_blueprint(api.api)
     flask_app.register_blueprint(auth.auth)
     flask_app.register_blueprint(user.user)
@@ -297,7 +298,7 @@ else:
     flask_app.register_blueprint(student.student)
     flask_app.register_blueprint(staff.staff)
     flask_app.register_blueprint(cardpresso.cardpresso)
-    flask_app.register_blueprint(warning.warning)
+    flask_app.register_blueprint(logging.logging)
 
     @flask_app.errorhandler(403)
     def forbidden(error):

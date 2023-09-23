@@ -416,6 +416,47 @@ settings_formio = \
                 ]
               }
             ]
+          },
+          {
+            "label": "Warnings",
+            "tableView": false,
+            "key": "warnings",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "Logging",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "logging",
+                "type": "panel",
+                "label": "Algemeen",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Opslaan",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "input": true,
+                    "saveOnEnter": false
+                  },
+                  {
+                    "label": "Lijst template (JSON)",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "logging-datatables-template",
+                    "type": "textarea",
+                    "input": true
+                  }
+                ]
+              }
+            ]
           }
         ]
       },

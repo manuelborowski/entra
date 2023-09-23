@@ -97,7 +97,94 @@ def klassen_get_unique():
     return klassen
 
 
-def send_info_email(ids, naar_leerling=True):
+# returns valid_account, valid_email
+def send_print_info_to_coaccount(student, account=0, send=False, print=False):
+    try:
+        email = ""
+        if account == 1:
+            if student.lpv1_naam == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 1 has no email")
+                return False, False
+            if send and student.lpv1_email == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 1 has no email")
+                return True, False
+            else:
+                email = student.lpv1_email
+        elif account == 2:
+            if student.lpv2_naam == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 2 has no email")
+                return False, False
+            if send and student.lpv2_email == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 2 has no email")
+                return True, False
+            else:
+                email = student.lpv2_email
+        else: return False, False
+
+        status = json.loads(student.status) if student.status else []
+        passwd1 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
+        passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
+        co_accounts = ""
+        if student.lpv1_naam != "":
+            co_accounts += f'''
+                Co-account 1: <b>{student.lpv1_voornaam} {student.lpv1_naam}</b></br> 
+                Gebruikersnaam: <b>{student.username}</b></br>
+                Wachtwoord: <b>{passwd1}</b></br></br>
+            '''
+        if student.lpv2_naam != "":
+            co_accounts += f'''
+                Co-account 2: <b>{student.lpv2_voornaam} {student.lpv2_naam}</b></br> 
+                Gebruikersnaam: <b>{student.username}</b></br>
+                Wachtwoord: <b>{passwd2}</b></br>
+            '''
+        if co_accounts != "":
+            subject = msettings.get_configuration_setting("smartschool-parents-email-subject")
+            content = msettings.get_configuration_setting("smartschool-parents-email-content")
+            content = content.replace("%%naam%%", student.naam)
+            content = content.replace("%%voornaam%%", student.voornaam)
+            content = content.replace("%%klascode%%", student.klascode)
+            content = content.replace("%%username%%", student.username)
+            content = content.replace("%%co-accounts%%", co_accounts)
+            if send and email != "":
+                log.info(f"test send email to {email}")
+                # memail.send_email(email, subject, content)
+            if mstudent.Student.send_info_message_ouders in status:
+                status.remove(mstudent.Student.send_info_message_ouders)
+                mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
+                mstudent.commit()
+        return True, True
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return False, False
+
+
+def send_print_info_to_student(student, send=False, print=False):
+    try:
+        if send and student.prive_email == "":
+            log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer} has no prive_email")
+            return False
+        status = json.loads(student.status) if student.status else []
+        passwd = mutil.ss_create_password(None, use_standard_password=True)
+        subject = msettings.get_configuration_setting("smartschool-student-email-subject")
+        content = msettings.get_configuration_setting("smartschool-student-email-content")
+        content = content.replace("%%naam%%", student.naam)
+        content = content.replace("%%voornaam%%", student.voornaam)
+        content = content.replace("%%klascode%%", student.klascode)
+        content = content.replace("%%username%%", student.username)
+        content = content.replace("%%wachtwoord%%", passwd)
+        if send and student.prive_email != "":
+            log.info(f"test send email to {student.prive_email}")
+            # memail.send_email([student.prive_email], subject, content)
+        if mstudent.Student.send_info_message in status:
+            status.remove(mstudent.Student.send_info_message)
+            mstudent.commit()
+        return True
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return False
+
+
+def send_info_email2(ids, naar_leerling=True):
     try:
         if ids:
             students = mstudent.student_get_m(ids=ids)

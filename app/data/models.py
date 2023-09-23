@@ -25,23 +25,6 @@ def datetime_to_dutch_short(date, include_seconds=False, include_time=True):
         return ''
 
 
-class Warning(db.Model):
-    __tablename__ = 'warnings'
-
-    id = db.Column(db.Integer, primary_key=True)
-    timestamp = db.Column(db.DateTime())
-    message = db.Column(db.String(4096), default='')
-    visible = db.Column(db.Boolean, default=True)
-
-    def flat(self):
-        return {
-            'id': self.id,
-            'visible': self.visible,
-            'timestamp_dutch': datetime_to_dutch_datetime_string(self.timestamp),
-            'message': self.message
-        }
-
-
 def commit():
     try:
         db.session.commit()

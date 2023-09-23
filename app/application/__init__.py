@@ -1,4 +1,4 @@
-__all__ = ['tables', 'datatables', 'socketio', 'settings', 'warning', 'cron', 'cardpresso', 'photo', 'student', 'ad', 'test', 'staff', "azure", "informat"]
+__all__ = ['tables', 'datatables', 'socketio', 'settings', 'logging', 'cron', 'cardpresso', 'photo', 'student', 'ad', 'test', 'staff', "azure", "informat"]
 
 from app import flask_app
 
