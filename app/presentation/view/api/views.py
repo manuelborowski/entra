@@ -1,6 +1,6 @@
 from flask import request, render_template
 from . import api
-from app.application import  student as mstudent, user as muser, photo as mphoto, staff as mstaff, settings as msettings, cardpresso as mcardpresso
+from app.application import  student as mstudent, user as muser, photo as mphoto, staff as mstaff, settings as msettings, cardpresso as mcardpresso, smartschool as msmartschool
 from app import log
 import json, sys, html, itertools
 from functools import wraps
@@ -240,10 +240,10 @@ def smartschool_send_info():
     data = json.loads(request.data)
     ids = data["ids"]
     if data["to_student"]:
-        status, msg = mstudent.send_info_email2(ids, naar_leerling=True)
+        ret = msmartschool.api_send_info_email(ids, msmartschool.ACCOUNT_STUDENT)
     else:
-        status, msg = mstudent.send_info_email2(ids, naar_leerling=False)
-    return(json.dumps({"status": status, "data": msg}))
+        ret = msmartschool.api_send_info_email(ids, msmartschool.ACCOUNT_CO_1_AND_2)
+    return(json.dumps(ret))
 
 
 

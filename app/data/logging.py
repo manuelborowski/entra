@@ -2,6 +2,9 @@ from app import log, db
 import app.data.models
 from sqlalchemy_serializer import SerializerMixin
 from sqlalchemy import TEXT
+from flask_login import current_user
+import datetime
+
 
 class Logging(db.Model, SerializerMixin):
     __tablename__ = 'logging'
@@ -25,6 +28,30 @@ class Logging(db.Model, SerializerMixin):
     timestamp = db.Column(db.DateTime())
     message = db.Column(TEXT, default='')
     visible = db.Column(db.Boolean, default=True)
+
+
+class ULog:
+
+    info = Logging.info
+    warning = Logging.warning
+    error = Logging.error
+
+    def __init__(self, severity, line):
+        self.__severity = severity
+        self.__owner = current_user.username if current_user else "NONE"
+        self.__timestamp = datetime.datetime.now()
+        self.message = line
+        self.__used = False
+
+    def add(self, line):
+        self.message += "<br>" + line
+        self.__used = True
+
+    def finish(self):
+        if self.__used:
+            warning = add({'message': self.message, "owner": self.__owner, "severity": self.__severity, 'timestamp': self.__timestamp})
+            return warning
+        return None
 
 
 def add(data = {}, commit=True):

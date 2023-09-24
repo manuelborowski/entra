@@ -1,10 +1,12 @@
 from app import flask_app
 from app.data import klas as mklas, student as mstudent, photo as mphoto
+from app.data.logging import ULog
 import app.application.student
 import json, sys, datetime, xmltodict, base64
 from functools import wraps
 from app.application.util import ss_create_password
 from zeep import Client
+
 #logging on file level
 import logging
 from app import MyLogFilter, top_log_handle
@@ -406,12 +408,45 @@ def ss_student_process_flagged(opaque=None, **kwargs):
 
 
 @exception_wrapper
-def ss_student_send_email(opaque=None, **kwargs):
+def ss_student_coaacount_send_info_email(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
-    db_studenten = mstudent.student_get_m([("new", "=", True)])
-    for student in db_studenten:
-        app.application.student.send_print_info_to_student(student, send=True)
-        app.application.student.send_print_info_to_coaccount(student, 1, send=True)
-        app.application.student.send_print_info_to_coaccount(student, 2, send=True)
+    students = mstudent.student_get_m([("new", "=", True)])
+    for student in students:
+        app.application.student.print_send_info_to_student(student, send=True)
+        app.application.student.print_send_info_to_coaccount(student, 1, send=True)
+        app.application.student.print_send_info_to_coaccount(student, 2, send=True)
     log.info(f"{sys._getframe().f_code.co_name}, STOP")
     return True
+
+
+
+ACCOUNT_STUDENT = 0
+ACCOUNT_CO_1 = 1
+ACCOUNT_CO_2 = 2
+ACCOUNT_CO_1_AND_2 = 3
+
+def api_send_info_email(student_ids, account):
+    try:
+        warning = ULog(ULog.warning, "Smartschool info mailen:")
+        if student_ids:
+            students = mstudent.student_get_m(ids=student_ids)
+            for student in students:
+                if account == ACCOUNT_STUDENT:
+                    valid_email = app.application.student.print_send_info_to_student(student, send=True)
+                    if not valid_email:
+                        warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer} heeft geen e-mail")
+                else:
+                    accounts = [account] if account != ACCOUNT_CO_1_AND_2 else [ACCOUNT_CO_1, ACCOUNT_CO_2]
+                    for a in accounts:
+                        valid_account, valid_email = app.application.student.print_send_info_to_coaccount(student, a, send=True)
+                        if not valid_account:
+                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, heeft geen co-account-{a}")
+                        elif not valid_email:
+                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, co-account-{a} heeft geen e-mail")
+        valid_warning = warning.finish()
+        if valid_warning:
+            return {"status": True, "data": valid_warning.message}
+        return {"status": True, "data": "Info is verstuurd"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": f"Fout, {e}"}

@@ -88,14 +88,7 @@ async function smartschoolinfo_to_student(ids, to_student) {
                 const ret = await fetch(Flask.url_for('api.smartschool_send_info'), {headers: {'x-api-key': ctx.api_key,},
                     method: 'POST', body: JSON.stringify({ids, to_student}),});
                 const status = await ret.json();
-                if (status.status) {
-                    if (to_student)
-                        bootbox.alert(`Smartschool info is naar ${status.data} leerling(en) gestuurd`)
-                    else
-                        bootbox.alert(`Smartschool info is naar de ouders van ${status.data} leerlingen gestuurd`)
-                } else {
-                    bootbox.alert(`Fout: ${status.data}`)
-                }
+                bootbox.alert(status.data);
             }
 
         });

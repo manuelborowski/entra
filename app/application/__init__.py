@@ -11,7 +11,7 @@ from app.application.ad import ad_student_process_flagged, ad_staff_process_flag
 from app.application.student import student_post_processing
 from app.application.klas import klas_post_processing
 from app.application.staff import staff_post_processing
-from app.application.smartschool import ss_student_process_flagged, ss_student_send_email
+from app.application.smartschool import ss_student_process_flagged, ss_student_coaacount_send_info_email
 
 
 # tag, cront-task, label, help
@@ -25,7 +25,7 @@ cron_table = [
     ('AD-STUDENT', ad_student_process_flagged, 'NAAR AD, studenten bijwerken', '', True),
     ('AD-STAFF', ad_staff_process_flagged, 'NAAR AD, personeel bijwerken', '', True),
     ('SS-STUDENT', ss_student_process_flagged, 'NAAR Smartschool, studenten bijwerken', '', True),
-    ('SS-STUDENT-EMAIL', ss_student_send_email, 'Nieuwe student: e-mail Smartschool gegevens', '', True),
+    ('SS-STUDENT-EMAIL', ss_student_coaacount_send_info_email, 'Nieuwe student: e-mail Smartschool gegevens', '', True),
     ('AD-COMPUTER', ad_student_cron_task_get_computer, 'NAAR SDH, computer van studenten bijwerken', '', False),
     ('SDH-MARKED-STUDENT', student_post_processing, 'NAAR SDH, reset new/delete/change flag, verwijder deleted studenten uit database', 'CHECK om de goede werking te verzekeren', False),
     ('SDH-MARKED-KLAS', klas_post_processing, 'NAAR SDH, reset new/delete/change flag, verwijder deleted klassen uit database', 'CHECK om de goede werking te verzekeren', False),
