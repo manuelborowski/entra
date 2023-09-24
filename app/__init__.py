@@ -153,11 +153,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.50: send smartschool info: show confirmation window
 # 1.51: added Logging, to log/display user actions/results.  Bugfix datatables.html, do not include right_click.js if not needed.  Reworked send-ss-info to students/parents.
 # 1.52: improved user-logging.  Updated ss-send-info via api
+# 1.53: user-logging, add owner-filtering
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.52', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.53', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

@@ -33,6 +33,10 @@ def get_log_levels():
     return Logging.levels
 
 
+def get_owners():
+    return app.data.logging.get_owners()
+
+
 warning_updated_cbs = []
 def subscribe_updated(cb, opaque):
     try:

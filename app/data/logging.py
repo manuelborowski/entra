@@ -66,6 +66,11 @@ def get_m(filters=[], fields=[], ids=[], order_by=None, first=False, count=False
     return app.data.models.get_multiple(Logging, filters=filters, fields=fields, ids=ids, order_by=order_by, first=first, count=count, active=active)
 
 
+def get_owners():
+    owners = db.session.query(Logging.owner).distinct().all()
+    owners = sorted([o[0] for o in owners])
+    return owners
+
 def pre_sql_query():
     return db.session.query(Logging)
 
@@ -75,6 +80,9 @@ def pre_sql_filter(query, filter):
         if f['name'] == 'log-level':
             if f['value'] != 'default':
                 query = query.filter(Logging.severity == int(f["value"]))
+        if f['name'] == 'owner':
+            if f['value'] != 'default':
+                query = query.filter(Logging.owner == f["value"])
     return query
 
 
