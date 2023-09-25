@@ -80,25 +80,55 @@ async function export_smartschool_info(ids) {
     hiddenElement.click();
 }
 
-async function smartschoolinfo_to_student(ids, to_student) {
+async function email_smartschoolinfo(ids, to_student) {
     const target = to_student ? "leerling(en)" : "ouders";
     bootbox.confirm(`Smartschool info naar ${target} sturen?`,
         async result => {
             if (result) {
-                const ret = await fetch(Flask.url_for('api.smartschool_send_info'), {headers: {'x-api-key': ctx.api_key,},
-                    method: 'POST', body: JSON.stringify({ids, to_student}),});
+                const ret = await fetch(Flask.url_for('api.smartschool_send_info'), {
+                    headers: {'x-api-key': ctx.api_key,},
+                    method: 'POST', body: JSON.stringify({ids, to_student}),
+                });
                 const status = await ret.json();
                 bootbox.alert(status.data);
             }
-
         });
 }
 
+async function print_smartschoolinfo(ids, for_student) {
+    const target = for_student ? "leerling(en)" : "ouders";
+    bootbox.confirm(`Smartschool info voor ${target} afdrukken?`,
+        async result => {
+            if (result) {
+                const ret = await fetch(Flask.url_for('api.smartschool_print_info'), {
+                    headers: {'x-api-key': ctx.api_key,},
+                    method: 'POST', body: JSON.stringify({ids, for_student}),
+                });
+                const info_files = await ret.json();
+                let delay = 0;
+                info_files.forEach(info_file => {
+                    setTimeout(() => {
+                        console.log(`${document.location.origin}/${info_file}`);
+                        var link = document.createElement("a");
+                        // link.download = 'name';
+                        link.href = `${document.location.origin}/${info_file}`;
+                        // link.target = "_blank";
+                        link.click();
+                        link.remove();
+
+                    }, delay);
+                    delay += 500;
+                });
+            }
+        });
+}
 
 subscribe_right_click('new-vsk-numbers', (item, ids) => new_vsk_numbers());
 subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.student_update'));
 subscribe_right_click('update-password', (item, ids) => update_password(ids, 'api.student_update', ctx.popups['update-password']));
 subscribe_right_click('database-integrity-check', (item, ids) => database_integrity_check('api.database_integrity_check', ctx.popups['database-integrity-check']));
 subscribe_right_click('export-smartschool', (item, ids) => export_smartschool_info(ids));
-subscribe_right_click('info-email', (item, ids) => smartschoolinfo_to_student(ids, true));
-subscribe_right_click('info-email-ouders', (item, ids) => smartschoolinfo_to_student(ids, false));
+subscribe_right_click('info-email', (item, ids) => email_smartschoolinfo(ids, true));
+subscribe_right_click('info-print', (item, ids) => print_smartschoolinfo(ids, true));
+subscribe_right_click('info-email-ouders', (item, ids) => email_smartschoolinfo(ids, false));
+subscribe_right_click('info-print-ouders', (item, ids) => print_smartschoolinfo(ids, false));

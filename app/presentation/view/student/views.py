@@ -140,6 +140,8 @@ def get_right_click_settings():
             {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
             {'label': 'Stuur S info e-mail leerling', 'item': 'info-email', 'iconscout': 'envelope-info'},
             {'label': 'Stuur S info e-mail ouders', 'item': 'info-email-ouders', 'iconscout': 'envelope-info'},
+            {'label': 'Print S info voor leerling', 'item': 'info-print', 'iconscout': 'envelope-info'},
+            {'label': 'Print S info voor ouders', 'item': 'info-print-ouders', 'iconscout': 'envelope-info'},
             {'label': 'Exporteer S info', 'item': 'export-smartschool', 'iconscout': 'export'},
         ])
     if current_user.is_at_least_admin:

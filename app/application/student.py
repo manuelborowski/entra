@@ -4,8 +4,8 @@ from app.application.formio import iterate_components_cb
 from app.data import student as mstudent, settings as msettings, photo as mphoto, person as mperson
 import app.data.settings
 from app.application import formio as mformio, email as memail, util as mutil, ad as mad, papercut as mpapercut
-import sys, base64, json, pandas as pd, datetime, io
-from flask import make_response
+import sys, base64, json, pandas as pd, datetime, io, pdfkit
+from flask import make_response, send_from_directory
 
 def student_delete(ids):
     mstudent.student_delete_m(ids)
@@ -97,31 +97,19 @@ def klassen_get_unique():
     return klassen
 
 
-# returns valid_account, valid_email
-def print_send_info_to_coaccount(student, account=0, send=False, print=False):
-    try:
-        email = ""
-        if account == 1:
-            if student.lpv1_naam == "":
-                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 1 has no email")
-                return False, False
-            if send and student.lpv1_email == "":
-                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 1 has no email")
-                return True, False
-            else:
-                email = student.lpv1_email
-        elif account == 2:
-            if student.lpv2_naam == "":
-                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 2 has no email")
-                return False, False
-            if send and student.lpv2_email == "":
-                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 2 has no email")
-                return True, False
-            else:
-                email = student.lpv2_email
-        else: return False, False
-
-        status = json.loads(student.status) if student.status else []
+def __build_ss_info(student, account=0):
+    subject = None
+    content = None
+    if account == 0:
+        passwd = mutil.ss_create_password(None, use_standard_password=True)
+        subject = msettings.get_configuration_setting("smartschool-student-email-subject")
+        content = msettings.get_configuration_setting("smartschool-student-email-content")
+        content = content.replace("%%naam%%", student.naam)
+        content = content.replace("%%voornaam%%", student.voornaam)
+        content = content.replace("%%klascode%%", student.klascode)
+        content = content.replace("%%username%%", student.username)
+        content = content.replace("%%wachtwoord%%", passwd)
+    else:
         passwd1 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
         passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
         co_accounts = ""
@@ -145,40 +133,88 @@ def print_send_info_to_coaccount(student, account=0, send=False, print=False):
             content = content.replace("%%klascode%%", student.klascode)
             content = content.replace("%%username%%", student.username)
             content = content.replace("%%co-accounts%%", co_accounts)
-            if send and email != "":
-                log.info(f"test send email to {email}")
-                # memail.send_email(email, subject, content)
-            if mstudent.Student.send_info_message_ouders in status:
-                status.remove(mstudent.Student.send_info_message_ouders)
-                mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
-                mstudent.commit()
+    return subject,content
+
+
+# returns valid_account, valid_email
+def send_info_to_coaccount(student, account=0):
+    try:
+        email = ""
+        if account == 1:
+            if student.lpv1_naam == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, has no co-account 1")
+                return False, False
+            if student.lpv1_email == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 1 has no email")
+                return True, False
+            else:
+                email = student.lpv1_email
+        elif account == 2:
+            if student.lpv2_naam == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, has no co-account 2")
+                return False, False
+            if student.lpv2_email == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 2 has no email")
+                return True, False
+            else:
+                email = student.lpv2_email
+        else: return False, False
+
+        status = json.loads(student.status) if student.status else []
+        subject, content = __build_ss_info(student, account= 1)
+        log.info(f"test send email to {email}")
+        # memail.send_email(email, subject, content)
+        if mstudent.Student.send_info_message_ouders in status:
+            status.remove(mstudent.Student.send_info_message_ouders)
+            mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
+            mstudent.commit()
         return True, True
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return False, False
 
 
-def print_send_info_to_student(student, send=False, print=False):
+# returns valid_email
+def send_info_to_student(student):
     try:
-        if send and student.prive_email == "":
+        if student.prive_email == "":
             log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer} has no prive_email")
             return False
         status = json.loads(student.status) if student.status else []
-        passwd = mutil.ss_create_password(None, use_standard_password=True)
-        subject = msettings.get_configuration_setting("smartschool-student-email-subject")
-        content = msettings.get_configuration_setting("smartschool-student-email-content")
-        content = content.replace("%%naam%%", student.naam)
-        content = content.replace("%%voornaam%%", student.voornaam)
-        content = content.replace("%%klascode%%", student.klascode)
-        content = content.replace("%%username%%", student.username)
-        content = content.replace("%%wachtwoord%%", passwd)
-        if send and student.prive_email != "":
-            log.info(f"test send email to {student.prive_email}")
-            # memail.send_email([student.prive_email], subject, content)
+        subject, content = __build_ss_info(student, account=0)
+        log.info(f"test send email to {student.prive_email}")
+        # memail.send_email([student.prive_email], subject, content)
         if mstudent.Student.send_info_message in status:
             status.remove(mstudent.Student.send_info_message)
             mstudent.commit()
+        # if print:
+        #     pdf_dir = "app/static/pdf"
+        #     filename = f"{student.naam}-{student.voornaam}-student-info.pdf"
+        #     pdfkit.from_string(content, f"{pdf_dir}/{filename}")
+        #     return send_from_directory(pdf_dir, filename, as_attachment=True)
         return True
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return False
+
+
+def print_info_from_student(student):
+    try:
+        options = {
+            # 'page-size': 'Letter',
+            'margin-top': '2in',
+            'margin-right': '0.5in',
+            'margin-bottom': '0.5in',
+            'margin-left': '0.5in',
+            'encoding': "UTF-8",
+            'custom-header': [
+                ('Accept-Encoding', 'gzip')
+            ],
+        }
+        subject, content = __build_ss_info(student, account=0)
+        filename = f"{student.naam}-{student.voornaam}-student-info.pdf"
+        pdfkit.from_string(content, f"app/static/pdf/{filename}", options=options)
+        return f"static/pdf/{filename}"
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return False

@@ -394,7 +394,7 @@ def ss_student_process_flagged(opaque=None, **kwargs):
         if teacher["internnummer"] is None:
             log.error(f"{sys._getframe().f_code.co_name}, teacher {teacher['gebruikersnaam']} has NO SS internal number")
             teacher["internnummer"] = "UNKNOWN"
-        ss_teacher_cache[teacher["gebruikersnaam"]] = teacher["internnummer"]
+        ss_teacher_cache[teacher["gebruikersnaam"].upper()] = teacher["internnummer"]
     __klas_process_new(ss_teacher_cache)
     __klas_process_update(ss_teacher_cache)
     __student_process_new()
@@ -408,16 +408,15 @@ def ss_student_process_flagged(opaque=None, **kwargs):
 
 
 @exception_wrapper
-def ss_student_coaacount_send_info_email(opaque=None, **kwargs):
+def cron_send_ss_info_to_student_and_coaacount(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     students = mstudent.student_get_m([("new", "=", True)])
     for student in students:
-        app.application.student.print_send_info_to_student(student, send=True)
-        app.application.student.print_send_info_to_coaccount(student, 1, send=True)
-        app.application.student.print_send_info_to_coaccount(student, 2, send=True)
+        app.application.student.send_info_to_student(student)
+        app.application.student.send_info_to_coaccount(student, 1)
+        app.application.student.send_info_to_coaccount(student, 2)
     log.info(f"{sys._getframe().f_code.co_name}, STOP")
     return True
-
 
 
 ACCOUNT_STUDENT = 0
@@ -432,13 +431,13 @@ def api_send_info_email(student_ids, account):
             students = mstudent.student_get_m(ids=student_ids)
             for student in students:
                 if account == ACCOUNT_STUDENT:
-                    valid_email = app.application.student.print_send_info_to_student(student, send=True)
+                    valid_email = app.application.student.send_info_to_student(student)
                     if not valid_email:
                         warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer} heeft geen e-mail")
                 else:
                     accounts = [account] if account != ACCOUNT_CO_1_AND_2 else [ACCOUNT_CO_1, ACCOUNT_CO_2]
                     for a in accounts:
-                        valid_account, valid_email = app.application.student.print_send_info_to_coaccount(student, a, send=True)
+                        valid_account, valid_email = app.application.student.send_info_to_coaccount(student, a)
                         if not valid_account:
                             warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, heeft geen co-account-{a}")
                         elif not valid_email:
@@ -446,7 +445,35 @@ def api_send_info_email(student_ids, account):
         valid_warning = warning.finish()
         if valid_warning:
             return {"status": True, "data": valid_warning.message}
-        return {"status": True, "data": "Info is verstuurd"}
+        return {"status": True, "data": "Info is verstuurd/afgedrukt"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": f"Fout, {e}"}
+
+
+def api_print_info(student_ids, account):
+    try:
+        warning = ULog(ULog.warning, "Smartschool info printen:")
+        if student_ids:
+            students = mstudent.student_get_m(ids=student_ids)
+            info_files = []
+            for student in students:
+                if account == ACCOUNT_STUDENT:
+                    info_file = app.application.student.print_info_from_student(student)
+                    info_files.append(info_file)
+                else:
+                    accounts = [account] if account != ACCOUNT_CO_1_AND_2 else [ACCOUNT_CO_1, ACCOUNT_CO_2]
+                    for a in accounts:
+                        valid_account, valid_email = app.application.student.send_info_to_coaccount(student, a)
+                        if not valid_account:
+                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, heeft geen co-account-{a}")
+                        elif not valid_email:
+                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, co-account-{a} heeft geen e-mail")
+            return info_files
+        valid_warning = warning.finish()
+        if valid_warning:
+            return {"status": True, "data": valid_warning.message}
+        return {"status": True, "data": "Info is verstuurd/afgedrukt"}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": False, "data": f"Fout, {e}"}
