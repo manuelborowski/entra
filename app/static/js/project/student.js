@@ -104,21 +104,17 @@ async function print_smartschoolinfo(ids, for_student) {
                     headers: {'x-api-key': ctx.api_key,},
                     method: 'POST', body: JSON.stringify({ids, for_student}),
                 });
-                const info_files = await ret.json();
-                let delay = 0;
-                info_files.forEach(info_file => {
-                    setTimeout(() => {
-                        console.log(`${document.location.origin}/${info_file}`);
-                        var link = document.createElement("a");
-                        // link.download = 'name';
-                        link.href = `${document.location.origin}/${info_file}`;
-                        // link.target = "_blank";
-                        link.click();
-                        link.remove();
-
-                    }, delay);
-                    delay += 500;
-                });
+                const status = await ret.json();
+                if (status.status) {
+                    const info_file = status.data;
+                    var link = document.createElement("a");
+                    //Add a rendom parameter to make sure that not a cached version is returned (filename is always te same)
+                    link.href = `${document.location.origin}/${info_file}?${new Date().getTime()}`;
+                    link.click();
+                    link.remove();
+                } else {
+                    bootbox.alert(status.data);
+                }
             }
         });
 }

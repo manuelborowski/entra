@@ -198,11 +198,13 @@ def send_info_to_student(student):
         return False
 
 
-def print_info_from_student(student):
+PAGEBREAK = '<div style = "display:block; clear:both; page-break-after:always;"></div>'
+
+def print_smartschool_info(students, account):
     try:
         options = {
             # 'page-size': 'Letter',
-            'margin-top': '2in',
+            'margin-top': '1in',
             'margin-right': '0.5in',
             'margin-bottom': '0.5in',
             'margin-left': '0.5in',
@@ -211,9 +213,14 @@ def print_info_from_student(student):
                 ('Accept-Encoding', 'gzip')
             ],
         }
-        subject, content = __build_ss_info(student, account=0)
-        filename = f"{student.naam}-{student.voornaam}-student-info.pdf"
-        pdfkit.from_string(content, f"app/static/pdf/{filename}", options=options)
+        all_content = ""
+        for student in students:
+            _, content = __build_ss_info(student, account=account)
+            content += PAGEBREAK
+            all_content += content
+        all_content = all_content[:-len(PAGEBREAK)]
+        filename = f"smartschool-info-voor-{'student' if account == 0 else 'coaacount'}.pdf"
+        pdfkit.from_string(all_content, f"app/static/pdf/{filename}", options=options)
         return f"static/pdf/{filename}"
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')

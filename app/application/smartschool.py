@@ -453,27 +453,12 @@ def api_send_info_email(student_ids, account):
 
 def api_print_info(student_ids, account):
     try:
-        warning = ULog(ULog.warning, "Smartschool info printen:")
         if student_ids:
             students = mstudent.student_get_m(ids=student_ids)
-            info_files = []
-            for student in students:
-                if account == ACCOUNT_STUDENT:
-                    info_file = app.application.student.print_info_from_student(student)
-                    info_files.append(info_file)
-                else:
-                    accounts = [account] if account != ACCOUNT_CO_1_AND_2 else [ACCOUNT_CO_1, ACCOUNT_CO_2]
-                    for a in accounts:
-                        valid_account, valid_email = app.application.student.send_info_to_coaccount(student, a)
-                        if not valid_account:
-                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, heeft geen co-account-{a}")
-                        elif not valid_email:
-                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, co-account-{a} heeft geen e-mail")
-            return info_files
-        valid_warning = warning.finish()
-        if valid_warning:
-            return {"status": True, "data": valid_warning.message}
-        return {"status": True, "data": "Info is verstuurd/afgedrukt"}
+            if students:
+                info_file = app.application.student.print_smartschool_info(students, account)
+                return {"status": True, "data": info_file}
+        return {"status": False, "data": "Geen student geselecteerd"}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": False, "data": f"Fout, {e}"}
