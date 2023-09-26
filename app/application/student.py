@@ -163,7 +163,7 @@ def send_info_to_coaccount(student, account=0):
         status = json.loads(student.status) if student.status else []
         subject, content = __build_ss_info(student, account= 1)
         log.info(f"test send email to {email}")
-        # memail.send_email(email, subject, content)
+        memail.send_email(email, subject, content)
         if mstudent.Student.send_info_message_ouders in status:
             status.remove(mstudent.Student.send_info_message_ouders)
             mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
@@ -183,15 +183,10 @@ def send_info_to_student(student):
         status = json.loads(student.status) if student.status else []
         subject, content = __build_ss_info(student, account=0)
         log.info(f"test send email to {student.prive_email}")
-        # memail.send_email([student.prive_email], subject, content)
+        memail.send_email([student.prive_email], subject, content)
         if mstudent.Student.send_info_message in status:
             status.remove(mstudent.Student.send_info_message)
             mstudent.commit()
-        # if print:
-        #     pdf_dir = "app/static/pdf"
-        #     filename = f"{student.naam}-{student.voornaam}-student-info.pdf"
-        #     pdfkit.from_string(content, f"{pdf_dir}/{filename}")
-        #     return send_from_directory(pdf_dir, filename, as_attachment=True)
         return True
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
