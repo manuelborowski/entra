@@ -208,6 +208,7 @@ def print_smartschool_info(students, account):
                 ('Accept-Encoding', 'gzip')
             ],
         }
+        config = pdfkit.configuration(wkhtmltopdf="/usr/bin/wkhtmltopdf")
         all_content = ""
         for student in students:
             _, content = __build_ss_info(student, account=account)
@@ -215,7 +216,7 @@ def print_smartschool_info(students, account):
             all_content += content
         all_content = all_content[:-len(PAGEBREAK)]
         filename = f"smartschool-info-voor-{'student' if account == 0 else 'coaacount'}.pdf"
-        pdfkit.from_string(all_content, f"app/static/pdf/{filename}", options=options)
+        pdfkit.from_string(all_content, f"app/static/pdf/{filename}", options=options, configuration=config)
         return f"static/pdf/{filename}"
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
