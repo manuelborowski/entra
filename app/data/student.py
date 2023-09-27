@@ -64,6 +64,9 @@ class Student(db.Model, SerializerMixin):
 
     timestamp = db.Column(db.DateTime, default=datetime.datetime.now())
 
+    leerid_username = db.Column(db.String(256), default='')
+    leerid_password = db.Column(db.String(256), default='')
+
     new = db.Column(db.Boolean, default=True)
     delete = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)    # long term
@@ -91,11 +94,12 @@ class Student(db.Model, SerializerMixin):
     send_info_message_ouders = "INFO-OUDER"
     export = "EXP"
     nieuw = "NIEUW"
+    leerid = "LID"
 
     def get_statuses(label=False):
         if label:
-            return [[Student.send_info_message, "Info naar leerlingen"], [Student.send_info_message_ouders, "Info naar ouders"], [Student.export, "Nog te exporteren"], [Student.nieuw, "Nieuwe student"]]
-        return [Student.send_info_message, Student.send_info_message_ouders, Student.export, Student.nieuw]
+            return [[Student.send_info_message, "Info naar leerlingen"], [Student.send_info_message_ouders, "Info naar ouders"], [Student.export, "Nog te exporteren"], [Student.nieuw, "Nieuwe student"], [Student.leerid, "LeerID verzonden"],]
+        return [Student.send_info_message, Student.send_info_message_ouders, Student.export, Student.nieuw, Student.leerid]
 
 
 def get_columns():

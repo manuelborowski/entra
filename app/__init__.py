@@ -160,11 +160,11 @@ flask_app.config.from_pyfile('config.py')
 # 1.57: print smartschool info, ok for students and coaccounts.  Multiple students in one document
 # 1.58: enable send-smartschool-info
 # 1.59: cron-cycle, do not stop when exception occurs.  smartschool, optimized code.
-
+# 1.59 - leerid - 1: backup
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.59', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.59 - leerid - 1', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
