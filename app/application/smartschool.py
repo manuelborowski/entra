@@ -27,7 +27,6 @@ def exception_wrapper(func):
             return func(*args, **kwargs)
         except Exception as e:
             log.error(f'{func.__name__}: {e}')
-            raise Exception(f'{func.__name__}: {e}')
     return wrapper
 
 KLAS_CHANGED_PROPERTIES_MASK = ["klastitularis", "schooljaar"]
@@ -46,6 +45,19 @@ def __get_leerkrachten():
 
 
 @exception_wrapper
+def __create_ss_teacher_cache():
+    ss_teachers = __get_leerkrachten()
+    # ss_teacher_cache = {d["gebruikersnaam"].upper(): d["internnummer"] for d in ss_teachers["accounts"]["account"]}
+    ss_teacher_cache = {}
+    for teacher in ss_teachers["accounts"]["account"]:
+        if teacher["internnummer"] is None:
+            log.error(f"{sys._getframe().f_code.co_name}, teacher {teacher['gebruikersnaam']} has NO SS internal number")
+            teacher["internnummer"] = "UNKNOWN"
+        ss_teacher_cache[teacher["gebruikersnaam"].upper()] = teacher["internnummer"]
+    return ss_teacher_cache
+
+
+@exception_wrapper
 def __update_titularis(klascode, ss_titularissen):
     internnummers_string = ",".join(ss_titularissen)
     ret = soap.service.changeGroupOwners(flask_app.config["SS_API_KEY"], klascode, internnummers_string)
@@ -56,44 +68,18 @@ def __update_titularis(klascode, ss_titularissen):
 
 
 @exception_wrapper
-def __klas_process(db_klassen, teacher_cache):
-    db_klasgroepen = {k.klasgroepcode: k for k in db_klassen if k.klasgroepcode != ""}
-    for klasgroep, klas in db_klasgroepen.items():
-        titularissen = json.loads(klas.klastitularis)
-        titularissen_string = ','.join(titularissen) if titularissen else "/"
-        klasindex = klasgroep[1] if klasgroep[0] == "T" else klasgroep[0]
-        if klasindex == "O":
-            continue # do nothing in case of OKAN
-        if int(klasindex) < 3:
-            oudergroep_code = f"jaar-sum-{klasindex}"
-        else:
-            if klas.instellingsnummer == "30593":
-                oudergroep_code = f"jaar-sul-{klasindex}"
-            else:
-                oudergroep_code = f"jaar-sui-{klasindex}"
-        if klasgroep[0] == "T":
-            oudergroep_code = f"t{oudergroep_code}"
-        klasgroep_code = klasgroep + "G"
-        ret = soap.service.saveGroup(flask_app.config["SS_API_KEY"], klasgroep, titularissen_string, klasgroep_code, oudergroep_code, "")
-        if ret == 0:
-            log.info(f"{sys._getframe().f_code.co_name}, Groep {oudergroep_code}/{klasgroep} added/updated")
-        else:
-            log.error(f"{sys._getframe().f_code.co_name}, saveGroup {oudergroep_code}/{klasgroep} returned error {ret}")
-        if titularissen:
-            for k in titularissen:
-                k = k.upper()
-                if k not in teacher_cache:
-                    raise Exception(f"{k} is NOT found in Smartschool")
-                elif teacher_cache[k] is None:
-                        raise Exception(f"{k} has no Smartschool internal number")
-            titularissen_list = [teacher_cache[k.upper()] for k in titularissen]
-            __update_titularis(klas.klascode, titularissen_list)
-
-    for klas in db_klassen:
-        if klas.klasgroepcode != "":
-            oudergroep_code = klas.klasgroepcode + "G"
-        else:
-            klasindex = klas.klascode[1] if klas.klascode[0] == "T" else klas.klascode[0]
+def __klas_process_new_update():
+    log.info(f"{sys._getframe().f_code.co_name}, START")
+    changed_klassen = mklas.klas_get_m([("changed", "!", ""), ("new", "=", False)])
+    new_klassen = mklas.klas_get_m([("new", "=", True)])
+    db_klassen = new_klassen + changed_klassen
+    if db_klassen:
+        teacher_cache = __create_ss_teacher_cache()
+        db_klasgroepen = {k.klasgroepcode: k for k in db_klassen if k.klasgroepcode != ""}
+        for klasgroep, klas in db_klasgroepen.items():
+            titularissen = json.loads(klas.klastitularis)
+            titularissen_string = ','.join(titularissen) if titularissen else "/"
+            klasindex = klasgroep[1] if klasgroep[0] == "T" else klasgroep[0]
             if klasindex == "O":
                 continue # do nothing in case of OKAN
             if int(klasindex) < 3:
@@ -103,42 +89,57 @@ def __klas_process(db_klassen, teacher_cache):
                     oudergroep_code = f"jaar-sul-{klasindex}"
                 else:
                     oudergroep_code = f"jaar-sui-{klasindex}"
-            if klas.klascode[0] == "T":
+            if klasgroep[0] == "T":
                 oudergroep_code = f"t{oudergroep_code}"
-        klas_datum = f"{klas.schooljaar}-09-01"
-        titularissen = json.loads(klas.klastitularis)
-        titularissen_string = ','.join(titularissen) if titularissen else "/"
-        ret = soap.service.saveClass(flask_app.config["SS_API_KEY"], klas.klascode, titularissen_string, klas.klascode, oudergroep_code, klas.klascode, klas.instellingsnummer, klas.administratievecode, klas_datum)
-        if ret == 0:
-            log.info(f"{sys._getframe().f_code.co_name}, Klas {oudergroep_code}/{klas.klascode} added/updated")
-        else:
-            log.error(f"{sys._getframe().f_code.co_name}, saveClass {oudergroep_code}/{klas.klascode} returned error {ret}")
-        if titularissen:
-            for k in titularissen:
-                k = k.upper()
-                if k not in teacher_cache:
-                    raise Exception(f"{k} is NOT found in Smartschool")
-                elif teacher_cache[k] is None:
-                        raise Exception(f"{k} has no Smartschool internal number")
-            titularissen_list = [teacher_cache[k.upper()] for k in titularissen]
-            __update_titularis(klas.klascode, titularissen_list)
+            klasgroep_code = klasgroep + "G"
+            ret = soap.service.saveGroup(flask_app.config["SS_API_KEY"], klasgroep, titularissen_string, klasgroep_code, oudergroep_code, "")
+            if ret == 0:
+                log.info(f"{sys._getframe().f_code.co_name}, Groep {oudergroep_code}/{klasgroep} added/updated")
+            else:
+                log.error(f"{sys._getframe().f_code.co_name}, saveGroup {oudergroep_code}/{klasgroep} returned error {ret}")
+            if titularissen:
+                for k in titularissen:
+                    k = k.upper()
+                    if k not in teacher_cache:
+                        raise Exception(f"{k} is NOT found in Smartschool")
+                    elif teacher_cache[k] is None:
+                            raise Exception(f"{k} has no Smartschool internal number")
+                titularissen_list = [teacher_cache[k.upper()] for k in titularissen]
+                __update_titularis(klas.klascode, titularissen_list)
 
-
-@exception_wrapper
-def __klas_process_new(teacher_cache):
-    log.info(f"{sys._getframe().f_code.co_name}, START")
-    db_klassen = mklas.klas_get_m([("new", "=", True)])
-    if db_klassen:
-        __klas_process(db_klassen, teacher_cache)
-    log.info(f"{sys._getframe().f_code.co_name}, STOP, processed {len(db_klassen)} klassen")
-
-
-@exception_wrapper
-def __klas_process_update(teacher_cache):
-    log.info(f"{sys._getframe().f_code.co_name}, START")
-    db_klassen = mklas.klas_get_m([("changed", "!", ""), ("new", "=", False)])
-    if db_klassen:
-        __klas_process(db_klassen, teacher_cache)
+        for klas in db_klassen:
+            if klas.klasgroepcode != "":
+                oudergroep_code = klas.klasgroepcode + "G"
+            else:
+                klasindex = klas.klascode[1] if klas.klascode[0] == "T" else klas.klascode[0]
+                if klasindex == "O":
+                    continue # do nothing in case of OKAN
+                if int(klasindex) < 3:
+                    oudergroep_code = f"jaar-sum-{klasindex}"
+                else:
+                    if klas.instellingsnummer == "30593":
+                        oudergroep_code = f"jaar-sul-{klasindex}"
+                    else:
+                        oudergroep_code = f"jaar-sui-{klasindex}"
+                if klas.klascode[0] == "T":
+                    oudergroep_code = f"t{oudergroep_code}"
+            klas_datum = f"{klas.schooljaar}-09-01"
+            titularissen = json.loads(klas.klastitularis)
+            titularissen_string = ','.join(titularissen) if titularissen else "/"
+            ret = soap.service.saveClass(flask_app.config["SS_API_KEY"], klas.klascode, titularissen_string, klas.klascode, oudergroep_code, klas.klascode, klas.instellingsnummer, klas.administratievecode, klas_datum)
+            if ret == 0:
+                log.info(f"{sys._getframe().f_code.co_name}, Klas {oudergroep_code}/{klas.klascode} added/updated")
+            else:
+                log.error(f"{sys._getframe().f_code.co_name}, saveClass {oudergroep_code}/{klas.klascode} returned error {ret}")
+            if titularissen:
+                for k in titularissen:
+                    k = k.upper()
+                    if k not in teacher_cache:
+                        raise Exception(f"{k} is NOT found in Smartschool")
+                    elif teacher_cache[k] is None:
+                            raise Exception(f"{k} has no Smartschool internal number")
+                titularissen_list = [teacher_cache[k.upper()] for k in titularissen]
+                __update_titularis(klas.klascode, titularissen_list)
     log.info(f"{sys._getframe().f_code.co_name}, STOP, processed {len(db_klassen)} klassen")
 
 
@@ -387,16 +388,7 @@ def __student_process_delete():
 def ss_student_process_flagged(opaque=None, **kwargs):
     settings = opaque if opaque else {}
     log.info(f"{sys._getframe().f_code.co_name}, START, with settings {settings}")
-    ss_teachers = __get_leerkrachten()
-    # ss_teacher_cache = {d["gebruikersnaam"].upper(): d["internnummer"] for d in ss_teachers["accounts"]["account"]}
-    ss_teacher_cache = {}
-    for teacher in ss_teachers["accounts"]["account"]:
-        if teacher["internnummer"] is None:
-            log.error(f"{sys._getframe().f_code.co_name}, teacher {teacher['gebruikersnaam']} has NO SS internal number")
-            teacher["internnummer"] = "UNKNOWN"
-        ss_teacher_cache[teacher["gebruikersnaam"].upper()] = teacher["internnummer"]
-    __klas_process_new(ss_teacher_cache)
-    __klas_process_update(ss_teacher_cache)
+    __klas_process_new_update()
     __student_process_new()
     __student_process_update()
     __student_process_delete()

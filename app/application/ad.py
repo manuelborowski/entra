@@ -92,7 +92,6 @@ def ad_ctx_wrapper(ctx_class):
                 return func(*args, **kwargs)
             except Exception as e:
                 log.error(f'AD-EXCEPTION: {func.__name__}: {e}')
-                raise Exception(f'AD-EXCEPTION: {func.__name__}: {e}')
             finally:
                 __ldap_deinit(ctx)
         return wrapper
@@ -106,7 +105,6 @@ def ad_exception_wrapper(func):
             return func(*args, **kwargs)
         except Exception as e:
             log.error(f'{func.__name__}: {e}')
-            raise Exception(f'{func.__name__}: {e}')
     return wrapper
 
 
@@ -657,7 +655,6 @@ def student_cn_and_displayname_update():
         __ldap_deinit(ctx)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
-        raise e
 
 
 @ad_ctx_wrapper(StudentContext)
