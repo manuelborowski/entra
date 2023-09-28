@@ -437,7 +437,7 @@ def api_send_info_email(student_ids, account):
         valid_warning = warning.finish()
         if valid_warning:
             return {"status": True, "data": valid_warning.message}
-        return {"status": True, "data": "Info is verstuurd/afgedrukt"}
+        return {"status": True, "data": "Info is verstuurd"}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": False, "data": f"Fout, {e}"}
