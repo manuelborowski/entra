@@ -162,8 +162,7 @@ def send_info_to_coaccount(student, account=0):
 
         status = json.loads(student.status) if student.status else []
         subject, content = __build_ss_info(student, account= 1)
-        log.info(f"test send email to {email}")
-        memail.send_email(email, subject, content)
+        memail.send_email([email], subject, content)
         if mstudent.Student.send_info_message_ouders in status:
             status.remove(mstudent.Student.send_info_message_ouders)
             mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
@@ -182,7 +181,6 @@ def send_info_to_student(student):
             return False
         status = json.loads(student.status) if student.status else []
         subject, content = __build_ss_info(student, account=0)
-        log.info(f"test send email to {student.prive_email}")
         memail.send_email([student.prive_email], subject, content)
         if mstudent.Student.send_info_message in status:
             status.remove(mstudent.Student.send_info_message)

@@ -234,10 +234,6 @@ def __klas_get_from_informat(filter_on):
             else:
                 klas["klasgroepcode"] = code[:2]
         return list(klas_cache.values())
-
-
-
-
         klasgroep_cache = {k["p_persoon"]: k for k in subgroepen if k["Groeptype"] == "1"}
         for klas in subgroepen:
             if klas["klascode"] not in klas_cache and klas["Groeptype"] == "0":
