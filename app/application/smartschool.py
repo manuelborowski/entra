@@ -454,3 +454,13 @@ def api_print_info(student_ids, account):
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": False, "data": f"Fout, {e}"}
+
+
+def send_message(to, sender, subject, body, account=0):
+    try:
+        ret = soap.service.sendMsg(flask_app.config["SS_API_KEY"], to, subject, body, sender, "", account, False)
+        log.error(f'{sys._getframe().f_code.co_name}: to {to}, from {sender}, subject {subject}, ret {ret}')
+        return ret
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": f"Fout, {e}"}

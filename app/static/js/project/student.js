@@ -119,6 +119,41 @@ async function print_smartschoolinfo(ids, for_student) {
         });
 }
 
+
+async function upload_leerid() {
+    const form = document.createElement("form")
+    const input = document.createElement('input');
+    form.appendChild(input)
+    input.type = 'file';
+    input.name = "leerid_file";
+    input.multiple = true;
+    input.accept = ".xlsx,.xls"
+    input.onchange = e => {
+        var file = e.target.files[0];
+        const form_data = new FormData(form);
+        const ret = fetch(Flask.url_for('api.leerid_upload'), {
+            headers: {'x-api-key': ctx.api_key,},
+            method: 'POST', body: form_data});
+        console.log(file);
+    }
+    input.click();
+}
+
+async function send_leerid(ids) {
+    bootbox.confirm(`LeerID naar leerlingen sturen?`,
+        async result => {
+            if (result) {
+                const ret = await fetch(Flask.url_for('api.leerid_send'), {
+                    headers: {'x-api-key': ctx.api_key,},
+                    method: 'POST', body: JSON.stringify({ids}),
+                });
+                const status = await ret.json();
+                bootbox.alert(status.data);
+            }
+        });
+}
+
+
 subscribe_right_click('new-vsk-numbers', (item, ids) => new_vsk_numbers());
 subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.student_update'));
 subscribe_right_click('update-password', (item, ids) => update_password(ids, 'api.student_update', ctx.popups['update-password']));
@@ -128,3 +163,5 @@ subscribe_right_click('info-email', (item, ids) => email_smartschoolinfo(ids, tr
 subscribe_right_click('info-print', (item, ids) => print_smartschoolinfo(ids, true));
 subscribe_right_click('info-email-ouders', (item, ids) => email_smartschoolinfo(ids, false));
 subscribe_right_click('info-print-ouders', (item, ids) => print_smartschoolinfo(ids, false));
+subscribe_right_click('leerid-upload', (item, ids) => upload_leerid());
+subscribe_right_click('leerid-send', (item, ids) => send_leerid(ids));

@@ -418,6 +418,56 @@ settings_formio = \
             ]
           },
           {
+            "label": "leerid",
+            "tableView": false,
+            "key": "leerid",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "LeerID",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "RegistratieTemplate1",
+                "type": "panel",
+                "label": "Studenten",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Opslaan",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "input": true,
+                    "saveOnEnter": false
+                  },
+                  {
+                    "label": "Bericht naar studenten: ONDERWERP",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "leerid-message-subject",
+                    "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Bericht naar studenten: INHOUD (HTML)",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "leerid-message-content",
+                    "type": "textarea",
+                    "input": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "label": "Warnings",
             "tableView": false,
             "key": "warnings",

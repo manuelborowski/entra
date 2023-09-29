@@ -6,6 +6,8 @@ import app.data.settings
 from app.application import formio as mformio, email as memail, util as mutil, ad as mad, papercut as mpapercut
 import sys, base64, json, pandas as pd, datetime, io, pdfkit
 from flask import make_response, send_from_directory
+from .smartschool import send_message
+from app.data.logging import ULog
 
 def student_delete(ids):
     mstudent.student_delete_m(ids)
@@ -158,8 +160,8 @@ def send_info_to_coaccount(student, account=0):
                 return True, False
             else:
                 email = student.lpv2_email
-        else: return False, False
-
+        else:
+            return False, False
         status = json.loads(student.status) if student.status else []
         subject, content = __build_ss_info(student, account= 1)
         memail.send_email([email], subject, content)
@@ -319,6 +321,80 @@ def api_student_update(data):
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
+        return {"status": False, "data": f"Fout, {e}"}
+
+
+def api_upload_leerid(files):
+    try:
+        lid_students = []
+        for file in files:
+            lid_file = pd.read_excel(file)
+            lid_students += lid_file.to_dict("records")
+
+        if lid_students:
+            db_students = mstudent.student_get_m()
+            db_student_cache = {(s.naam + s.voornaam).lower(): s for s in db_students}
+            nbr_found = 0
+            nbr_not_in_sdh = 0
+            nbr_not_in_lid = 0
+            for student in lid_students:
+                key = (student["Achternaam"] + student["Voornaam"]).lower()
+                if key in db_student_cache:
+                    nbr_found += 1
+                    db_student = db_student_cache[key]
+                    db_student.leerid_username = student["LeerID Gebruikersnaam"]
+                    db_student.leerid_password = student["LeerID Wachtwoord"]
+                    status = json.loads(db_student.status) if db_student.status else []
+                    status.append(mstudent.Student.leerid)
+                    db_student.status = json.dumps(status)
+                    del(db_student_cache[key])
+                else:
+                    nbr_not_in_sdh += 1
+            for _, student in db_student_cache.items():
+                nbr_not_in_lid += 1
+                log.info(f'{sys._getframe().f_code.co_name}: Found in SDH, not in LID, {student.naam} {student.voornaam}')
+            log.info(f'{sys._getframe().f_code.co_name}: ok {nbr_found}, NOT in SDH {nbr_not_in_sdh}, NOT in LID {nbr_not_in_lid}')
+            mstudent.commit()
+
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
+        return {"status": False, "data": f"Fout, {e}"}
+
+
+def api_send_leerid(ids):
+    try:
+        if ids:
+            nbr_send = 0
+            warning = ULog(ULog.warning, "LeerID verzenden:")
+            students = mstudent.student_get_m(ids=ids)
+            for student in students:
+                if not student.leerid_password or not student.leerid_username:
+                    log.info(f'{sys._getframe().f_code.co_name}: {student.leerlingnummer}, {student.naam} {student.voornaam} has no LeerID')
+                    warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer} heeft geen LeerID account")
+                    continue
+                body = msettings.get_configuration_setting("leerid-message-content")
+                subject = msettings.get_configuration_setting("leerid-message-subject")
+                send_to = student.leerlingnummer
+                # send_from = "sdh"
+                send_from = "20210708017" #boro
+                body = body.replace("%%FIRSTNAME%%", student.voornaam)
+                body = body.replace("%%USERNAME%%", student.leerid_username)
+                body = body.replace("%%PASSWORD%%", student.leerid_password)
+                send_message(send_to, send_from, subject, body)
+                status = json.loads(student.status) if student.status else []
+                if mstudent.Student.leerid in status:
+                    status.remove(mstudent.Student.leerid)
+                    student.status = json.dumps(status)
+                nbr_send += 1
+            mstudent.commit()
+            valid_warning = warning.finish()
+            if valid_warning:
+                return {"status": True, "data": valid_warning.message}
+            return {"status": True, "data": f"Leerid is verstuurd naar {nbr_send} leerlingen"}
+        return {"status": True, "data": "Fout, geen studenten geselecteerd"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": False, "data": f"Fout, {e}"}
 
 
