@@ -205,6 +205,9 @@ default_configuration_settings = {
     'logging-inform-emails': ('', Settings.SETTING_TYPE.E_STRING),
     'logging-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
 
+    'leerid-message-subject': ('', Settings.SETTING_TYPE.E_STRING),
+    'leerid-message-content': ('', Settings.SETTING_TYPE.E_STRING),
+
 }
 
 

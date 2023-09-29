@@ -437,7 +437,7 @@ def api_send_info_email(student_ids, account):
         valid_warning = warning.finish()
         if valid_warning:
             return {"status": True, "data": valid_warning.message}
-        return {"status": True, "data": "Info is verstuurd/afgedrukt"}
+        return {"status": True, "data": "Info is verstuurd"}
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": False, "data": f"Fout, {e}"}
@@ -451,6 +451,16 @@ def api_print_info(student_ids, account):
                 info_file = app.application.student.print_smartschool_info(students, account)
                 return {"status": True, "data": info_file}
         return {"status": False, "data": "Geen student geselecteerd"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": f"Fout, {e}"}
+
+
+def send_message(to, sender, subject, body, account=0):
+    try:
+        ret = soap.service.sendMsg(flask_app.config["SS_API_KEY"], to, subject, body, sender, "", account, False)
+        log.error(f'{sys._getframe().f_code.co_name}: to {to}, from {sender}, subject {subject}, ret {ret}')
+        return ret
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": False, "data": f"Fout, {e}"}
