@@ -76,3 +76,9 @@ def ss_create_password(seed, length=8, use_standard_password=False):
             return pwd1[:length]
     except Exception as e:
         log.error(f"{sys._getframe().f_code.co_name}, error {e}")
+
+
+def get_keys(level, tag="local"):
+    api_keys = msettings.get_configuration_setting('api-keys')[level - 1]
+    api_keys = [k for k, v in api_keys.items() if v == tag]
+    return api_keys

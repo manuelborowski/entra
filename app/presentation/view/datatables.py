@@ -1,5 +1,5 @@
 from app import flask_app
-from app.application import settings as msettings
+from app.application import settings as msettings, util as mutil
 from app.presentation.layout.utils import flash_plus
 from app.application.datatables import prepare_data_for_ajax
 from flask import render_template, request, get_flashed_messages, jsonify
@@ -20,8 +20,7 @@ def show(table_config, template=None, popups={}):
     api_key = config = None
     try:
         config = table_config.create_table_config()
-        api_keys = msettings.get_configuration_setting('api-keys')[current_user.level-1]
-        api_key = [k for k, v in api_keys.items() if v == "local"][0]
+        api_key = mutil.get_keys(current_user.level)[0]
     except Exception as e:
         flash_plus(f'Tabel kan niet getoond worden (show)', e)
     if not template:

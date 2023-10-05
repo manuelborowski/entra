@@ -250,21 +250,21 @@ def carpresso_update_rfid():
     return(json.dumps(ret))
 
 
+# account: 0 (student), 1 (co-account 1), 2 (co-account 2) or 3 (both co-accounts)
 @api.route('/api/smartschool/send_info', methods=['POST'])
 @supervisor_key_required
 def smartschool_send_info():
     data = json.loads(request.data)
-    account = msmartschool.ACCOUNT_STUDENT if data["to_student"] else msmartschool.ACCOUNT_CO_1_AND_2
-    ret = msmartschool.api_send_info_email(data["ids"], account)
+    ret = msmartschool.api_send_info_email(data["ids"], data["account"])
     return(json.dumps(ret))
 
 
+# account: 0 (student), 1 (co-account 1), 2 (co-account 2) or 3 (both co-accounts)
 @api.route('/api/smartschool/print_info', methods=['POST'])
 @supervisor_key_required
 def smartschool_print_info():
     data = json.loads(request.data)
-    account = msmartschool.ACCOUNT_STUDENT if data["for_student"] else msmartschool.ACCOUNT_CO_1_AND_2
-    ret = msmartschool.api_print_info(data["ids"], account)
+    ret = msmartschool.api_print_info(data["ids"], data["account"])
     return(json.dumps(ret))
 
 

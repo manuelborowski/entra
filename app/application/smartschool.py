@@ -431,9 +431,9 @@ def api_send_info_email(student_ids, account):
                     for a in accounts:
                         valid_account, valid_email = app.application.student.send_info_to_coaccount(student, a)
                         if not valid_account:
-                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, heeft geen co-account-{a}")
+                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, heeft geen coaccount-{a}")
                         elif not valid_email:
-                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, co-account-{a} heeft geen e-mail")
+                            warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, coaccount-{a} heeft geen e-mail")
         valid_warning = warning.finish()
         if valid_warning:
             return {"status": True, "data": valid_warning.message}
@@ -459,7 +459,7 @@ def api_print_info(student_ids, account):
 def send_message(to, sender, subject, body, account=0):
     try:
         ret = soap.service.sendMsg(flask_app.config["SS_API_KEY"], to, subject, body, sender, "", account, False)
-        log.error(f'{sys._getframe().f_code.co_name}: to {to}, from {sender}, subject {subject}, ret {ret}')
+        log.info(f'{sys._getframe().f_code.co_name}: to {to}, from {sender}, subject {subject}, ret {ret}')
         return ret
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')

@@ -3,6 +3,7 @@ import {check_rfid} from "./rfid.js";
 import {update_password} from "./password.js";
 import {database_integrity_check} from "./database.js";
 import {ctx, get_data_of_row} from "../datatables/datatables.js"
+import { smartschool_print_info, smartschool_mail_info} from "./sdh.js";
 
 async function update_vsk_numbers(start) {
     const ret = await fetch(Flask.url_for('api.update_vsk_number'), {headers: {'x-api-key': ctx.api_key,}, method: 'POST', body: JSON.stringify({start}),});
@@ -80,46 +81,6 @@ async function export_smartschool_info(ids) {
     hiddenElement.click();
 }
 
-async function email_smartschoolinfo(ids, to_student) {
-    const target = to_student ? "leerling(en)" : "ouders";
-    bootbox.confirm(`Smartschool info naar ${target} sturen?`,
-        async result => {
-            if (result) {
-                const ret = await fetch(Flask.url_for('api.smartschool_send_info'), {
-                    headers: {'x-api-key': ctx.api_key,},
-                    method: 'POST', body: JSON.stringify({ids, to_student}),
-                });
-                const status = await ret.json();
-                bootbox.alert(status.data);
-            }
-        });
-}
-
-async function print_smartschoolinfo(ids, for_student) {
-    const target = for_student ? "leerling(en)" : "ouders";
-    bootbox.confirm(`Smartschool info voor ${target} afdrukken?`,
-        async result => {
-            if (result) {
-                const ret = await fetch(Flask.url_for('api.smartschool_print_info'), {
-                    headers: {'x-api-key': ctx.api_key,},
-                    method: 'POST', body: JSON.stringify({ids, for_student}),
-                });
-                const status = await ret.json();
-                if (status.status) {
-                    const info_file = status.data;
-                    var link = document.createElement("a");
-                    //Add a rendom parameter to make sure that not a cached version is returned (filename is always te same)
-                    link.href = `${document.location.origin}/${info_file}?${new Date().getTime()}`;
-                    link.click();
-                    link.remove();
-                } else {
-                    bootbox.alert(status.data);
-                }
-            }
-        });
-}
-
-
 async function upload_leerid() {
     const form = document.createElement("form")
     const input = document.createElement('input');
@@ -159,9 +120,9 @@ subscribe_right_click('check-rfid', (item, ids) => check_rfid(ids, 'api.student_
 subscribe_right_click('update-password', (item, ids) => update_password(ids, 'api.student_update', ctx.popups['update-password']));
 subscribe_right_click('database-integrity-check', (item, ids) => database_integrity_check('api.database_integrity_check', ctx.popups['database-integrity-check']));
 subscribe_right_click('export-smartschool', (item, ids) => export_smartschool_info(ids));
-subscribe_right_click('info-email', (item, ids) => email_smartschoolinfo(ids, true));
-subscribe_right_click('info-print', (item, ids) => print_smartschoolinfo(ids, true));
-subscribe_right_click('info-email-ouders', (item, ids) => email_smartschoolinfo(ids, false));
-subscribe_right_click('info-print-ouders', (item, ids) => print_smartschoolinfo(ids, false));
+subscribe_right_click('info-email', (item, ids) => smartschool_mail_info(ids, 0, ctx.api_key));
+subscribe_right_click('info-print', (item, ids) => smartschool_print_info(ids, 0, ctx.api_key));
+subscribe_right_click('info-email-ouders', (item, ids) => smartschool_mail_info(ids, 3, ctx.api_key));
+subscribe_right_click('info-print-ouders', (item, ids) => smartschool_print_info(ids, 3, ctx.api_key));
 subscribe_right_click('leerid-upload', (item, ids) => upload_leerid());
 subscribe_right_click('leerid-send', (item, ids) => send_leerid(ids));

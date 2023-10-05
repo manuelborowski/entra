@@ -100,8 +100,8 @@ def klassen_get_unique():
 
 
 def __build_ss_info(student, account=0):
-    subject = None
-    content = None
+    subject = ""
+    content = ""
     if account == 0:
         passwd = mutil.ss_create_password(None, use_standard_password=True)
         subject = msettings.get_configuration_setting("smartschool-student-email-subject")
@@ -115,13 +115,13 @@ def __build_ss_info(student, account=0):
         passwd1 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
         passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
         co_accounts = ""
-        if student.lpv1_naam != "":
+        if (account == 1 or account == 3) and student.lpv1_naam != "":
             co_accounts += f'''
                 Co-account 1: <b>{student.lpv1_voornaam} {student.lpv1_naam}</b></br> 
                 Gebruikersnaam: <b>{student.username}</b></br>
                 Wachtwoord: <b>{passwd1}</b></br></br>
             '''
-        if student.lpv2_naam != "":
+        if (account == 2 or account == 3) and student.lpv2_naam != "":
             co_accounts += f'''
                 Co-account 2: <b>{student.lpv2_voornaam} {student.lpv2_naam}</b></br> 
                 Gebruikersnaam: <b>{student.username}</b></br>
@@ -163,7 +163,7 @@ def send_info_to_coaccount(student, account=0):
         else:
             return False, False
         status = json.loads(student.status) if student.status else []
-        subject, content = __build_ss_info(student, account= 1)
+        subject, content = __build_ss_info(student, account)
         memail.send_email([email], subject, content)
         if mstudent.Student.send_info_message_ouders in status:
             status.remove(mstudent.Student.send_info_message_ouders)
@@ -215,7 +215,13 @@ def print_smartschool_info(students, account):
             content += PAGEBREAK
             all_content += content
         all_content = all_content[:-len(PAGEBREAK)]
-        filename = f"smartschool-info-voor-{'student' if account == 0 else 'coaacount'}.pdf"
+        if account == 0:
+            acs = "student"
+        elif account == 3:
+            acs = "coacounts"
+        else:
+            acs = f"coaccount {account}"
+        filename = f"smartschool-info-voor-{acs}.pdf"
         pdfkit.from_string(all_content, f"app/static/pdf/{filename}", options=options, configuration=config)
         return f"static/pdf/{filename}"
     except Exception as e:

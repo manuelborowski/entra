@@ -4,7 +4,7 @@ from flask import redirect, url_for, request, render_template
 from flask_login import login_required, current_user
 from app.data.datatables import DatatableConfig
 from app.presentation.view import datatables
-from app.application import socketio as msocketio, settings as msettings, cardpresso as mcardpresso
+from app.application import socketio as msocketio, settings as msettings, cardpresso as mcardpresso, util as mutil
 import json
 import app.data
 import app.application.student
@@ -55,7 +55,7 @@ def item_view(ids=None):
             id = ids[0]
             data = app.application.student.form_prepare_for_view(id)
             data.update({'title': f"{data['defaults']['naam']} {data['defaults']['voornaam']}"})
-            return render_template('formio.html', data=data)
+            return render_template('student/student_details.html', data=data, api_key=mutil.get_keys(current_user.level)[0])
     except Exception as e:
         log.error(f'Could not view student {e}')
     return redirect(url_for('student.show'))

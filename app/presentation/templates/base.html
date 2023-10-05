@@ -47,75 +47,7 @@
             </button>
             <div class="collapse navbar-collapse" id="navbarSupportedContent">
                 {% if current_user.is_authenticated %}
-                    <ul class="navbar-nav mr-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('student.show') }}">Studenten</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('staff.show') }}">Personeel</a>
-                    </li>
-                    {% if  current_user.is_at_least_supervisor %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('cardpresso.show') }}">Cardpresso</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('logging.show') }}">Logging</a>
-                    </li>
-                    {% endif %}
-                    {% if  current_user.is_at_least_admin %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('user.show') }}">Gebruikers</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('settings.show') }}">Instellingen</a>
-                        </li>
-                    {% endif %}
-                    {% if testmode %}
-                        <a class="navbar-brand" href="#">TEST SITE</a>
-                    {% endif %}
-                    {% if table_config and table_config.buttons %}
-                        <div class="nav-buttons">
-                            {% if 'view' in table_config.buttons %}
-                                <button class="btn btn-warning" type="button" onclick="button_pushed('view')">Wijzig
-                                </button>
-                            {% endif %}
-                            {% if 'edit' in table_config.buttons %}
-                                <button class="btn btn-warning" type="button" onclick="button_pushed('edit')">Wijzig
-                                </button>
-                            {% endif %}
-                            {% if 'add' in table_config.buttons %}
-                                <button class="btn btn-default" type="button" onclick="button_pushed('add')">Nieuw
-                                </button>
-                            {% endif %}
-                            {% if 'pdf' in table_config.buttons %}
-                                <button class="btn btn-default" type="button" onclick="button_pushed('pdf')">Pdf
-                                </button>
-                            {% endif %}
-                            {% if 'delete' in table_config.buttons %}
-                                <button class="btn btn-danger" type="button" onclick="button_pushed('delete')">
-                                    Verwijder
-                                </button>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                    {% if data and data.buttons %}
-                        <div class="nav-buttons">
-                            {% if 'save' in data.buttons %}
-                                <button class="btn btn-default" type="button" onclick="button_pushed('save')">Opslaan
-                                </button>
-                            {% endif %}
-                            {% if 'cancel' in data.buttons %}
-                                <button class="btn btn-warning" type="button" onclick="button_pushed('cancel')">
-                                    Annuleren
-                                </button>
-                            {% endif %}
-                            {% if 'clear' in data.buttons %}
-                                <button class="btn btn-warning" type="button" onclick="button_pushed('clear')">Velden
-                                    wissen
-                                </button>
-                            {% endif %}
-                        </div>
-                    {% endif %}
+                    <ul class="navbar-nav mr-auto" id="navbar">
                 {% endif %}
                 </ul>
             </div>
@@ -141,6 +73,10 @@
     <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootbox.js/5.5.2/bootbox.min.js"></script>
     <script src='https://cdn.form.io/formiojs/formio.full.min.js'></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.0.4/socket.io.js" integrity="sha512-aMGMvNYu8Ue4G+fHa359jcPb1u+ytAF+P2SCb+PxrjCdO3n3ZTxJ30zuH39rimUggmTwmh2u7wvQsDTHESnmfQ==" crossorigin="anonymous"></script>
+    <script>
+        const current_user_level = {{ current_user.level }};
+        const testmode = {{ testmode | tojson}};
+    </script>
     <script type="module" src="/static/js/base/base.js"></script>
     <script type="module">
         import { flash_messages } from "/static/js/base/base.js";
