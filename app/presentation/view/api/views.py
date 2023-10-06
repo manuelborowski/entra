@@ -255,7 +255,7 @@ def carpresso_update_rfid():
 @supervisor_key_required
 def smartschool_send_info():
     data = json.loads(request.data)
-    ret = msmartschool.api_send_info_email(data["ids"], data["account"])
+    ret = msmartschool.api_send_info_email(data["ids"], data["account"], data["reset_password"])
     return(json.dumps(ret))
 
 
@@ -264,7 +264,7 @@ def smartschool_send_info():
 @supervisor_key_required
 def smartschool_print_info():
     data = json.loads(request.data)
-    ret = msmartschool.api_print_info(data["ids"], data["account"])
+    ret = msmartschool.api_print_info(data["ids"], data["account"], data["reset_password"])
     return(json.dumps(ret))
 
 

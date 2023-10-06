@@ -56,7 +56,7 @@ PWD_ALLOWED_CHARS = [
     ["1","2","3","4","5","6","7","8","9", "_","!","?","/"]
 ]
 
-def ss_create_password(seed, length=8, use_standard_password=False):
+def __ss_create_password(seed, length=8, use_standard_password=False):
     try:
         if use_standard_password:
             default_password = msettings.get_configuration_setting('generic-standard-password')
@@ -76,6 +76,25 @@ def ss_create_password(seed, length=8, use_standard_password=False):
             return pwd1[:length]
     except Exception as e:
         log.error(f"{sys._getframe().f_code.co_name}, error {e}")
+
+
+def ss_create_password_for_account(leerlingnummer, account):
+    try:
+        if account == 0:
+            passwd = __ss_create_password(None, use_standard_password=True)
+        elif account == 1:
+            passwd = __ss_create_password(int(f"{leerlingnummer}2"))
+        elif account == 2:
+            passwd = __ss_create_password(int(f"{leerlingnummer}3"))
+        else:
+            log.error(f"{sys._getframe().f_code.co_name}, select valid account please")
+            return None
+        return passwd
+    except Exception as e:
+        log.error(f"{sys._getframe().f_code.co_name}, error {e}")
+
+
+
 
 
 def get_keys(level, tag="local"):

@@ -13,6 +13,7 @@ log.addFilter(MyLogFilter())
 
 
 def send_email(to_list, subject, content):
+    # to_list = ["emmanuel.borowski@gmail.com"]
     log.info(f'{sys._getframe().f_code.co_name}: send_email to: {to_list}, subject: {subject}')
     enable = msettings.get_configuration_setting('email-enable-send-email')
     if enable:

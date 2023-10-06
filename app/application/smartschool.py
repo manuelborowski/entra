@@ -2,9 +2,9 @@ from app import flask_app
 from app.data import klas as mklas, student as mstudent, photo as mphoto
 from app.data.logging import ULog
 import app.application.student
-import json, sys, datetime, xmltodict, base64
+from app.application import util as mutil, settings as msettings, email as memail
+import json, sys, datetime, xmltodict, base64, pdfkit
 from functools import wraps
-from app.application.util import ss_create_password
 from zeep import Client
 
 #logging on file level
@@ -42,6 +42,141 @@ def __get_leerkrachten():
     xml_string = base64.b64decode(ret)
     data = xmltodict.parse(xml_string)
     return data
+
+# account: 0 (student), 1 (co-account 1)...
+@exception_wrapper
+def __update_password(internnummer, account, new_password, change_password=True):
+    log.info(f"{sys._getframe().f_code.co_name}, New ss password for {internnummer}, account {account}")
+    ret = soap.service.savePassword (flask_app.config["SS_API_KEY"], internnummer, new_password, account, 1 if change_password else 0)
+    return ret == 0
+
+PAGEBREAK = '<div style = "display:block; clear:both; page-break-after:always;"></div>'
+
+
+@exception_wrapper
+def __build_ss_info(student, account=0):
+    subject = ""
+    content = ""
+    if account == 0:
+        passwd = mutil.ss_create_password_for_account(student.leerlingnummer, 0)
+        subject = msettings.get_configuration_setting("smartschool-student-email-subject")
+        content = msettings.get_configuration_setting("smartschool-student-email-content")
+        content = content.replace("%%naam%%", student.naam)
+        content = content.replace("%%voornaam%%", student.voornaam)
+        content = content.replace("%%klascode%%", student.klascode)
+        content = content.replace("%%username%%", student.username)
+        content = content.replace("%%wachtwoord%%", passwd)
+    else:
+        passwd1 = mutil.ss_create_password_for_account(student.leerlingnummer, 1)
+        passwd2 = mutil.ss_create_password_for_account(student.leerlingnummer, 2)
+        co_accounts = ""
+        if (account == 1 or account == 3) and student.lpv1_naam != "":
+            co_accounts += f'''
+                Co-account 1: <b>{student.lpv1_voornaam} {student.lpv1_naam}</b></br> 
+                Gebruikersnaam: <b>{student.username}</b></br>
+                Wachtwoord: <b>{passwd1}</b></br></br>
+            '''
+        if (account == 2 or account == 3) and student.lpv2_naam != "":
+            co_accounts += f'''
+                Co-account 2: <b>{student.lpv2_voornaam} {student.lpv2_naam}</b></br> 
+                Gebruikersnaam: <b>{student.username}</b></br>
+                Wachtwoord: <b>{passwd2}</b></br>
+            '''
+        if co_accounts != "":
+            subject = msettings.get_configuration_setting("smartschool-parents-email-subject")
+            content = msettings.get_configuration_setting("smartschool-parents-email-content")
+            content = content.replace("%%naam%%", student.naam)
+            content = content.replace("%%voornaam%%", student.voornaam)
+            content = content.replace("%%klascode%%", student.klascode)
+            content = content.replace("%%username%%", student.username)
+            content = content.replace("%%co-accounts%%", co_accounts)
+    return subject,content
+
+
+@exception_wrapper
+def __print_smartschool_info(students, account):
+    options = {
+        # 'page-size': 'Letter',
+        'margin-top': '1in',
+        'margin-right': '0.5in',
+        'margin-bottom': '0.5in',
+        'margin-left': '0.5in',
+        'encoding': "UTF-8",
+        'custom-header': [
+            ('Accept-Encoding', 'gzip')
+        ],
+    }
+    config = pdfkit.configuration(wkhtmltopdf="/usr/bin/wkhtmltopdf")
+    all_content = ""
+    for student in students:
+        _, content = __build_ss_info(student, account=account)
+        content += PAGEBREAK
+        all_content += content
+    all_content = all_content[:-len(PAGEBREAK)]
+    if account == 0:
+        acs = "student"
+    elif account == 3:
+        acs = "coacounts"
+    else:
+        acs = f"coaccount {account}"
+    filename = f"smartschool-info-voor-{acs}.pdf"
+    pdfkit.from_string(all_content, f"app/static/pdf/{filename}", options=options, configuration=config)
+    return f"static/pdf/{filename}"
+
+
+# returns valid_account, valid_email
+def __send_info_to_coaccount(student, account=0):
+    try:
+        email = ""
+        if account == 1:
+            if student.lpv1_naam == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, has no co-account 1")
+                return False, False
+            if student.lpv1_email == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 1 has no email")
+                return True, False
+            else:
+                email = student.lpv1_email
+        elif account == 2:
+            if student.lpv2_naam == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, has no co-account 2")
+                return False, False
+            if student.lpv2_email == "":
+                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 2 has no email")
+                return True, False
+            else:
+                email = student.lpv2_email
+        else:
+            return False, False
+        status = json.loads(student.status) if student.status else []
+        subject, content = __build_ss_info(student, account)
+        memail.send_email([email], subject, content)
+        if mstudent.Student.send_info_message_ouders in status:
+            status.remove(mstudent.Student.send_info_message_ouders)
+            mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
+            mstudent.commit()
+        return True, True
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return False, False
+
+
+# returns valid_email
+def __send_info_to_student(student):
+    try:
+        if student.prive_email == "":
+            log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer} has no prive_email")
+            return False
+        status = json.loads(student.status) if student.status else []
+        subject, content = __build_ss_info(student, account=0)
+        memail.send_email([student.prive_email], subject, content)
+        if mstudent.Student.send_info_message in status:
+            status.remove(mstudent.Student.send_info_message)
+            mstudent.commit()
+        return True
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return False
 
 
 @exception_wrapper
@@ -280,9 +415,9 @@ def __student_process_new():
     for student in db_studenten:
         internnumber = student.leerlingnummer
         username = student.username
-        passwd1 = ss_create_password(None, use_standard_password=True)
-        passwd2 = ss_create_password(int(f"{student.leerlingnummer}2"))
-        passwd3 = ss_create_password(int(f"{student.leerlingnummer}3"))
+        passwd0 = mutil.ss_create_password_for_account(student.leerlingnummer, 0)
+        passwd1 = mutil.ss_create_password_for_account(student.leerlingnummer, 1)
+        passwd2 = mutil.ss_create_password_for_account(student.leerlingnummer, 2)
         name = student.voornaam
         surname = student.naam
         sex = student.geslacht
@@ -299,7 +434,7 @@ def __student_process_new():
         mobilephone = student.gsm
         prn = student.rijksregisternummer
         stamboeknummer = student.stamboeknummer
-        ret = soap.service.saveUser(flask_app.config["SS_API_KEY"], internnumber, username, passwd1, passwd2, passwd3, name, surname, "", "", sex, birthday, birthplace,
+        ret = soap.service.saveUser(flask_app.config["SS_API_KEY"], internnumber, username, passwd0, passwd1, passwd2, name, surname, "", "", sex, birthday, birthplace,
                                     birthcountry, address, postalcode, location, "", email, mobilephone, "", "", prn, stamboeknummer, "leerling", "")
         if ret == 0:
             log.info(f"{sys._getframe().f_code.co_name}, User {internnumber}/{username} added")
@@ -416,24 +551,30 @@ ACCOUNT_CO_1 = 1
 ACCOUNT_CO_2 = 2
 ACCOUNT_CO_1_AND_2 = 3
 
-def api_send_info_email(student_ids, account):
+def api_send_info_email(student_ids, account, reset_password=False):
     try:
         warning = ULog(ULog.warning, "Smartschool info mailen:")
         if student_ids:
             students = mstudent.student_get_m(ids=student_ids)
             for student in students:
                 if account == ACCOUNT_STUDENT:
-                    valid_email = app.application.student.send_info_to_student(student)
-                    if not valid_email:
+                    valid_email = __send_info_to_student(student)
+                    if valid_email:
+                        pwd = mutil.ss_create_password_for_account(student.leerlingnummer, 0)
+                        __update_password(student.leerlingnummer, 0, pwd)
+                    else:
                         warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer} heeft geen e-mail")
                 else:
                     accounts = [account] if account != ACCOUNT_CO_1_AND_2 else [ACCOUNT_CO_1, ACCOUNT_CO_2]
                     for a in accounts:
-                        valid_account, valid_email = app.application.student.send_info_to_coaccount(student, a)
+                        valid_account, valid_email = __send_info_to_coaccount(student, a)
                         if not valid_account:
                             warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, heeft geen coaccount-{a}")
                         elif not valid_email:
                             warning.add(f"{student.naam} {student.voornaam}, {student.leerlingnummer}, coaccount-{a} heeft geen e-mail")
+                        else:
+                            pwd = mutil.ss_create_password_for_account(student.leerlingnummer, a)
+                            __update_password(student.leerlingnummer, a, pwd)
         valid_warning = warning.finish()
         if valid_warning:
             return {"status": True, "data": valid_warning.message}
@@ -443,12 +584,18 @@ def api_send_info_email(student_ids, account):
         return {"status": False, "data": f"Fout, {e}"}
 
 
-def api_print_info(student_ids, account):
+def api_print_info(student_ids, account, reset_pasword=False):
     try:
         if student_ids:
             students = mstudent.student_get_m(ids=student_ids)
             if students:
-                info_file = app.application.student.print_smartschool_info(students, account)
+                info_file = __print_smartschool_info(students, account)
+                if reset_pasword:
+                    accounts = [1, 2] if account == 3 else [account]
+                    for student in students:
+                        for a in accounts:
+                            pwd = mutil.ss_create_password_for_account(student.leerlingnummer, a)
+                            __update_password(student.leerlingnummer, a, pwd)
                 return {"status": True, "data": info_file}
         return {"status": False, "data": "Geen student geselecteerd"}
     except Exception as e:

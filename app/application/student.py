@@ -4,7 +4,7 @@ from app.application.formio import iterate_components_cb
 from app.data import student as mstudent, settings as msettings, photo as mphoto, person as mperson
 import app.data.settings
 from app.application import formio as mformio, email as memail, util as mutil, ad as mad, papercut as mpapercut
-import sys, base64, json, pandas as pd, datetime, io, pdfkit
+import sys, base64, json, pandas as pd, datetime, io
 from flask import make_response, send_from_directory
 from .smartschool import send_message
 from app.data.logging import ULog
@@ -99,135 +99,6 @@ def klassen_get_unique():
     return klassen
 
 
-def __build_ss_info(student, account=0):
-    subject = ""
-    content = ""
-    if account == 0:
-        passwd = mutil.ss_create_password(None, use_standard_password=True)
-        subject = msettings.get_configuration_setting("smartschool-student-email-subject")
-        content = msettings.get_configuration_setting("smartschool-student-email-content")
-        content = content.replace("%%naam%%", student.naam)
-        content = content.replace("%%voornaam%%", student.voornaam)
-        content = content.replace("%%klascode%%", student.klascode)
-        content = content.replace("%%username%%", student.username)
-        content = content.replace("%%wachtwoord%%", passwd)
-    else:
-        passwd1 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
-        passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
-        co_accounts = ""
-        if (account == 1 or account == 3) and student.lpv1_naam != "":
-            co_accounts += f'''
-                Co-account 1: <b>{student.lpv1_voornaam} {student.lpv1_naam}</b></br> 
-                Gebruikersnaam: <b>{student.username}</b></br>
-                Wachtwoord: <b>{passwd1}</b></br></br>
-            '''
-        if (account == 2 or account == 3) and student.lpv2_naam != "":
-            co_accounts += f'''
-                Co-account 2: <b>{student.lpv2_voornaam} {student.lpv2_naam}</b></br> 
-                Gebruikersnaam: <b>{student.username}</b></br>
-                Wachtwoord: <b>{passwd2}</b></br>
-            '''
-        if co_accounts != "":
-            subject = msettings.get_configuration_setting("smartschool-parents-email-subject")
-            content = msettings.get_configuration_setting("smartschool-parents-email-content")
-            content = content.replace("%%naam%%", student.naam)
-            content = content.replace("%%voornaam%%", student.voornaam)
-            content = content.replace("%%klascode%%", student.klascode)
-            content = content.replace("%%username%%", student.username)
-            content = content.replace("%%co-accounts%%", co_accounts)
-    return subject,content
-
-
-# returns valid_account, valid_email
-def send_info_to_coaccount(student, account=0):
-    try:
-        email = ""
-        if account == 1:
-            if student.lpv1_naam == "":
-                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, has no co-account 1")
-                return False, False
-            if student.lpv1_email == "":
-                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 1 has no email")
-                return True, False
-            else:
-                email = student.lpv1_email
-        elif account == 2:
-            if student.lpv2_naam == "":
-                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, has no co-account 2")
-                return False, False
-            if student.lpv2_email == "":
-                log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer}, co-account 2 has no email")
-                return True, False
-            else:
-                email = student.lpv2_email
-        else:
-            return False, False
-        status = json.loads(student.status) if student.status else []
-        subject, content = __build_ss_info(student, account)
-        memail.send_email([email], subject, content)
-        if mstudent.Student.send_info_message_ouders in status:
-            status.remove(mstudent.Student.send_info_message_ouders)
-            mstudent.student_update(student, {"status": json.dumps(status)}, commit=False)
-            mstudent.commit()
-        return True, True
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-        return False, False
-
-
-# returns valid_email
-def send_info_to_student(student):
-    try:
-        if student.prive_email == "":
-            log.info(f"{sys._getframe().f_code.co_name}, {student.naam} {student.voornaam}, {student.leerlingnummer} has no prive_email")
-            return False
-        status = json.loads(student.status) if student.status else []
-        subject, content = __build_ss_info(student, account=0)
-        memail.send_email([student.prive_email], subject, content)
-        if mstudent.Student.send_info_message in status:
-            status.remove(mstudent.Student.send_info_message)
-            mstudent.commit()
-        return True
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-        return False
-
-
-PAGEBREAK = '<div style = "display:block; clear:both; page-break-after:always;"></div>'
-
-def print_smartschool_info(students, account):
-    try:
-        options = {
-            # 'page-size': 'Letter',
-            'margin-top': '1in',
-            'margin-right': '0.5in',
-            'margin-bottom': '0.5in',
-            'margin-left': '0.5in',
-            'encoding': "UTF-8",
-            'custom-header': [
-                ('Accept-Encoding', 'gzip')
-            ],
-        }
-        config = pdfkit.configuration(wkhtmltopdf="/usr/bin/wkhtmltopdf")
-        all_content = ""
-        for student in students:
-            _, content = __build_ss_info(student, account=account)
-            content += PAGEBREAK
-            all_content += content
-        all_content = all_content[:-len(PAGEBREAK)]
-        if account == 0:
-            acs = "student"
-        elif account == 3:
-            acs = "coacounts"
-        else:
-            acs = f"coaccount {account}"
-        filename = f"smartschool-info-voor-{acs}.pdf"
-        pdfkit.from_string(all_content, f"app/static/pdf/{filename}", options=options, configuration=config)
-        return f"static/pdf/{filename}"
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-        return False
-
 
 export_header = [
     "voornaam", "naam", "klas", "gebruikersnaam", "ww", "email", "naam co1", "voornaam co1", "email co1", "ww co1","naam co2", "voornaam co2", "email co2",  "ww co2"
@@ -238,24 +109,24 @@ def export_passwords(ids):
         students = mstudent.student_get_m(ids=ids)
         students_to_export = []
         for student in students:
-            passwd1 = mutil.ss_create_password(None, use_standard_password=True)
-            passwd2 = mutil.ss_create_password(int(f"{student.leerlingnummer}2"))
-            passwd3 = mutil.ss_create_password(int(f"{student.leerlingnummer}3"))
+            passwd0 = mutil.ss_create_password_for_account(student.leerlingnummer, 0)
+            passwd1 = mutil.ss_create_password_for_account(student.leerlingnummer, 1)
+            passwd2 = mutil.ss_create_password_for_account(student.leerlingnummer, 2)
             student_export = {}
             student_export["voornaam"] = student.voornaam
             student_export["naam"] = student.naam
             student_export["klas"] = student.klascode
             student_export["gebruikersnaam"] = student.username
-            student_export["ww"] = passwd1
+            student_export["ww"] = passwd0
             student_export["email"] = student.prive_email if student.prive_email != "" else "-"
             student_export["naam co1"] = student.lpv1_naam
             student_export["voornaam co1"] = student.lpv1_voornaam
             student_export["email co1"] = student.lpv1_email if student.lpv1_email != "" else "-"
-            student_export["ww co1"] = passwd2 if student.lpv1_naam != "" else ""
+            student_export["ww co1"] = passwd1 if student.lpv1_naam != "" else ""
             student_export["naam co2"] = student.lpv2_naam
             student_export["voornaam co2"] = student.lpv2_voornaam
             student_export["email co2"] = student.lpv2_email if student.lpv2_email != "" else "-"
-            student_export["ww co2"] = passwd3 if student.lpv2_naam != "" else ""
+            student_export["ww co2"] = passwd2 if student.lpv2_naam != "" else ""
             students_to_export.append(student_export)
             status = json.loads(student.status) if student.status else []
             if mstudent.Student.export in status:
