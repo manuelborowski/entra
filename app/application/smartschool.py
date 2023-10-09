@@ -539,9 +539,9 @@ def cron_send_ss_info_to_student_and_coaacount(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     students = mstudent.student_get_m([("new", "=", True)])
     for student in students:
-        app.application.student.send_info_to_student(student)
-        app.application.student.send_info_to_coaccount(student, 1)
-        app.application.student.send_info_to_coaccount(student, 2)
+        __send_info_to_student(student)
+        __send_info_to_coaccount(student, 1)
+        __send_info_to_coaccount(student, 2)
     log.info(f"{sys._getframe().f_code.co_name}, STOP")
     return True
 
