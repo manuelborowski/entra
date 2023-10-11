@@ -137,6 +137,7 @@ def __students_get_from_informat_raw(topic, item_name, filter_on, replace_keys=N
                 for k, v in replace_keys.items():
                     xml_data = xml_data.replace(bytes(f"<{k}>", "utf-8"), bytes(f"<{v}>", "utf-8"))
                     xml_data = xml_data.replace(bytes(f"</{k}>", "utf-8"), bytes(f"</{v}>", "utf-8"))
+                    xml_data = xml_data.replace(bytes(f"<{k} />", "utf-8"), bytes(f"<{v} />", "utf-8"))
             data = xmltodict.parse(xml_data, force_list=force_list)[f"ArrayOf{item_name[0].upper() + item_name[1::]}"]
             if item_name in data:
                 data = data[item_name]

@@ -166,11 +166,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.63: reworked navbar. Student-detail, added dropdown menu.
 # 1.64: when mailing/printo smartschool info, a checkbox can be ticked to indicate if the smartschool password needs to reset.
 # 1.65: small bugfix
+# 1.66: informat import, key-replace, take empty fields into account
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.65', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.66', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
