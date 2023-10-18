@@ -168,10 +168,11 @@ flask_app.config.from_pyfile('config.py')
 # 1.65: small bugfix
 # 1.66: informat import, key-replace, take empty fields into account
 # 1.67: bugfix cardpresso, when quering the database, filters needed to be a list.  Added a test in multiple_get
+# 1.68: version fix
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.66', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.68', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
