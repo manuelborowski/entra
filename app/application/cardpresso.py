@@ -166,7 +166,7 @@ def cron_task_new_badges(opaque=None):
         deleted_students = mstudent.student_get_m([('delete', "=", True)])
         deleted_badges = []
         for student in deleted_students:
-            badge = mcardpresso.badge_get(('leerlingnummer', "=", student.leerlingnummer))
+            badge = mcardpresso.badge_get([('leerlingnummer', "=", student.leerlingnummer)])
             if badge:
                     deleted_badges.append(badge.id)
         if deleted_badges:

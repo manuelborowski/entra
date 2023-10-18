@@ -70,7 +70,6 @@ $(document).ready(() => {
                     }
                 }
                 dd_ctr++;
-
             } else {
                 // regular menu-item
                 const url_path = Flask.url_for(item[0]);
@@ -84,7 +83,6 @@ $(document).ready(() => {
                 a.innerHTML = item[1];
                 li.appendChild(a);
             }
-
             navbar_element.appendChild(li);
         }
     }

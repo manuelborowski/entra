@@ -167,7 +167,7 @@ flask_app.config.from_pyfile('config.py')
 # 1.64: when mailing/printo smartschool info, a checkbox can be ticked to indicate if the smartschool password needs to reset.
 # 1.65: small bugfix
 # 1.66: informat import, key-replace, take empty fields into account
-
+# 1.67: bugfix cardpresso, when quering the database, filters needed to be a list.  Added a test in multiple_get
 
 @flask_app.context_processor
 def inject_defaults():

@@ -97,6 +97,8 @@ def get_multiple(model, filters=[], fields=[], ids=[], order_by=None, first=Fals
             q = model.query.with_entities(*entities)
         else:
             q = model.query
+        if type(filters) is not list:
+            filters = [filters]
         for k, o, v in filters:
             if o == '!':
                 if hasattr(model, k):
