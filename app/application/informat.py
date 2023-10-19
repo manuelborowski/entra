@@ -61,6 +61,11 @@ normalMap = {'À': 'A', 'Á': 'A', 'Â': 'A', 'Ã': 'A', 'Ä': 'A', 'à': 'a', '
              '§': 'S', '³': '3', '²': '2', '¹': '1', ' ': '', '\'': ''}
 normalize_letters = str.maketrans(normalMap)
 
+def __normalize_email(voornaam, naam):
+    email= f"{voornaam.translate(normalize_letters).lower()}.{naam.translate(normalize_letters).lower()}@lln.campussintursula.be"
+    return email
+
+
 STUDENT_MAP_I_Lln2DB_KEYS = {
     "Voornaam": "voornaam", "Naam": "naam", "rijksregnr": "rijksregisternummer", "Stamnr_kort": "stamboeknummer",
     "p_persoon": "leerlingnummer", "begindatum": "inschrijvingsdatum", "instelnr": "instellingsnummer", "Klascode": "klascode",
@@ -327,10 +332,6 @@ def student_from_informat_to_database(settings=None):
                 informat_student["roepnaam"] = informat_student["roepnaam"][len(informat_student["naam"])+1::].strip()
             else:
                 informat_student["roepnaam"] = informat_student["voornaam"]
-
-            # if informat_student["roepnaam"] != informat_student["voornaam"]:
-            #     log.info(f"ROEPNAAM, {informat_student['naam']} {informat_student['voornaam']}, {informat_student['roepnaam']}")
-
             if f"{informat_student['leerlingnummer']}.jpg" in saved_photos:
                 informat_student['foto_id'] = saved_photos[f"{informat_student['leerlingnummer']}.jpg"]
                 informat_student['foto'] = f"{informat_student['leerlingnummer']}.jpg"
@@ -358,6 +359,9 @@ def student_from_informat_to_database(settings=None):
                 for k in STUDENT_CHANGED_PROPERTIES_MASK:
                     if k in informat_student and informat_student[k] != getattr(db_student, k):
                         changed_properties.append(k)
+                if "naam" in changed_properties or "voornaam" in changed_properties:
+                    informat_student['email'] = __normalize_email(informat_student['voornaam'], informat_student['naam'])
+                    changed_properties.append("email")
                 if changed_properties:
                     changed_properties.extend(['delete', 'new'])  # student already present, but has changed properties
                     informat_student.update({'changed': changed_properties, 'student': db_student, 'delete': False, 'new': False})
@@ -366,7 +370,7 @@ def student_from_informat_to_database(settings=None):
                 del (db_students[informat_student['leerlingnummer']])
             else:
                 # student not present in database, i.e. a new student
-                informat_student['email'] = f"{informat_student['voornaam'].translate(normalize_letters).lower()}.{informat_student['naam'].translate(normalize_letters).lower()}@lln.campussintursula.be"
+                informat_student['email'] = __normalize_email(informat_student['voornaam'], informat_student['naam'])
                 informat_student['username'] = f's{informat_student["leerlingnummer"]}'
                 informat_student["status"] = json.dumps(mstudent.Student.get_statuses())
                 new_list.append(informat_student)  # new student

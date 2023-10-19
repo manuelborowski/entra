@@ -333,11 +333,11 @@ def __students_move_to_group_leerlingen(ctx):
 def __students_cache_init(ctx):
     # Create student caches
     res = ctx.ldap.search(STUDENT_OU, f'(&(objectclass=user)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))', ldap3.SUBTREE,
-                          attributes=['cn', 'wwwhomepage', 'userAccountControl', 'mail', 'l', 'sn', 'givenname', 'pager', 'displayname', 'postOfficeBox'])
+                          attributes=['cn', 'wwwhomepage', 'userAccountControl', 'mail', 'l', 'sn', 'givenname', 'pager', 'displayname', 'postOfficeBox', "proxyAddresses"])
     if res:
         ctx.ad_active_students_leerlingnummer = {s['attributes']['wwwhomepage']: s for s in ctx.ldap.response if s['attributes']['wwwhomepage'] != []}
         ctx.ad_active_students_dn = {s['dn']: s for s in ctx.ldap.response if s['attributes']['wwwhomepage'] != []}
-        ctx.ad_active_students_mail = [s['attributes']['mail'].lower() for s in ctx.ldap.response if s['attributes']['wwwhomepage'] != []]
+        ctx.ad_active_students_mail = [s['attributes']['proxyAddresses'][-1][5:].lower() for s in ctx.ldap.response if s['attributes']['proxyAddresses'] != []]
         log.info(f'AD: create active-students-caches, {len(ctx.ad_active_students_leerlingnummer)} entries')
     else:
         e = ctx.ldap.result
@@ -394,14 +394,6 @@ def __students_new(ctx):
             if reset_student_password:
                 res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, dn, default_password, None)  # reset the password to default
                 __handle_ldap_response(ctx, student, res, f'student already in AD, set default password')
-            if student.email != ad_student['attributes']['mail']:
-                mstudent.student_update(student, {'email': ad_student['attributes']['mail']})
-                if ctx.verbose_logging:
-                    log.info(f'student already in AD, {student.naam} {student.voornaam}, {student.leerlingnummer}, update email in SDH {ad_student["attributes"]["mail"]}')
-            if student.username != ad_student['attributes']['samaccountname']:
-                mstudent.student_update(student, {'username': ad_student['attributes']['samaccountname']})
-                if ctx.verbose_logging:
-                    log.info(f'student already in AD, {student.naam} {student.voornaam}, {student.leerlingnummer}, update username in SDH {ad_student["attributes"]["samaccountname"]}')
             # add student to cache
             ctx.ad_active_students_leerlingnummer[student.leerlingnummer] = ad_student
             ctx.students_to_leerlingen_group.append(student)
@@ -425,10 +417,10 @@ def __students_new(ctx):
             if ctx.verbose_logging:
                 log.info(f'student with same email already in ad, {student.naam} {student.voornaam}, {student.leerlingnummer}, this email is {email}')
         # for classroom.cloud, the email must be the same as the user login.
-        email = student.username + "@lln.campussintursula.be"
+        mail = student.username + "@lln.campussintursula.be"
         attributes = {'samaccountname': student.username, 'wwwhomepage': f'{student.leerlingnummer}',
                       'userprincipalname': f'{student.username}{STUDENT_EMAIL_DOMAIN}',
-                      'mail': email,
+                      'mail': mail,
                       'name': f'{student.naam} {student.voornaam}',
                       'useraccountcontrol': 0X220,  #password not required, normal account, account active
                       'cn': cn,
@@ -441,6 +433,8 @@ def __students_new(ctx):
             attributes['pager'] = student.rfid
         res = ctx.ldap.add(dn, USER_OBJECT_CLASS, attributes)
         __handle_ldap_response(ctx, student, res, f'student new in AD, changed {attributes}')
+        res = ctx.ldap.modify(dn, {'proxyAddresses': [ldap3.MODIFY_ADD, (f"smtp:{email}")]})
+        __handle_ldap_response(ctx, student, res, 'student new in AD, set email address')
         res = ldap3.extend.microsoft.modifyPassword.ad_modify_password(ctx.ldap, dn, default_password, None)  # reset the password to xxx
         __handle_ldap_response(ctx, student, res, 'student new in AD, set standard password')
         ad_student = {'dn': dn, 'attributes': {'cn': cn}}
@@ -471,7 +465,10 @@ def __students_changed(ctx):
                     if 'roepnaam' in changed and student.roepnaam != '':
                         changes.update({'displayname': [ldap3.MODIFY_REPLACE, (f'{app.application.util.get_student_voornaam(student)} {student.naam}')]})
                     if 'email' in changed:
-                        changes.update({'mail': [ldap3.MODIFY_REPLACE, (student.email)]})
+                        res = ctx.ldap.modify(ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['dn'], {'proxyAddresses': [ldap3.MODIFY_DELETE, ()]})
+                        if not res:
+                            log.info(f"{sys._getframe().f_code.co_name}, student {student.naam} {student.voornaam}, {student.leerlingnummer}, could not delete proxyAddresses ")
+                        changes.update({'proxyAddresses': [ldap3.MODIFY_ADD, (f"smtp:{student.email}")]})
                     if 'rfid' in changed:
                         if student.rfid == "":
                             changes.update({'pager': [ldap3.MODIFY_DELETE, ([])]})
