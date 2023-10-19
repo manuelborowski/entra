@@ -43,6 +43,7 @@ import bdb, app
 from app.data import student as mstudent, staff as mstaff, utils as mutils
 from app.data import settings as msettings
 from app.application.email import  send_new_staff_message
+from app.application.klas import klas_to_klasgroup
 import ldap3, json, sys, datetime
 from functools import wraps
 from app.application.util import get_student_voornaam
@@ -428,7 +429,7 @@ def __students_new(ctx):
                       'l': student.klascode,
                       'description': f'{student.schooljaar} {student.klascode}', 'postalcode': student.schooljaar,
                       'physicaldeliveryofficename': student.klascode, 'givenname': student.voornaam,
-                      'displayname': f'{app.application.util.get_student_voornaam(student)} {student.naam} '}
+                      'displayname': f'{app.application.util.get_student_voornaam(student)} {student.naam} {klas_to_klasgroup(student.klascode)}'}
         if student.rfid and student.rfid != '':
             attributes['pager'] = student.rfid
         res = ctx.ldap.add(dn, USER_OBJECT_CLASS, attributes)
@@ -460,10 +461,10 @@ def __students_changed(ctx):
                         changes.update({
                                         'sn': [ldap3.MODIFY_REPLACE, (student.naam)],
                                         'givenname': [ldap3.MODIFY_REPLACE, (student.voornaam)],
-                                        'displayname': [ldap3.MODIFY_REPLACE, (f'{app.application.util.get_student_voornaam(student)} {student.naam}')]})
+                                        'displayname': [ldap3.MODIFY_REPLACE, (f'{app.application.util.get_student_voornaam(student)} {student.naam} {klas_to_klasgroup(student.klascode)}')]})
                         ctx.students_change_cn.append(student)
                     if 'roepnaam' in changed and student.roepnaam != '':
-                        changes.update({'displayname': [ldap3.MODIFY_REPLACE, (f'{app.application.util.get_student_voornaam(student)} {student.naam}')]})
+                        changes.update({'displayname': [ldap3.MODIFY_REPLACE, (f'{app.application.util.get_student_voornaam(student)} {student.naam} {klas_to_klasgroup(student.klascode)}')]})
                     if 'email' in changed:
                         res = ctx.ldap.modify(ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['dn'], {'proxyAddresses': [ldap3.MODIFY_DELETE, ()]})
                         if not res:
@@ -479,7 +480,9 @@ def __students_changed(ctx):
                             {'description': [ldap3.MODIFY_REPLACE, (f'{student.schooljaar} {student.klascode}')],
                              'postalcode': [ldap3.MODIFY_REPLACE, (student.schooljaar,)],
                              'l': [ldap3.MODIFY_REPLACE, (student.klascode)],
-                             'physicalDeliveryOfficeName': [ldap3.MODIFY_REPLACE, (student.klascode)]})
+                             'physicalDeliveryOfficeName': [ldap3.MODIFY_REPLACE, (student.klascode)],
+                             'displayname': [ldap3.MODIFY_REPLACE, (f'{app.application.util.get_student_voornaam(student)} {student.naam} {klas_to_klasgroup(student.klascode)}')],
+                             })
                     res = ctx.ldap.modify(ctx.ad_active_students_leerlingnummer[student.leerlingnummer]['dn'], changes)
                     __handle_ldap_response(ctx, student, res, f'already-present-in-AD, changed {changes}')
                     if 'schooljaar' in changed:  # move to new OU

@@ -33,6 +33,17 @@ def get_klassen_klasgroepen():
     return data
 
 
+def klas_to_klasgroup(klascode):
+    try:
+        klas = mklas.klas_get(("klascode", "=", klascode))
+        if klas:
+            klasgroep = klas.klasgroepcode if klas.klasgroepcode != "" else klas.klascode
+            return klasgroep
+        return klascode
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+
 def get_klassen_deelscholen():
     klassen = mklas.klas_get_m()
     data = {}
