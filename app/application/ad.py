@@ -732,10 +732,10 @@ class StaffContext(PersonContext):
 @ad_ctx_wrapper(StaffContext)
 def ad_staff_process_flagged(opaque=None, **kwargs):
     all_ok = True
-    set_default_password = send_email = False
+    send_email = False
     ctx = kwargs["ctx"]
-    log.info(f"{sys._getframe().f_code.co_name}, START", opaque)
-    staff_list = opaque["staff"] if "staff" in opaque else None
+    log.info(f"{sys._getframe().f_code.co_name}, START, {opaque}")
+    staff_list = opaque["staff"] if opaque and "staff" in opaque else None
     if staff_list:
         log.info(f"{sys._getframe().f_code.co_name}, staff: {staff_list}")
     # check for new staff
@@ -752,8 +752,7 @@ def ad_staff_process_flagged(opaque=None, **kwargs):
         else:
             res = __staff_add(ctx, db_staff)
             all_ok = all_ok and res
-            set_default_password = send_email = True
-        if set_default_password:
+            send_email = True
             default_password = msettings.get_configuration_setting("generic-standard-password")
             res = person_set_password(db_staff, default_password, must_update=True, never_expires=True)
             all_ok = all_ok and res
