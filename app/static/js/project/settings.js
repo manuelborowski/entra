@@ -26,7 +26,6 @@ function load_formio_form() {
             _form.getComponentById(button_id).setValue(false);
         })
         form.on('submitButton', button => {
-            console.log(button);
             button_id = button.instance.id;
         });
     });

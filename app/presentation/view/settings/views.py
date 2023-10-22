@@ -7,29 +7,30 @@ from . import settings
 from app.application import settings as msettings, cron as mcron, formio as mformio, cron_table
 import json
 
+
 @settings.route('/settings', methods=['GET', 'POST'])
 @admin_required
 @login_required
 def show():
-  cron_module_enable_settings = msettings.get_configuration_setting('cron-enable-modules')
-  cron_module = mformio.search_component(settings_formio, 'cron-enable-modules')
-  cron_module["components"] = []
-  for nbr, module in enumerate(cron_table):
-    enabled = cron_module_enable_settings[module[0]] if module[0] in cron_module_enable_settings else False
-    cron_module["components"].append({"label": f'({nbr+1}) {module[2]}', "tooltip": module[3], "tableView": False, "defaultValue": enabled, "key": module[0], "type": "checkbox", "input": True})
-  default_settings = msettings.get_configuration_settings(convert_to_string=True)
-  data = {'default': default_settings, 'template': settings_formio}
-  return render_template('/settings/settings.html', data=data)
+    cron_module_enable_settings = msettings.get_configuration_setting('cron-enable-modules')
+    cron_module = mformio.search_component(settings_formio, 'cron-enable-modules')
+    cron_module["components"] = []
+    for nbr, module in enumerate(cron_table):
+      enabled = cron_module_enable_settings[module[0]] if module[0] in cron_module_enable_settings else False
+      cron_module["components"].append({"label": f'({nbr+1}) {module[2]}', "tooltip": module[3], "tableView": False, "defaultValue": enabled, "key": module[0], "type": "checkbox", "input": True})
+    default_settings = msettings.get_configuration_settings(convert_to_string=True)
+    data = {'default': default_settings, 'template': settings_formio}
+    return render_template('/settings/settings.html', data=data)
 
 
 def update_settings_cb(msg, client_sid=None):
-  try:
-    data = msg['data']
-    settings = json.loads(data['value'])
-    msettings.set_setting_topic(settings)
-    msocketio.broadcast_message({'type': 'settings', 'data': {'status': True}})
-  except Exception as e:
-    msocketio.broadcast_message({'type': 'settings', 'data': {'status': False, 'message': str(e)}})
+    try:
+        data = msg['data']
+        settings = json.loads(data['value'])
+        msettings.set_setting_topic(settings)
+        msocketio.broadcast_message({'type': 'settings', 'data': {'status': True}})
+    except Exception as e:
+        msocketio.broadcast_message({'type': 'settings', 'data': {'status': False, 'message': str(e)}})
 
 
 msocketio.subscribe_on_type('settings', update_settings_cb)

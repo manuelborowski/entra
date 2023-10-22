@@ -33,13 +33,12 @@ def cron_task(opaque=None):
     with flask_app.app_context():
         if check_cron_active_july_august():
             settings = get_configuration_setting('cron-enable-modules')
-            with flask_app.app_context():
-                test_cron_task(opaque)
-                for task in cron_table:
-                    if task[0] in settings and settings[task[0]]:
-                        task[1](opaque)
-                log.error("FLUSH-TO-EMAIL") # this will trigger an email with ERROR-logs (if present)
-                disable_features_in_july_august()
+            test_cron_task(opaque)
+            for task in cron_table:
+                if task[0] in settings and settings[task[0]]:
+                    task[1](opaque)
+            log.error("FLUSH-TO-EMAIL") # this will trigger an email with ERROR-logs (if present)
+            disable_features_in_july_august()
 
 
 def init_job(cron_template):
