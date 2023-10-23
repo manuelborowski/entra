@@ -172,7 +172,7 @@ flask_app.config.from_pyfile('config.py')
 # 1.69: students, email fix, use proxyAddresses to hold emailaddress
 # 1.70: AD, add klascode to displayname
 # 1.71: bugfix cron AD staff, check opaque parameters
-
+# 1.72: bugfix socketio, increase timeouts
 
 @flask_app.context_processor
 def inject_defaults():
@@ -252,7 +252,7 @@ db.app = flask_app  #  hack:-(
 db.init_app(flask_app)
 
 
-socketio = SocketIO(flask_app, async_mode=flask_app.config['SOCKETIO_ASYNC_MODE'], ping_timeout=10, ping_interval=5, cors_allowed_origins=flask_app.config['SOCKETIO_CORS_ALLOWED_ORIGIN'])
+socketio = SocketIO(flask_app, async_mode=flask_app.config['SOCKETIO_ASYNC_MODE'], cors_allowed_origins=flask_app.config['SOCKETIO_CORS_ALLOWED_ORIGIN'])
 
 
 # configure e-mailclient
