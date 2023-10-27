@@ -186,6 +186,22 @@ def leerid_send():
     return(json.dumps(ret))
 
 
+@api.route('/api/student/upload_student_data', methods=['POST'])
+@supervisor_key_required
+def student_data_upload():
+    files = [f for f in request.files.getlist("student_data_file")]
+    ret = mstudent.api_upload_student_data(files[0])
+    return json.dumps(ret, ensure_ascii=False)
+
+
+@api.route('/api/student/update_student_data', methods=['POST'])
+@supervisor_key_required
+def student_data_update():
+    data = json.loads(request.data)
+    ret = mstudent.api_update_student_data(data)
+    return json.dumps(ret, ensure_ascii=False)
+
+
 @api.route('/api/staff/get', methods=['GET'])
 @user_key_required
 def staff_get():

@@ -390,6 +390,8 @@ def __students_new(ctx):
             }
             if student.rfid and student.rfid != '':
                 changes.update({'pager': [ldap3.MODIFY_REPLACE, (student.rfid)]})
+            if student.username != ad_student["attributes"]["samaccountname"]:
+                mstudent.student_update(student, {"username": ad_student["attributes"]["samaccountname"]})
             res = ctx.ldap.modify(dn, changes)
             __handle_ldap_response(ctx, student, res, f'student already in AD, changed {changes}')
             if reset_student_password:

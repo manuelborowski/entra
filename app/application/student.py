@@ -239,6 +239,103 @@ def api_upload_leerid(files):
         return {"status": False, "data": f"Fout, {e}"}
 
 
+def api_update_student_data(data):
+    try:
+        key_cols = data["key_cols"]
+        db_students = mstudent.student_get_m()
+        db_students_cache = {"".join([str(getattr(s, f)) for f in key_cols]).lower() : s for s in db_students}
+        update_students = []
+        for student in data["students"]:
+            if student["key"] in db_students_cache:
+                db_student = db_students_cache[student["key"]]
+                student_data = {"student": db_student, "changed": data["fields"]}
+                student_data.update(student["data"])
+                update_students.append(student_data)
+        mstudent.student_change_m(update_students)
+        return {"status": True}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
+        return {"status": False, "data": f"Fout, {e}"}
+
+
+def api_upload_student_data(file):
+    try:
+        pd_data = pd.read_excel(file)
+        data_list = pd_data.to_dict("records")
+        cmd0_col = pd_data.head().columns[0]
+        cmd1_col = pd_data.head().columns[1]
+        cmd2_col = pd_data.head().columns[2]
+
+        db_students = mstudent.student_get_m()
+        db_students_cache = {}
+        key_cols = ["leerlingnummer"]
+        key_field = key_cols[0]
+        concat_cols = []
+        relevant_fields = []
+        aliases = []
+        nbr_double = 0
+        nbr_found = 0
+        nbr_not_found = 0
+        nbr_invalid_line = 0
+        # found_cache = []
+        update_students = []
+        students_processed = []
+        for item in data_list:
+            if "$key$" == item[cmd0_col]:
+                key_cols = item[cmd1_col].split("-")
+                key_field = "".join(key_cols)
+                continue
+            elif "$concat$" == item[cmd0_col]:
+                new_field = item[cmd1_col]
+                concat_fields = item[cmd2_col].split("-")
+                concat_cols.append((new_field, concat_fields))
+                continue
+            elif "$fields$" == item[cmd0_col]:
+                relevant_fields = item[cmd1_col].split(",")
+                continue
+            elif "$alias$" == item[cmd0_col]:
+                aliases.append((item[cmd1_col], item[cmd2_col]))
+                continue
+
+            if not db_students_cache:
+                for student in db_students:
+                    key_value = "".join([str(getattr(student, f)) for f in key_cols]).lower()
+                    db_students_cache[key_value] = student
+
+            try:
+                for alias in aliases:
+                    item[alias[1]] = item[alias[0]]
+                key = "".join([item[k] for k in key_cols])
+                item[key_field] = key.lower()
+                for cc in concat_cols:
+                    item[cc[0]] = "".join([str(item[k]) for k in cc[1]])
+
+                if item[key_field] in db_students_cache:
+                    if item[key_field] in students_processed:
+                        log.info(f"Student appears twice, {db_students_cache[item[key_field]].naam} {db_students_cache[item[key_field]].voornaam}")
+                        nbr_double += 1
+                    else:
+                        nbr_found += 1
+                        data = {k: item[k] for k in relevant_fields}
+                        student = {"key": item[key_field], "data": data }
+                        update_students.append(student)
+                        students_processed.append(item[key_field])
+                else:
+                    log.error(f"Student not found, {item[key_field]}")
+                    nbr_not_found += 1
+            except:
+                nbr_invalid_line += 1
+        log.info(f"{sys._getframe().f_code.co_name}: found {nbr_found}, double {nbr_double}, not found {nbr_not_found}, invalid {nbr_invalid_line}")
+        return {"status": True, "data": {"nbr_found": nbr_found, "nbr_double": nbr_double, "nbr_not_found": nbr_not_found, "nbr_invalid": nbr_invalid_line,
+                                         "key_cols": key_cols, "students": update_students, "fields": relevant_fields}}
+
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        log.error("FLUSH-TO-EMAIL")  # this will trigger an email with ERROR-logs (if present)
+        return {"status": False, "data": f"Fout, {e}"}
+
+
 def api_send_leerid(ids):
     try:
         if ids:

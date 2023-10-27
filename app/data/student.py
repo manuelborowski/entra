@@ -49,6 +49,7 @@ class Student(db.Model, SerializerMixin):
 
     leerlingnummer = db.Column(db.String(256), default='')
     middag = db.Column(db.String(256), default='')
+    soep = db.Column(db.String(256), default='')
     vsknummer = db.Column(db.String(256), default='')
     rfid = db.Column(db.String(256), default="")
     foto = db.Column(db.String(256), default="")

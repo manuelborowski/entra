@@ -174,10 +174,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.71: bugfix cron AD staff, check opaque parameters
 # 1.72: bugfix socketio, increase timeouts
 # 1.73: version bugfix
+# 1.74: AD, if new student exists, copy username to db.   Update pop-ups. Students, implement data upload (xlsx) with flexible columnnaming and keys.
+
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.73', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.74', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

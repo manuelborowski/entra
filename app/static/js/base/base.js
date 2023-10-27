@@ -23,6 +23,10 @@ var menu = [
     ["settings.show", "Instellingen", 5],
 ]
 
+var buttons = [
+
+]
+
 export const inject_menu = new_menu => {
     menu = new_menu;
 }

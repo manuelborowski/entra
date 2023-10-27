@@ -2,8 +2,9 @@ import {subscribe_right_click} from "../base/right_click.js";
 import {check_rfid} from "./rfid.js";
 import {update_password} from "./password.js";
 import {database_integrity_check} from "./database.js";
-import {ctx, get_data_of_row} from "../datatables/datatables.js"
-import { smartschool_print_info, smartschool_mail_info} from "./sdh.js";
+import {ctx} from "../datatables/datatables.js"
+import {smartschool_print_info, smartschool_mail_info} from "./sdh.js";
+import {init_popup, hide_popup, show_popup, add_to_popup_body, create_p_element, subscribe_btn_ok, create_checkbox_element} from "../base/popup.js";
 
 async function update_vsk_numbers(start) {
     const ret = await fetch(Flask.url_for('api.update_vsk_number'), {headers: {'x-api-key': ctx.api_key,}, method: 'POST', body: JSON.stringify({start}),});
@@ -94,10 +95,66 @@ async function upload_leerid() {
         const form_data = new FormData(form);
         const ret = fetch(Flask.url_for('api.leerid_upload'), {
             headers: {'x-api-key': ctx.api_key,},
-            method: 'POST', body: form_data});
-        console.log(file);
+            method: 'POST', body: form_data
+        });
     }
     input.click();
+}
+
+async function upload_student_data() {
+    const form = document.createElement("form")
+    const input = document.createElement('input');
+    form.appendChild(input)
+    init_popup({title: "Upload studenten data", width: "75%"})
+    const info = create_p_element(
+        "Upload een xlsx bestand met relevante data.  De relevante kolomnaam moet telkens overeenkomen met de databasekolom.  Indien niet, dan moeten er instructies worden opgenomen in de tabel<br>" +
+        "Bovenste lijn: kolomnaam (vb. naam, voornaam, klas, maandag, dinsdag, donderdag, vrijdag)<br>" +
+        "Eventuele extra instructies (sleutelwoord steed in kolom A, eerste parameter in B, tweede in C, enz...):<br>" +
+        "$alias$ klas klascode (pas de naam van een kolom aan van klas naar klascode)<br>" +
+        "$key$ voornaam-naam-klascode (standaard sleutel is 'leerlingnummer', maar is hier aangepast door de kolom naam, voornaam en klascode achter elkaar te plakken)<br>" +
+        "$concat$ soep maandag-dinsdag-donderdag-vrijdag (maak een nieuw kolom 'soep' door de kolommen maandag..vrijdag achter elkaar te plakken)<br>" +
+        "$fields$ soep (lijst met kolommen, gescheiden door een ',' die moeten worden aangepast in de database) "
+    )
+    add_to_popup_body(info)
+    add_to_popup_body(form)
+    input.type = 'file';
+    input.name = "student_data_file";
+    input.multiple = false;
+    input.accept = ".xlsx,.xls"
+    input.onchange = async e => {
+        var file = e.target.files[0];
+        const form_data = new FormData(form);
+        const ret = await fetch(Flask.url_for('api.student_data_upload'), {
+            headers: {'x-api-key': ctx.api_key,},
+            method: 'POST', body: form_data
+        });
+        const status = await ret.json();
+        if (status.status) {
+            init_popup({title: "Upload studenten data", width: "45%", save_button: false, ok_button: true})
+            const info = create_p_element(
+                `Aantal gevonden studenten: ${status.data.nbr_found}<br>` +
+                `Aantal niet gevonden studenten: ${status.data.nbr_not_found}<br>` +
+                `Aantal studenten die meerdere keren voorkomen: ${status.data.nbr_double}<br>` +
+                `Aantal ongeldige lijnen in invoerbestand: ${status.data.nbr_invalid}<br>` +
+                "Als dit oké is, druk op Ok, anders Annuleer")
+            add_to_popup_body(info);
+            subscribe_btn_ok(async (data) => {
+                const ret = await fetch(Flask.url_for('api.student_data_update'), {headers: {'x-api-key': ctx.api_key,}, method: 'POST', body: JSON.stringify(data)});
+                const status = await ret.json();
+                hide_popup()
+                if (status.status) {
+                    bootbox.alert("Studenten zijn aangepast")
+                } else {
+                    bootbox.alert(`Fout bij het uploaden van de data: ${status.data}`)
+                }
+            }, status.data);
+            show_popup();
+        } else {
+            bootbox.alert(`Fout bij het uploaden van de data: ${status.data}`)
+        }
+    }
+    show_popup()
+
 }
 
 async function send_leerid(ids) {
@@ -126,3 +183,4 @@ subscribe_right_click('info-email-ouders', (item, ids) => smartschool_mail_info(
 subscribe_right_click('info-print-ouders', (item, ids) => smartschool_print_info(ids, 3, ctx.api_key));
 subscribe_right_click('leerid-upload', (item, ids) => upload_leerid());
 subscribe_right_click('leerid-send', (item, ids) => send_leerid(ids));
+subscribe_right_click('student-data-upload', (item, ids) => upload_student_data());
