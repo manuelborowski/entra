@@ -146,12 +146,7 @@ def get_right_click_settings():
         ])
     if current_user.is_at_least_admin:
         settings['menu'].extend([
-            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
-            {'label': 'Vsk nummers', 'item': 'new-vsk-numbers', 'iconscout': 'abacus'},
-            {'label': 'Database Integriteitscontrole', 'item': 'database-integrity-check', 'iconscout': 'database'},
-            {'label': 'Upload LeerID bestand', 'item': 'leerid-upload', 'iconscout': 'upload'},
             {'label': 'Verstuur LeerID via S', 'item': 'leerid-send', 'iconscout': 'envelope-info'},
-            {'label': 'Upload leerling gegevens', 'item': 'student-data-upload', 'iconscout': 'upload'},
         ])
     return settings
 

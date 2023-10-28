@@ -24,11 +24,14 @@ var menu = [
 ]
 
 var buttons = [
-
 ]
 
 export const inject_menu = new_menu => {
     menu = new_menu;
+}
+
+export const append_menu = append_menu => {
+    menu.push(...append_menu);
 }
 
 $(document).ready(() => {

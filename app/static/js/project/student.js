@@ -5,6 +5,7 @@ import {database_integrity_check} from "./database.js";
 import {ctx} from "../datatables/datatables.js"
 import {smartschool_print_info, smartschool_mail_info} from "./sdh.js";
 import {init_popup, hide_popup, show_popup, add_to_popup_body, create_p_element, subscribe_btn_ok, create_checkbox_element} from "../base/popup.js";
+import {append_menu} from "../base/base.js";
 
 async function update_vsk_numbers(start) {
     const ret = await fetch(Flask.url_for('api.update_vsk_number'), {headers: {'x-api-key': ctx.api_key,}, method: 'POST', body: JSON.stringify({start}),});
@@ -130,14 +131,28 @@ async function upload_student_data() {
         });
         const status = await ret.json();
         if (status.status) {
-            init_popup({title: "Upload studenten data", width: "45%", save_button: false, ok_button: true})
+            init_popup({title: "Upload studenten data", width: "65%", save_button: false, ok_button: true})
             const info = create_p_element(
                 `Aantal gevonden studenten: ${status.data.nbr_found}<br>` +
                 `Aantal niet gevonden studenten: ${status.data.nbr_not_found}<br>` +
                 `Aantal studenten die meerdere keren voorkomen: ${status.data.nbr_double}<br>` +
                 `Aantal ongeldige lijnen in invoerbestand: ${status.data.nbr_invalid}<br>` +
-                "Als dit oké is, druk op Ok, anders Annuleer")
+                "Als dit oké is, druk op Ok, anders Annuleer<br>" +
+                "Hieronder is een voorbeeld te zien van de data:"
+            )
             add_to_popup_body(info);
+            const table = document.createElement("table");
+            const nbr_rows =  status.data.students.length >= 5 ? 5 : status.data.students.length;
+            for(let i=0; i < nbr_rows; i++) {
+                const row = table.insertRow(i);
+                row.insertCell(0).innerHTML = status.data.students[i].key;
+                status.data.fields.forEach((item, j) => row.insertCell(j+1).innerHTML = status.data.students[i].data[item]);
+            }
+            const header = table.createTHead();
+            const header_row = header.insertRow(0);
+            header_row.insertCell(0).innerHTML = "sleutel";
+            status.data.fields.forEach((item, i) => header_row.insertCell(i+1).innerHTML = item);
+            add_to_popup_body(table);
             subscribe_btn_ok(async (data) => {
                 const ret = await fetch(Flask.url_for('api.student_data_update'), {headers: {'x-api-key': ctx.api_key,}, method: 'POST', body: JSON.stringify(data)});
                 const status = await ret.json();
@@ -184,3 +199,14 @@ subscribe_right_click('info-print-ouders', (item, ids) => smartschool_print_info
 subscribe_right_click('leerid-upload', (item, ids) => upload_leerid());
 subscribe_right_click('leerid-send', (item, ids) => send_leerid(ids));
 subscribe_right_click('student-data-upload', (item, ids) => upload_student_data());
+
+var menu = [
+    [[
+        [() => new_vsk_numbers(), "Vsk nummers", 5],
+        [() => database_integrity_check('api.database_integrity_check', ctx.popups['database-integrity-check']), "Database Integriteitscontrole", 5],
+        [() => upload_leerid(), "Upload LeerID bestand", 5],
+        [() => upload_student_data(), "Upload leerling gegevens", 5],
+    ], "Extra", 5],
+]
+
+append_menu(menu)
