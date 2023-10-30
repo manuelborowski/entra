@@ -1,3 +1,5 @@
+import time
+
 from app import ap_scheduler, flask_app
 import datetime, sys
 from apscheduler.triggers.cron import CronTrigger
@@ -13,7 +15,9 @@ log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
 
-CRON_TASK = 'school-data-hub-task'
+CRON_TASK = 'sdf-cron-task'
+SYNC_TASK = 'sdh-sync-task'
+
 
 #In July and August, cron is normally disabled and students and staff are not deleted from the dabase if not present in the import
 def disable_features_in_july_august():
@@ -31,9 +35,8 @@ def check_cron_active_july_august():
 
 
 def cron_task(opaque=None):
-    try:
-        with flask_app.app_context():
-            warning_on("Data wordt gesynchroniseerd...")
+    with flask_app.app_context():
+        try:
             if check_cron_active_july_august():
                 settings = get_configuration_setting('cron-enable-modules')
                 test_cron_task(opaque)
@@ -42,11 +45,10 @@ def cron_task(opaque=None):
                         task[1](opaque)
                 log.error("FLUSH-TO-EMAIL") # this will trigger an email with ERROR-logs (if present)
                 disable_features_in_july_august()
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    finally:
-        warning_off()
-
+        except Exception as e:
+            log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        finally:
+            warning_off()
 
 def init_job(cron_template):
     try:
@@ -84,7 +86,14 @@ start_job()
 
 
 def emulate_cron_start(topic=None, opaque=None):
-    cron_task(opaque)
+    try:
+        warning_on("Data wordt gesynchroniseerd...")
+        running_job = ap_scheduler.get_job(SYNC_TASK)
+        if running_job:
+            ap_scheduler.remove_job(SYNC_TASK)
+        ap_scheduler.add_job(SYNC_TASK, lambda: cron_task(opaque), next_run_time=datetime.datetime.now())
+    except Exception as e:
+        log.error(f'could not init {SYNC_TASK} job: {e}')
 
 
 subscribe_handle_button_clicked('button-start-cron-cycle', emulate_cron_start, {"sync-school": "csu"})
