@@ -59,8 +59,9 @@ def send_to_room(msg, room):
     emit('send_to_client', msg, room=room)
 
 
-def broadcast_message(msg):
-    emit('send_to_client', msg, broadcast=True, namespace='/')
+def broadcast_message(type, msg={}):
+    data = {'type': type, 'data': msg}
+    emit('send_to_client', data, broadcast=True, namespace='/')
 
 
 def send_to_client(client_sid, type, msg):

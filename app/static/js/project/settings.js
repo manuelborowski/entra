@@ -45,11 +45,11 @@ function socketio_settings_ack(type, data) {
     if (!data.status) {
         bootbox.alert("Warning, following error appeared:<br>" + data.message);
     }
-    busy_indication_off();
+    // busy_indication_off();
 }
 
 function socketio_event_ack(type, data) {
-    busy_indication_off();
+    // busy_indication_off();
     if (data.status) {
         bootbox.alert(data.message);
     } else {
@@ -58,7 +58,7 @@ function socketio_event_ack(type, data) {
 }
 
 function socketio_transmit_setting(setting, value) {
-    busy_indication_on();
+    // busy_indication_on();
     socketio.send_to_server('settings', {setting: setting, value: value});
     return false;
 }

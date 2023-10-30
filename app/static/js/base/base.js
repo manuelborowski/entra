@@ -1,3 +1,8 @@
+import {socketio} from "./socketio.js";
+
+const navbar_element = document.querySelector("#navbar");
+const logo_div = document.createElement("div")
+
 export function flash_messages(list) {
     for (var i = 0; i < list.length; i++) {
         var message = list[i];
@@ -12,6 +17,18 @@ export function busy_indication_on() {
 export function busy_indication_off() {
     document.getElementsByClassName("busy-indicator")[0].style.display = "none";
 }
+
+const show_messsage = (type, data) => {
+    logo_div.style.visibility = "visible";
+    logo_div.querySelector("span").innerHTML = data.data;
+}
+
+const hide_messsage = () => {
+    logo_div.style.visibility = "hidden";
+}
+
+socketio.subscribe_on_receive("message-on", show_messsage);
+socketio.subscribe_on_receive("message-off", hide_messsage);
 
 
 var menu = [
@@ -35,7 +52,6 @@ export const append_menu = append_menu => {
 }
 
 $(document).ready(() => {
-    const navbar_element = document.querySelector("#navbar");
     let dd_ctr = 0;
     for (const item of menu) {
         if (current_user_level >= item[2]) {
@@ -93,6 +109,17 @@ $(document).ready(() => {
             navbar_element.appendChild(li);
         }
     }
+    logo_div.style.visibility="hidden";
+    logo_div.classList.add("tooltip");
+    const logo = new Image(50);
+    logo.classList.add("blink");
+    logo.src = "/static/img/warning.png";
+    logo_div.appendChild(logo);
+    const tt_text = document.createElement("span");
+    tt_text.classList.add("tooltiptext");
+    logo_div.appendChild(tt_text);
+    navbar_element.appendChild(logo_div);
+
     if (testmode) {
         const li = document.createElement("li");
         li.classList.add("nav-item");

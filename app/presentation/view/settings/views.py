@@ -28,9 +28,9 @@ def update_settings_cb(msg, client_sid=None):
         data = msg['data']
         settings = json.loads(data['value'])
         msettings.set_setting_topic(settings)
-        msocketio.broadcast_message({'type': 'settings', 'data': {'status': True}})
+        msocketio.broadcast_message('settings', {'status': True})
     except Exception as e:
-        msocketio.broadcast_message({'type': 'settings', 'data': {'status': False, 'message': str(e)}})
+        msocketio.broadcast_message('settings', {'status': False, 'message': str(e)})
 
 
 msocketio.subscribe_on_type('settings', update_settings_cb)

@@ -7,3 +7,5 @@ venv/**
 app/static/log/sdh-*
 app/static/photos/*
 app/static/mapped_photos/**
+**/*.xlsx
+**/*.pdf

@@ -49,9 +49,9 @@ def update_cell_changed(msg, client_sid=None):
   try:
     data = msg['data']
     mstaff.api_staff_update({"id": data["id"], data["column"]: data["value"]})
-    msocketio.broadcast_message({'type': 'settings', 'data': {'status': True}})
+    msocketio.broadcast_message('settings', {'status': True})
   except Exception as e:
-    msocketio.broadcast_message({'type': 'settings', 'data': {'status': False, 'message': str(e)}})
+    msocketio.broadcast_message('settings', {'status': False, 'message': str(e)})
 
 
 msocketio.subscribe_on_type('staff_socketio_cell_changed', update_cell_changed)
