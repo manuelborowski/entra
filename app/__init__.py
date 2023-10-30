@@ -176,11 +176,11 @@ flask_app.config.from_pyfile('config.py')
 # 1.73: version bugfix
 # 1.74: AD, if new student exists, copy username to db.   Update pop-ups. Students, implement data upload (xlsx) with flexible columnnaming and keys.
 # 1.75: added dropdown menu on Students page for not-student-related functionality
-
+# 1.75-offload_sync-1: add broadcast warning to inform every user when something is ongoing
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.75', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.75-offload_sync-1', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()

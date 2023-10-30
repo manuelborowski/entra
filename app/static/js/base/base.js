@@ -1,7 +1,7 @@
 import {socketio} from "./socketio.js";
 
 const navbar_element = document.querySelector("#navbar");
-const logo_div = document.createElement("div")
+const logo_div = document.querySelector("#warning-logo");
 
 export function flash_messages(list) {
     for (var i = 0; i < list.length; i++) {
@@ -27,8 +27,8 @@ const hide_messsage = () => {
     logo_div.style.visibility = "hidden";
 }
 
-socketio.subscribe_on_receive("message-on", show_messsage);
-socketio.subscribe_on_receive("message-off", hide_messsage);
+socketio.subscribe_on_receive("warning-on", show_messsage);
+socketio.subscribe_on_receive("warning-off", hide_messsage);
 
 
 var menu = [
@@ -51,7 +51,7 @@ export const append_menu = append_menu => {
     menu.push(...append_menu);
 }
 
-$(document).ready(() => {
+$(document).ready(async () => {
     let dd_ctr = 0;
     for (const item of menu) {
         if (current_user_level >= item[2]) {
@@ -111,14 +111,13 @@ $(document).ready(() => {
     }
     logo_div.style.visibility="hidden";
     logo_div.classList.add("tooltip");
-    const logo = new Image(50);
+    const logo = new Image(30);
     logo.classList.add("blink");
     logo.src = "/static/img/warning.png";
     logo_div.appendChild(logo);
     const tt_text = document.createElement("span");
     tt_text.classList.add("tooltiptext");
     logo_div.appendChild(tt_text);
-    navbar_element.appendChild(logo_div);
 
     if (testmode) {
         const li = document.createElement("li");
@@ -130,5 +129,13 @@ $(document).ready(() => {
         li.appendChild(a);
         navbar_element.appendChild(li);
     }
+
+    //Check if there is an ongoing warning
+    const ret = await fetch(Flask.url_for('api.get_warning'));
+    const resp = await ret.json();
+    if (resp.message !=="") {
+        show_messsage(null, {data: resp.message});
+    }
+
 });
 

@@ -1,6 +1,7 @@
 from flask import request, render_template
 from . import api
 from app.application import  student as mstudent, user as muser, photo as mphoto, staff as mstaff, settings as msettings, cardpresso as mcardpresso, smartschool as msmartschool
+from app.application.warning import warning_get_message
 from app import log
 import json, sys, html, itertools
 from functools import wraps
@@ -292,4 +293,10 @@ def smartschool_print_info():
 def get_info():
     info_page = msettings.get_configuration_setting("api-info-page")
     return info_page
+
+
+@api.route('/api/warning/get', methods=['GET'])
+def get_warning():
+    warning = warning_get_message()
+    return json.dumps({"message": warning})
 

@@ -96,6 +96,7 @@ default_configuration_settings = {
     'generic-standard-password': ('', Settings.SETTING_TYPE.E_STRING),
     'generic-new-via-smartschool': (False, Settings.SETTING_TYPE.E_BOOL),
     'generic-servername': ('', Settings.SETTING_TYPE.E_STRING),
+    'generic-warning-message': ('', Settings.SETTING_TYPE.E_STRING),
 
     'sdh-inform-emails': ('t1', Settings.SETTING_TYPE.E_STRING),
     'sdh-auto-current-schoolyear': (True, Settings.SETTING_TYPE.E_BOOL),

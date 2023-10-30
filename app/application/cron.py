@@ -3,7 +3,7 @@ import datetime, sys
 from apscheduler.triggers.cron import CronTrigger
 from app.application.settings import get_configuration_setting, subscribe_handle_button_clicked, subscribe_handle_update_setting, set_configuration_setting
 from app.application.test import test_cron_task
-from app.application.socketio import broadcast_message
+from app.application.warning import warning_on, warning_off
 from . import cron_table
 
 #logging on file level
@@ -33,7 +33,7 @@ def check_cron_active_july_august():
 def cron_task(opaque=None):
     try:
         with flask_app.app_context():
-            broadcast_message("message-on", {"data": "Data wordt gesynchroniseerd"})
+            warning_on("Data wordt gesynchroniseerd...")
             if check_cron_active_july_august():
                 settings = get_configuration_setting('cron-enable-modules')
                 test_cron_task(opaque)
@@ -45,7 +45,7 @@ def cron_task(opaque=None):
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
     finally:
-        broadcast_message("message-off")
+        warning_off()
 
 
 def init_job(cron_template):
