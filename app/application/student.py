@@ -261,7 +261,7 @@ def api_update_student_data(data):
 
 def api_upload_student_data(file):
     try:
-        pd_data = pd.read_excel(file)
+        pd_data = pd.read_excel(file, keep_default_na=False)
         data_list = pd_data.to_dict("records")
         cmd0_col = pd_data.head().columns[0]
         cmd1_col = pd_data.head().columns[1]

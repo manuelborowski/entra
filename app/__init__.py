@@ -179,11 +179,12 @@ flask_app.config.from_pyfile('config.py')
 # 1.75-offload_sync-1: add broadcast warning to inform every user when something is ongoing
 # 1.76: (merge) add broadcast warning to inform every user when something is ongoing
 # 1.77: bugfix sync, do in seperate task
+# 1.78: small bugfix when reading xlsx
 
 
 @flask_app.context_processor
 def inject_defaults():
-    return dict(version='@ 2022 MB. V1.77', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+    return dict(version='@ 2022 MB. V1.78', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
 
 
 db = SQLAlchemy()
