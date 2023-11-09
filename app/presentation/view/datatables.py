@@ -17,15 +17,14 @@ def ajax(table_configuration):
 
 
 def show(table_config, template=None, popups={}):
-    api_key = config = None
+    config = None
     try:
         config = table_config.create_table_config()
-        api_key = mutil.get_keys(current_user.level)[0]
     except Exception as e:
         flash_plus(f'Tabel kan niet getoond worden (show)', e)
     if not template:
         template = 'datatables.html'
-    return render_template(template, table_config=config, api_key=api_key, popups=popups)
+    return render_template(template, table_config=config, popups=popups)
 
 
 def add_datatable_headers(table_configuration, data_list, total_count, filtered_count):

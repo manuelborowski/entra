@@ -74,7 +74,6 @@ typing-extensions==4.2.0
 tzdata==2023.3
 tzlocal==2.1
 urllib3==1.26.8
-uWSGI==2.0.20
 webencodings==0.5.1
 Werkzeug==1.0.1
 WTForms==2.3.3

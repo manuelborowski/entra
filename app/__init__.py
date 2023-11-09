@@ -180,11 +180,9 @@ flask_app.config.from_pyfile('config.py')
 # 1.76: (merge) add broadcast warning to inform every user when something is ongoing
 # 1.77: bugfix sync, do in seperate task
 # 1.78: small bugfix when reading xlsx
+# 1.79: reworked api_key. Added submenu, reworked menus.  Added informat-sync-menu
 
-
-@flask_app.context_processor
-def inject_defaults():
-    return dict(version='@ 2022 MB. V1.78', title=flask_app.config['HTML_TITLE'], site_name=flask_app.config['SITE_NAME'], testmode = flask_app.testmode)
+version = "V1.79"
 
 
 db = SQLAlchemy()

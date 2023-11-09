@@ -1,6 +1,6 @@
 from flask import request, render_template
 from . import api
-from app.application import  student as mstudent, user as muser, photo as mphoto, staff as mstaff, settings as msettings, cardpresso as mcardpresso, smartschool as msmartschool
+from app.application import  student as mstudent, user as muser, photo as mphoto, staff as mstaff, settings as msettings, cardpresso as mcardpresso, smartschool as msmartschool, cron as mcron
 from app.application.warning import warning_get_message
 from app import log
 import json, sys, html, itertools
@@ -282,6 +282,14 @@ def smartschool_send_info():
 def smartschool_print_info():
     data = json.loads(request.data)
     ret = msmartschool.api_print_info(data["ids"], data["account"], data["reset_password"])
+    return(json.dumps(ret))
+
+
+@api.route('/api/informat/sync', methods=['POST'])
+@supervisor_key_required
+def informat_sync():
+    data = json.loads(request.data)
+    ret = mcron.emulate_cron_start(None, data)
     return(json.dumps(ret))
 
 

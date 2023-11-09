@@ -55,7 +55,7 @@ def item_view(ids=None):
             id = ids[0]
             data = app.application.student.form_prepare_for_view(id)
             data.update({'title': f"{data['defaults']['naam']} {data['defaults']['voornaam']}"})
-            return render_template('student/student_details.html', data=data, api_key=mutil.get_keys(current_user.level)[0])
+            return render_template('student/student_details.html', data=data)
     except Exception as e:
         log.error(f'Could not view student {e}')
     return redirect(url_for('student.show'))
