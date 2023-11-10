@@ -181,8 +181,9 @@ flask_app.config.from_pyfile('config.py')
 # 1.77: bugfix sync, do in seperate task
 # 1.78: small bugfix when reading xlsx
 # 1.79: reworked api_key. Added submenu, reworked menus.  Added informat-sync-menu
+# 1.80: sync informat, not in summerholydays, add confirmation popup.
 
-version = "V1.79"
+version = "V1.80"
 
 
 db = SQLAlchemy()

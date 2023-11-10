@@ -92,8 +92,24 @@ def emulate_cron_start(topic=None, opaque=None):
         if running_job:
             ap_scheduler.remove_job(SYNC_TASK)
         ap_scheduler.add_job(SYNC_TASK, lambda: cron_task(opaque), next_run_time=datetime.datetime.now())
+        return True
     except Exception as e:
         log.error(f'could not init {SYNC_TASK} job: {e}')
+        return False
+
+
+def api_informat_sync(data):
+    try:
+        month = datetime.datetime.now().month
+        if month == 7 or month == 8:
+            return {"status": False, "data": "Fout, kan niet synchroniseren in de zomervakantie"}
+        if emulate_cron_start(None, data):
+            return {"status": True, "data": "Ok, synchroniseren is gestart, je kan dit venster sluiten"}
+        else:
+            return {"status": False, "data": "Onbekende fout"}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": f"Fout, {str(e)}"}
 
 
 subscribe_handle_button_clicked('button-start-cron-cycle', emulate_cron_start, {"sync-school": "csu"})
@@ -104,3 +120,5 @@ subscribe_handle_button_clicked('button-sync-testklassen', emulate_cron_start, {
 
 
 disable_features_in_july_august()
+
+

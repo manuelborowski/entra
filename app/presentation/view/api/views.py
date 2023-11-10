@@ -289,7 +289,7 @@ def smartschool_print_info():
 @supervisor_key_required
 def informat_sync():
     data = json.loads(request.data)
-    ret = mcron.emulate_cron_start(None, data)
+    ret = mcron.api_informat_sync(data)
     return(json.dumps(ret))
 
 
