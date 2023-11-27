@@ -48,7 +48,7 @@ def send_inform_message(email_to, subject, message):
 def email_log_handler(message_body):
     to_list = msettings.get_list("logging-inform-emails")
     if to_list:
-        send_inform_message(to_list, "SDH ERROR LOG", message_body)
+        send_inform_message(to_list, "ENTRA ERROR LOG", message_body)
 
 
 subscribe_email_log_handler_cb(email_log_handler)

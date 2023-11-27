@@ -21,48 +21,22 @@ class Staff(db.Model, SerializerMixin):
 
     date_format = '%Y-%m-%d'
     datetime_format = '%Y-%m-%d %H:%M'
-    serialize_rules = ("is_interim_to_text", "is_wisa_to_text",)
 
     id = db.Column(db.Integer(), primary_key=True)
-
+    entra_id = db.Column(db.String(256), default='')
     voornaam = db.Column(db.String(256), default='')
     naam = db.Column(db.String(256), default='')
-    rijksregisternummer = db.Column(db.String(256), default='')
-    stamboeknummer = db.Column(db.String(256), default='')
     code = db.Column(db.String(256), default='')
-    geslacht = db.Column(db.String(256), default='')
-    geboortedatum = db.Column(db.Date, default=datetime.datetime(1900, 1, 1))
-    geboorteplaats = db.Column(db.String(256), default='')
-    instellingsnummer = db.Column(db.String(256), default='')
-    email = db.Column(db.String(256), default='')
-    prive_email = db.Column(db.String(256), default='')
-    rfid = db.Column(db.String(256), default='')
-    profiel = db.Column(db.String(256), default='["lkr"]')
-    interim = db.Column(db.Boolean, default=False)
-    extra = db.Column(db.TEXT, default='')
-    einddatum = db.Column(db.Date, default=datetime.datetime(2999, 1, 1))
-
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.now())
-
+    groups = db.Column(db.TEXT, default='[]')
     new = db.Column(db.Boolean, default=True)
     delete = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)    # long term
     enable = db.Column(db.Boolean, default=True)    # short term
     changed = db.Column(db.TEXT, default='')
 
-    def is_interim_to_text(self):
-        return "JA" if self.interim else "NEE"
-
-    def is_wisa_to_text(self):
-        return "JA" if self.stamboeknummer != "" else "NEE"
-
     @property
     def person_id(self):
         return self.code
-
-    @property
-    def einddatum_date(self):
-        return self.einddatum
 
 
 def get_columns():
@@ -104,7 +78,7 @@ def staff_get(filters=[]):
 # changed: a list of properties that are changed
 # property#1: the first property changed
 # property#2: ....
-def staff_update_m(data = [], overwrite=False):
+def staff_change_m(data = [], overwrite=False):
     try:
         for d in data:
             staff = d['staff']

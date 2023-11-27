@@ -4,7 +4,7 @@ from flask import redirect, url_for, request, render_template
 from flask_login import login_required, current_user
 from app.data.datatables import DatatableConfig
 from app.presentation.view import datatables
-from app.application import socketio as msocketio, settings as msettings, cardpresso as mcardpresso, util as mutil
+from app.application import socketio as msocketio, settings as msettings
 import json
 import app.data
 import app.application.student
@@ -15,9 +15,7 @@ from app.application.settings import get_configuration_setting
 @login_required
 def show():
     # start = datetime.datetime.now()
-    popups = {'update-password': get_configuration_setting("popup-student-teacher-update-password"),
-              'database-integrity-check': get_configuration_setting("popup-database-integrity-check")}
-    ret = datatables.show(table_config, template='student/student.html', popups=popups)
+    ret = datatables.show(table_config, template='student/student.html')
     # print('student.show', datetime.datetime.now() - start)
     return ret
 
@@ -36,120 +34,12 @@ def table_ajax():
 @student.route('/student/table_action/<string:action>/<string:ids>', methods=['GET', 'POST'])
 @login_required
 def table_action(action, ids=None):
-    if ids:
-        ids = json.loads(ids)
-    if action == 'view':
-        return item_view(ids)
     return redirect(url_for('student.show'))
 
-
-def item_view(ids=None):
-    try:
-        if ids == None:
-            chbx_id_list = request.form.getlist('chbx')
-            if chbx_id_list:
-                ids = chbx_id_list[0]  # only the first one can be edited
-            if ids == '':
-                return redirect(url_for('student.show'))
-        else:
-            id = ids[0]
-            data = app.application.student.form_prepare_for_view(id)
-            data.update({'title': f"{data['defaults']['naam']} {data['defaults']['voornaam']}"})
-            return render_template('student/student_details.html', data=data)
-    except Exception as e:
-        log.error(f'Could not view student {e}')
-    return redirect(url_for('student.show'))
-
-
-@student.route('/student/right_click/', methods=['POST', 'GET'])
-@login_required
-def right_click():
-    try:
-        if 'jds' in request.values:
-            data = json.loads(request.values['jds'])
-            if 'item' in data:
-                if data['item'] == "new-badge":
-                    ret = mcardpresso.badge_add(data['item_ids'])
-                    return {"message": ret['data']}
-                if data['item'] == "view":
-                    max_ids = msettings.get_configuration_setting('student-max-students-to-view-with-one-click')
-                    ids = data['item_ids'][:max_ids]
-                    return {"redirect": {"url": f"/student/table_action/view", "ids": ids, "new_tab": True}}
-    except Exception as e:
-        log.error(f"Error in get_form: {e}")
-        return {"message": f"get_form: {e}"}
-    return {"message": "iets is fout gelopen"}
 
 
 def get_filters():
-    statuses = app.application.student.student_get_statuses(label=True)
-    statuses = [['default', 'Alles']] + statuses
-    klasgroepen = app.application.klas.get_klassen_klasgroepen()
-    klasgroep_choices = []
-    for klasgroep, klas_list in klasgroepen.items():
-        klasgroep_choices.append([",".join(klas_list), klasgroep ])
-    klasgroep_choices = sorted(klasgroep_choices, key=lambda x: x[0])
-    deelscholen = app.application.klas.get_klassen_deelscholen()
-    deelschool_choices = []
-    for deelschool, klas_list in deelscholen.items():
-        deelschool_choices.append([",".join(klas_list), deelschool])
-    deelschool_choices = sorted(deelschool_choices, key=lambda x: x[0])
-    klasgroep_choices = [["default", "Alles"]] + deelschool_choices + klasgroep_choices
-    return [
-        {
-            'type': 'select',
-            'name': 'photo-not-found',
-            'label': 'Foto\'s',
-            'choices': [
-                ['default', 'Alles'],
-                ['not-found', 'Geen foto'],
-            ],
-            'default': 'default',
-        },
-
-        {
-            'type': 'select',
-            'name': 'filter-klasgroep',
-            'label': 'Klasgroepen',
-            'choices': klasgroep_choices,
-            'default': 'default',
-        },
-        {
-            'type': 'select',
-            'name': 'filter-status',
-            'label': 'Status',
-            'choices': statuses,
-            'default': 'default',
-        },
-    ]
-
-
-
-def get_right_click_settings():
-    settings = {
-        'endpoint': 'student.right_click',
-        'menu': [
-            {'label': 'Details', 'item': 'view', 'iconscout': 'eye'},
-        ]
-    }
-    if current_user.is_at_least_supervisor:
-        settings['menu'].extend([
-            {'label': 'Nieuwe badge', 'item': 'new-badge', 'iconscout': 'credit-card'},
-            {'label': 'RFID code aanpassen', 'item': 'check-rfid', 'iconscout': 'wifi'},
-            {'label': 'Paswoord aanpassen', 'item': 'update-password', 'iconscout': 'key-skeleton'},
-            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
-            {'label': 'Stuur S info e-mail leerling', 'item': 'info-email', 'iconscout': 'envelope-info'},
-            {'label': 'Stuur S info e-mail ouders', 'item': 'info-email-ouders', 'iconscout': 'envelope-info'},
-            {'label': 'Print S info voor leerling', 'item': 'info-print', 'iconscout': 'envelope-info'},
-            {'label': 'Print S info voor ouders', 'item': 'info-print-ouders', 'iconscout': 'envelope-info'},
-            {'label': 'Exporteer S info', 'item': 'export-smartschool', 'iconscout': 'export'},
-        ])
-    if current_user.is_at_least_admin:
-        settings['menu'].extend([
-            {'label': 'Verstuur LeerID via S', 'item': 'leerid-send', 'iconscout': 'envelope-info'},
-        ])
-    return settings
-
+    return [ ]
 
 
 class Config(DatatableConfig):
@@ -171,25 +61,7 @@ class Config(DatatableConfig):
     def show_filter_elements(self):
         return get_filters()
 
-    def show_info(self):
-        return [f'Niet gevonden foto\'s: {app.application.student.photo_get_nbr_not_found()}']
-
-    def get_right_click(self):
-        return get_right_click_settings()
-
 
 table_config = Config("student", "Overzicht Studenten")
 
-
-@student.route('/student/export_smartschool/<string:ids>', methods=['GET'])
-@login_required
-def export_smartschool(ids):
-    try:
-        ids = json.loads(ids)
-        ret = app.application.student.export_passwords(ids)
-        return ret
-    except Exception as e:
-        log.error(f"Error in get_form: {e}")
-        return {"message": f"get_form: {e}"}
-    return {"message": "iets is fout gelopen"}
 

@@ -13,95 +13,22 @@ class Student(db.Model, SerializerMixin):
 
 
     id = db.Column(db.Integer(), primary_key=True)
+    entra_id = db.Column(db.String(256), default='')
     voornaam = db.Column(db.String(256), default='')
     naam = db.Column(db.String(256), default='')
-    roepnaam = db.Column(db.String(256), default='')
-    rijksregisternummer = db.Column(db.String(256), default='')
-    stamboeknummer = db.Column(db.String(256), default='')
-    geboortedatum = db.Column(db.Date, default=datetime.datetime(1900, 1, 1))
-    geboorteplaats = db.Column(db.String(256), default='')
-    geboorteland = db.Column(db.String(256), default='')
-    geslacht = db.Column(db.String(256), default='')
-    nationaliteit = db.Column(db.String(256), default='')
-    levensbeschouwing = db.Column(db.String(256), default='')
-    straat = db.Column(db.String(256), default='')
-    huisnummer = db.Column(db.String(256), default='')
-    busnummer = db.Column(db.String(256), default='')
-    postnummer = db.Column(db.String(256), default='')
-    gemeente = db.Column(db.String(256), default='')
-    gsm = db.Column(db.String(256), default='')
-    prive_email = db.Column(db.String(256), default='')
-    email = db.Column(db.String(256), default='')
-
-    lpv1_type = db.Column(db.String(256), default='')
-    lpv1_naam = db.Column(db.String(256), default='')
-    lpv1_voornaam = db.Column(db.String(256), default='')
-    lpv1_geslacht = db.Column(db.String(256), default='')
-    lpv1_gsm = db.Column(db.String(256), default='')
-    lpv1_email = db.Column(db.String(256), default='')
-
-    lpv2_type = db.Column(db.String(256), default='')
-    lpv2_naam = db.Column(db.String(256), default='')
-    lpv2_voornaam = db.Column(db.String(256), default='')
-    lpv2_geslacht = db.Column(db.String(256), default='')
-    lpv2_gsm = db.Column(db.String(256), default='')
-    lpv2_email = db.Column(db.String(256), default='')
-
     leerlingnummer = db.Column(db.String(256), default='')
-    middag = db.Column(db.String(256), default='')
-    soep = db.Column(db.String(256), default='')
-    vsknummer = db.Column(db.String(256), default='')
-    rfid = db.Column(db.String(256), default="")
-    foto = db.Column(db.String(256), default="")
-    foto_id = db.Column(db.Integer, default=-1)
-
-    inschrijvingsdatum = db.Column(db.Date, default=datetime.datetime(1900, 1, 1))
-    instellingsnummer = db.Column(db.String(256), default='')
-    schooljaar = db.Column(db.Integer(), default=-1)
     klascode = db.Column(db.String(256), default='')
     klasnummer = db.Column(db.Integer(), default=-1)
     computer = db.Column(db.String(256), default='')
     username = db.Column(db.String(256), default='')
-
-    timestamp = db.Column(db.DateTime, default=datetime.datetime.now())
-
-    leerid_username = db.Column(db.String(256), default='')
-    leerid_password = db.Column(db.String(256), default='')
+    groups = db.Column(db.TEXT, default='[]')
 
     new = db.Column(db.Boolean, default=True)
     delete = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)    # long term
     enable = db.Column(db.Boolean, default=True)    # short term
     changed = db.Column(db.TEXT, default='')
-    status = db.Column(db.TEXT, default='')
-
-    @property
-    def person_id(self):
-        return self.username
-
-    @property
-    def schoolnaam(self):
-        if self.klascode == "OKAN":
-            schoolnaam = " Sint-Ursulalyceum"
-        elif int(self.klascode[0]) < 3:
-            schoolnaam = " Sint-Ursulamiddenschool"
-        elif self.instellingsnummer == "30569":
-            schoolnaam = " Sint-Ursula-instituut"
-        else:
-            schoolnaam = " Sint-Ursulalyceum"
-        return schoolnaam
-
-    send_info_message = "INFO"
-    send_info_message_ouders = "INFO-OUDER"
-    export = "EXP"
-    nieuw = "NIEUW"
-    leerid = "LID-NIET-VERSTUURD"
-
-    def get_statuses(label=False):
-        if label:
-            return [[Student.send_info_message, "Info naar leerlingen"], [Student.send_info_message_ouders, "Info naar ouders"], [Student.export, "Nog te exporteren"], [Student.nieuw, "Nieuwe student"], [Student.leerid, "LeerID te verzenden"],]
-        return [Student.send_info_message, Student.send_info_message_ouders, Student.export, Student.nieuw, Student.leerid]
-
+    changed_old = db.Column(db.TEXT, default='')
 
 def get_columns():
     return [p for p in dir(Student) if not p.startswith('_')]
@@ -162,6 +89,8 @@ def student_change_m(data=[], overwrite=False):
                     changed.extend(d['changed'])
                     changed = list(set(changed))
                     student.changed = json.dumps(changed)
+                if "changed_old" in d:
+                    student.changed_old = json.dumps(d["changed_old"])
         db.session.commit()
     except Exception as e:
         db.session.rollback()
@@ -190,18 +119,12 @@ def pre_sql_query():
 
 def pre_sql_filter(query, filter):
     for f in filter:
-        if f['name'] == 'photo-not-found':
-            if f['value'] == 'not-found':
-                query = query.filter(Student.foto_id == -1)
         if f['name'] == 'filter-klas':
             if f['value'] != 'default':
                 query = query.filter(Student.klascode == f['value'])
         if f['name'] == 'filter-klasgroep':
             if f['value'] != 'default':
                 query = query.filter(Student.klascode.in_(f['value'].split(",")))
-        if f['name'] == 'filter-status':
-            if f['value'] != 'default':
-                query = query.filter(Student.status.like(f"%{f['value']}%"))
     return query
 
 
@@ -209,10 +132,8 @@ def pre_sql_search(search_string):
     search_constraints = []
     search_constraints.append(Student.username.like(search_string))
     search_constraints.append(Student.computer.like(search_string))
-    search_constraints.append(Student.roepnaam.like(search_string))
     search_constraints.append(Student.naam.like(search_string))
     search_constraints.append(Student.voornaam.like(search_string))
     search_constraints.append(Student.leerlingnummer.like(search_string))
     search_constraints.append(Student.klascode.like(search_string))
-    search_constraints.append(Student.email.like(search_string))
     return search_constraints

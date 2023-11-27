@@ -104,6 +104,9 @@ default_configuration_settings = {
 
     'user-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
 
+    'group-formio-template': ({}, Settings.SETTING_TYPE.E_JSON),
+    'group-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
+
     'student-formio-template': ({}, Settings.SETTING_TYPE.E_JSON),
     'student-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
     'student-max-students-to-view-with-one-click': (5, Settings.SETTING_TYPE.E_INT),

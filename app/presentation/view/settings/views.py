@@ -107,94 +107,6 @@ settings_formio = \
         "tableView": false,
         "components": [
           {
-            "label": "Cardpresso",
-            "tableView": false,
-            "key": "cardpresso",
-            "type": "container",
-            "input": true,
-            "components": [
-              {
-                "title": "Cardpresso",
-                "theme": "primary",
-                "collapsible": true,
-                "key": "RegistratieTemplate1",
-                "type": "panel",
-                "label": "Studenten",
-                "collapsed": true,
-                "input": false,
-                "tableView": false,
-                "components": [
-                  {
-                    "label": "Opslaan",
-                    "showValidations": false,
-                    "theme": "warning",
-                    "tableView": false,
-                    "key": "submit",
-                    "type": "button",
-                    "saveOnEnter": false,
-                    "input": true
-                  },
-                  {
-                    "label": "Detail template (formio)",
-                    "autoExpand": false,
-                    "tableView": true,
-                    "key": "cardpresso-formio-template",
-                    "type": "textarea",
-                    "input": true
-                  },
-                  {
-                    "label": "Lijst template (JSON)",
-                    "autoExpand": false,
-                    "tableView": true,
-                    "key": "cardpresso-datatables-template",
-                    "type": "textarea",
-                    "input": true
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "label": "Email",
-            "tableView": false,
-            "key": "email",
-            "type": "container",
-            "input": true,
-            "components": [
-              {
-                "title": "Email",
-                "theme": "primary",
-                "collapsible": true,
-                "key": "email",
-                "type": "panel",
-                "label": "Studenten",
-                "collapsed": true,
-                "input": false,
-                "tableView": false,
-                "components": [
-                  {
-                    "label": "Opslaan",
-                    "showValidations": false,
-                    "theme": "warning",
-                    "tableView": false,
-                    "key": "submit",
-                    "type": "button",
-                    "saveOnEnter": false,
-                    "input": true
-                  },
-                  {
-                    "label": "Nieuw personeelslid (html)",
-                    "autoExpand": false,
-                    "tableView": true,
-                    "key": "email-new-staff-html",
-                    "type": "textarea",
-                    "input": true
-                  }
-                ]
-              }
-            ]
-          },
-          {
             "label": "Users",
             "tableView": false,
             "key": "users",
@@ -419,17 +331,17 @@ settings_formio = \
             ]
           },
           {
-            "label": "leerid",
+            "label": "Groepen",
             "tableView": false,
-            "key": "leerid",
+            "key": "groups",
             "type": "container",
             "input": true,
             "components": [
               {
-                "title": "LeerID",
+                "title": "Groepen",
                 "theme": "primary",
                 "collapsible": true,
-                "key": "RegistratieTemplate1",
+                "key": "groepen",
                 "type": "panel",
                 "label": "Studenten",
                 "collapsed": true,
@@ -447,20 +359,20 @@ settings_formio = \
                     "saveOnEnter": false
                   },
                   {
-                    "label": "Bericht naar studenten: ONDERWERP",
+                    "label": "Detail template (formio)",
                     "applyMaskOn": "change",
                     "autoExpand": false,
                     "tableView": true,
-                    "key": "leerid-message-subject",
+                    "key": "group-formio-template",
                     "type": "textarea",
                     "input": true
                   },
                   {
-                    "label": "Bericht naar studenten: INHOUD (HTML)",
+                    "label": "Lijst template (JSON)",
                     "applyMaskOn": "change",
                     "autoExpand": false,
                     "tableView": true,
-                    "key": "leerid-message-content",
+                    "key": "group-datatables-template",
                     "type": "textarea",
                     "input": true
                   }

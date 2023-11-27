@@ -1,5 +1,5 @@
 from flask import Blueprint
 
-cardpresso = Blueprint('cardpresso', __name__)
+group = Blueprint('group', __name__)
 
 from . import views

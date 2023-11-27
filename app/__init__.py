@@ -19,171 +19,9 @@ config_name = config_name if config_name else 'production'
 flask_app.config.from_object(app_config[config_name])
 flask_app.config.from_pyfile('config.py')
 
-# V0.1: copy from sum-zorg V0.109
-# 0.2: removed intake and care.  Added functionality to read database and photos from wisa
-# 0.3: added functionality to print badges.  Added right-click
-# 0.4: added cron tasks: import photo's, assign vsk numbers, create badges.  Send email when something changed related to cardpresso.
-# 0.5: updated cron badges task.  Added tests for wisa-cron-task and rfid-cron-task
-# 0.6: AD interface is OK.  added testing
-# 0.7: new and resurrected students: empty password and password must be changed at first logon
-# 0.8: minor updates
-# 0.9: update python-package, use configurable IP address
-# 0.10: small bugfix
-# 0.11: update frontend (css), bugfix right-click
-# 0.12: update api-key, added endpoint to get student info
-# 0.13: commit: add rollback in case of exception
-# 0.14: added import staff from wisa. AD, add new class to 'leerlingen'
-# 0.15: update in settings
-# 0.16: add school email to database.  API, add filters
-# 0.17: api keys are stored as a setting
-# 0.18: extend api, always return status and data.  sqlalchemy, bugfix when querying for field 'delete'
-# 0.19: bugfix api when fields of type datetime are requested.  Refactored model-api
-# 0.20: update api/fields
-# 0.21: clear selectionboxes after action.  Students from WISA, use leerlingnummer as unique id
-# 0.22: put new studens in the ad-group leerlingen, ad: add switch to reset password of respawned students, add verbose logging, api get students/staff: pass non-ascii as is
-# 0.23: bugfix in ad, added a default password, deleted students can be deactivated or not in AD,
-# 0.24: logger, more and longer logfiles.  Added functionality to remove students from a klas they do not belong to
-# 0.25: bugfixed typo
-# 0.26: enable smartschool-login.  rfid-fro-cardpresso: replace q with a
-# 0.27: extended student search
-# 0.28: students with name that is already present: add sufix (last 2 digits of leerlingnummer)
-# 0.29: add logging.  From wisa, email is added for new students only (can change when address already exists in AD)
-# 0.30: bugfixed user-levels.
-# 0.31: bugfix and make email searchable
-# 0.32: AD: existing student in AD, new in SDH -> get e-mailaddress from AD in case it is different from template-address
-# 0.33: cardpresso table: search in additional fields
-# 0.34: cardpresso table: small bugfix
-# 0.35: speed up deleting of badges.  Use API key.  Added filter (klassen)
-# 0.36: switch to allow new users via smartschool or not
-# 0.37: smartschool login: ignore case
-# 0.38: bugfix delete badges
-# 0.39: reworked photo
-# 0.40: when trying to find a photo, use the leerlingnummer as well
-# 0.41: add functionality to change the RFID code with a badgereader and forward the new code to AD
-# 0.42: when updating RFID code, show name of student
-# 0.43: students: get all usernames from ad (once) and store in SDH.  Added functionality to store new RFID directly to papercut
-# 0.44: set the RFID of staff as well
-# 0.45: added feature to udpate password.  Use formio in popup
-# 0.46: add file to git
-# 0.47: bugfix: update of RFID to sdh takes into account that the student is not present anymore
-# 0.48: bugfix, change spaces in field 'middag' to hashes to prevent stripping
-# 0.49: refactored ad.py.  Added functionality to test database integrity
-# 0.50: update database integrity check.  Introduced column roepnaam
-# 0.51: AD, displayname should be first-name last-name.  Added code to update already existing entries in AD
-# 0.52: reworked ad.py.  Take roepnaam into account when adding/changing student names
-# 0.53: reworked cron module
-# 0.54: small bugfix and added ' to not allowed characters in email
-# 0.55: database integerity check: bugfix roepnaam check
-# 0.56: small bugifx
-# 0.57: dabase integrity check: remove issues. Small bugfixes
-# 0.58: bugfix settings of type json.  Added code to get the computer name from AD
-# 0.59: update get computers from AD and bugfix json settings
-# 0.60: small update
-# 0.61: wisa changed its epxort encoding
-# 0.62: datatables update: use objects. Users: use popups to add/delete/update users
-# 0.63: students: moved from js-script to module. Moved js to static folder.  User: add/delete/update handled via popups.
-# 0.64: moved remaining views to modules
-# 0.65: small updates.  Implemented cardpresso-delete as users-delete.  Datatables: introduced context (ctx).  Api-key: introduced levels
-# 0.66: add staff-prive-email
-# 0.67: moved popups to settings so that they can be changed dynamically
-# 0.68: first steps with azure
-# 0.69: staff: added extra field.  Adding functionality to edit field inline.
-# 0.70: staff: add/update/delete staffs from webinterface
-# 0.71: add staff: send email to new staff.  Bugfix wisa-import: exception when a field is present in the import which is not present in the Staff/Student class
-# 0.72: error logs can be mailed.  Small bugfix in student-computers.  Import students: protect from student being present twice
-# 0.73: import staff from wisa AND adding staff manually is ok.
-# 1.0: version 1.0
-# 1.1: if student already in AD, get username from AD.  Update in search
-# 1.2: bugfix filters
-# 1.3: bugfix clear-filter-setting
-# 1.4: updated API to get photos.  Bugfix manually-added-staff; if not present in WISA then do not delete from database when stamboeknummer is empty
-# 1.5: bugfix paging/slicing
-# 1.6: app_context required in cron-task.  api-get-students: added start/stop for pagination
-# 1.7: bugfix AD, handle errors. Bugfix logging and sql.
-# 1.8: API update, getting size of photos
-# 1.10: papercut, store current rfid code in secondary-card-number.
-# 1.11: api, update required level to add staff and update staff/student
-# 1.12: papercut, when a badge is re-used, delete the old entry.  Bugfix api, get-staff.  Set default dates in database
-# 1.13: update email of already imported, new staff: resend the invitation if email changed and password not updated yet
-# 1.14: update staff expire date: did not ripple through to AD
-# 1.15: small update
-# 1.16: import students from informat.  Added testmode.  Simplify current_schoolyear
-# 1.17: update model::get and model::get_m, upgrade of filtering.  Update API keys, each key has a tag now
-# 1.18: added api-info-html.  Bugfixed API logging
-# 1.19 Bugfixed API logging
-# 1.20 Bugfixed API logging
-# 1.21: moved api info page to settings
-# 1.21-informat_student_smartschool-1: cleanup. Reworked "current schoolyear".  Reworked cron (not active during summer).  Sync per deelschool.  Added "like" to model::get_multiple
-# 1.21-informat_student_smartschool-2: added db-table klas.  Do not delete students during summerholiday.  Added button to sync test-klassen.  Reworked db-table students
-# 1.21-informat_student_smartschool-3: debugged informat import.  Added smartschool sync
-# 1.21-informat_student_smartschool-4: added student-status, export and send info-email.  Get multiple, added ids-field
-# 1.21-informat_student_smartschool-5: update import from informat.  Update export to smartschool
-# 1.21-informat_student_smartschool-6: classroom.cloud specific: use user-login as email
-# 1.21-informat_student_smartschool-7: merged import-staff-from-informat.
-# 1.22: merged from 1.21-informat_student_smartschool-7
-# 1.23: badges: added functionality to manually transfer the rfid to the students.  Small updates and small bugfixes
-# 1.24: bugfix use of cron-opaque-parameter.  Bugfix import staff from informat.
-# 1.25: bugfix staff-popup.  Small bugfixes
-# 1.26: bugfix informat import: ignore None-values
-# 1.27: added students-to-smartschool
-# 1.28: small bugfix
-# 1.29: infomail smartschool, chose parents or student
-# 1.30: smartschool, teacher-code bugfix
-# 1.31: smartschool, bugfix
-# 1.31: smartschool, bugfix teachers without internal number
-# 1.32: update version number
-# 1.33: cardpresso, add klas filter
-# 1.34: smartschool, detect teachers without internnummer
-# 1.35: smartschool export, add emailaddress
-# 1.36: student, cardpresso overview, filter on klasgroep iso klas
-# 1.37: photo, changed photos were not picked up
-# 1.38: added script to check if lln/klassen are correct over informat, sdh and smartschool
-# 1.39: added deelscholen to klasgroepen filter
-# 1.40: small bugfix, OKAN iso OK
-# 1.41: cardpresso, use badge to update rfid
-# 1.42: address of student: use Domicilie-adres
-# 1.43: bugfix inactive students, remove from klas.  AD bugfix, delete pager if empty rfid.  Bugfix cardpresso rfid to main database, could be overwritten when other parameters were changed.
-# Informat bugfix, do not crash when teacher has no smartschool internal code
-# 1.44: new students get automatically smartschool info via email
-# 1.45: bugfix send email with smartschool info, take into account that ids can be empty
-# 1.46: bugfix, do not reset changed flag at informat import
-# 1.47: bugfix AD, remove empty rfid code
-# 1.48: small update
-# 1.49: new student, send smartschool info also to parents
-# 1.50: send smartschool info: show confirmation window
-# 1.51: added Logging, to log/display user actions/results.  Bugfix datatables.html, do not include right_click.js if not needed.  Reworked send-ss-info to students/parents.
-# 1.52: improved user-logging.  Updated ss-send-info via api
-# 1.53: user-logging, add owner-filtering
-# 1.54: backup and bugfix
-# 1.55: small bugfix
-# 1.56: small bugfix
-# 1.57: print smartschool info, ok for students and coaccounts.  Multiple students in one document
-# 1.58: enable send-smartschool-info
-# 1.59: cron-cycle, do not stop when exception occurs.  smartschool, optimized code.
-# 1.60: pdfkit, set path to executable
-# 1.61: bugfix send email
-# 1.62: merge from leerid
-# 1.63: reworked navbar. Student-detail, added dropdown menu.
-# 1.64: when mailing/printo smartschool info, a checkbox can be ticked to indicate if the smartschool password needs to reset.
-# 1.65: small bugfix
-# 1.66: informat import, key-replace, take empty fields into account
-# 1.67: bugfix cardpresso, when quering the database, filters needed to be a list.  Added a test in multiple_get
-# 1.68: version fix
-# 1.69: students, email fix, use proxyAddresses to hold emailaddress
-# 1.70: AD, add klascode to displayname
-# 1.71: bugfix cron AD staff, check opaque parameters
-# 1.72: bugfix socketio, increase timeouts
-# 1.73: version bugfix
-# 1.74: AD, if new student exists, copy username to db.   Update pop-ups. Students, implement data upload (xlsx) with flexible columnnaming and keys.
-# 1.75: added dropdown menu on Students page for not-student-related functionality
-# 1.75-offload_sync-1: add broadcast warning to inform every user when something is ongoing
-# 1.76: (merge) add broadcast warning to inform every user when something is ongoing
-# 1.77: bugfix sync, do in seperate task
-# 1.78: small bugfix when reading xlsx
-# 1.79: reworked api_key. Added submenu, reworked menus.  Added informat-sync-menu
-# 1.80: sync informat, not in summerholydays, add confirmation popup.
+# 0.1: copy of school-data-hub V1.80
 
-version = "V1.80"
+version = "V0.1"
 
 
 db = SQLAlchemy()
@@ -317,14 +155,14 @@ else:
             return func(*args, **kwargs)
         return decorated_view
 
-    from app.presentation.view import auth, user, settings,  api, logging, student, staff, cardpresso
+    from app.presentation.view import auth, user, settings,  api, logging, student, staff, group
     flask_app.register_blueprint(api.api)
     flask_app.register_blueprint(auth.auth)
     flask_app.register_blueprint(user.user)
     flask_app.register_blueprint(settings.settings)
     flask_app.register_blueprint(student.student)
+    flask_app.register_blueprint(group.group)
     flask_app.register_blueprint(staff.staff)
-    flask_app.register_blueprint(cardpresso.cardpresso)
     flask_app.register_blueprint(logging.logging)
 
     @flask_app.errorhandler(403)

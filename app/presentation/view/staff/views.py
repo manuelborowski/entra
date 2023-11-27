@@ -15,12 +15,7 @@ import app.application.staff
 @login_required
 def show():
     # start = datetime.datetime.now()
-
-    popups = {
-        'update-password': get_configuration_setting("popup-student-teacher-update-password"),
-        'new_update_staff': mstaff.form_prepare_new_update_staff(get_configuration_setting("popup-new-update-staff"))
-    }
-    ret = datatables.show(table_config, template='staff/staff.html', popups=popups)
+    ret = datatables.show(table_config, template='staff/staff.html')
     # print('staff.show', datetime.datetime.now() - start)
     return ret
 
@@ -39,8 +34,6 @@ def table_ajax():
 @staff.route('/staff/table_action/<string:action>/<string:ids>', methods=['GET', 'POST'])
 @login_required
 def table_action(action, ids=None):
-    if ids:
-        ids = json.loads(ids)
     return redirect(url_for('staff.show'))
 
 
@@ -55,39 +48,6 @@ def update_cell_changed(msg, client_sid=None):
 
 
 msocketio.subscribe_on_type('staff_socketio_cell_changed', update_cell_changed)
-
-
-@staff.route('/staff/right_click/', methods=['POST', 'GET'])
-@login_required
-def right_click():
-    try:
-        if 'jds' in request.values:
-            data = json.loads(request.values['jds'])
-    except Exception as e:
-        log.error(f"Error in get_form: {e}")
-        return {"message": f"get_form: {e}"}
-    return {"message": "iets is fout gelopen"}
-
-
-def get_right_click_settings():
-    settings = {
-        'endpoint': 'staff.right_click',
-        'menu': []
-    }
-    if current_user.is_at_least_supervisor:
-        settings['menu'].extend([
-            {'label': 'RFID code aanpassen', 'item': 'check-rfid', 'iconscout': 'wifi'},
-            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
-            {'label': 'Nieuw personeelslid', 'item': 'add', 'iconscout': 'plus-circle'},
-            {'label': 'Personeelslid aanpassen', 'item': 'edit', 'iconscout': 'pen'},
-        ])
-    if current_user.is_at_least_admin:
-        settings['menu'].extend([
-            {'label': 'Personeelslid(eden) verwijderen', 'item': 'delete', 'iconscout': 'trash-alt', 'ack': 'Bent u zeker dat u dit personeelslid/deze personeelsleden wilt verwijderen?'},
-            {'label': '', 'item': 'horizontal-line', 'iconscout': ''},
-            {'label': 'Paswoord aanpassen', 'item': 'update-password', 'iconscout': 'key-skeleton'},
-        ])
-    return settings
 
 
 class Config(DatatableConfig):
@@ -108,11 +68,6 @@ class Config(DatatableConfig):
 
     def post_sql_order(self, l, on, direction):
         return app.application.staff.post_sql_order(l, on, direction)
-
-    def get_right_click(self):
-        return get_right_click_settings()
-
-    socketio_endpoint = "staff_socketio_cell_changed"
 
 
 table_config = Config("staff", "Overzicht Leerkrachten")
