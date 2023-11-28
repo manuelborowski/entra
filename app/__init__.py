@@ -20,8 +20,9 @@ flask_app.config.from_object(app_config[config_name])
 flask_app.config.from_pyfile('config.py')
 
 # 0.1: copy of school-data-hub V1.80
+# 0.2: auto update of cc-teams is ok
 
-version = "V0.1"
+version = "V0.2"
 
 
 db = SQLAlchemy()

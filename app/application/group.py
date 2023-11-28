@@ -9,7 +9,7 @@ log.addFilter(MyLogFilter())
 
 def get_types():
     try:
-        types = [a for a in mgroup.Group.Types.__dict__.keys() if not a.startswith("__")]
+        types = [v for k, v in dict(mgroup.Group.Types.__dict__).items() if not k.startswith("__")]
         return types
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')

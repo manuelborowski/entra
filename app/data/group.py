@@ -15,7 +15,8 @@ class Group(db.Model, SerializerMixin):
         team = "team"
         klas = "klas"
         groep = "groep"
-        cc = "cc"
+        cc_auto = "cc-auto"
+        cc_man = "cc-man"
 
     id = db.Column(db.Integer(), primary_key=True)
     entra_id = db.Column(db.String(256), default='')
@@ -30,30 +31,36 @@ class Group(db.Model, SerializerMixin):
     active = db.Column(db.Boolean, default=True)    # long term
 
     def add_owners(self, owners):
-        self.owners += owners
+        self.owners = json.dumps(json.loads(self.owners) + owners)
         
     def del_owners(self, owners):
-        for owner in owners:
-            if owner in self.owners:
-                del(self.owners[owner])
+        if owners:
+            current_owners = json.loads(self.owners)
+            for owner in owners:
+                if owner in current_owners:
+                    current_owners.remove(owner)
+            self.owners = json.dumps(current_owners)
 
     def add_members(self, members):
-        self.members += members
+        self.members = json.dumps(json.loads(self.members) + members)
         
     def del_members(self, members):
-        for member in members:
-            if member in self.members:
-                del(self.members[member])
+        if members:
+            current_members = json.loads(self.members)
+            for member in members:
+                if member in current_members:
+                    current_members.remove(member)
+            self.members = json.dumps(current_members)
 
     def get_klasgroepcode(self):
         if "cc-" in self.description:
             return self.description.split("-")[1]
 
-    def set_cc_description(self, klasgroepcode):
-        self.description = f"cc-{klasgroepcode}"
+    def get_cc_description(klasgroepcode):
+        return f"cc-{klasgroepcode}"
 
-    def set_cc_display_name(self, klasgroepcode):
-        self.display_name = f"cc-{klasgroepcode}"
+    def get_cc_display_name(klasgroepcode):
+        return f"cc-{klasgroepcode}"
 
 
 def get_columns():

@@ -26,10 +26,6 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
                 db_students = mstudent.student_get_m()
                 db_leerlingnummer_to_student = {s.leerlingnummer: s for s in db_students} if db_students else {}
                 for sdh_student in sdh_students["data"]:
-                    # TEST BOROWSKI
-                    continue
-                    if sdh_student["leerlingnummer"] not in ["78203", "79556", "86166", "78479"]:
-                        continue
                     if sdh_student["leerlingnummer"] in db_leerlingnummer_to_student:
                         # check for changed rfid or classgroup
                         db_student = db_leerlingnummer_to_student[sdh_student["leerlingnummer"]]
@@ -90,7 +86,6 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
                 db_code_to_staff = {s.code: s for s in db_staffs}
                 for sdh_staff in sdh_staffs["data"]:
                     # TEST BOROWSKI
-                    continue
                     if sdh_staff["code"].lower() not in ["boro", "heme", "dpot"]:
                         continue
                     if sdh_staff["code"] in db_code_to_staff:
@@ -145,8 +140,6 @@ def cron_klas_load_from_sdh(opaque=None, **kwargs):
                 db_klassen = mklas.klas_get_m()
                 db_klas_cache = {k.klascode: k for k in db_klassen}
                 for sdh_klas in sdh_klassen["data"]:
-                    # TEST BOROWSKI
-                    continue
                     if sdh_klas["klascode"] in db_klas_cache:
                         del(db_klas_cache[sdh_klas["klascode"]])
                     else:
@@ -154,7 +147,7 @@ def cron_klas_load_from_sdh(opaque=None, **kwargs):
                         log.info(f'{sys._getframe().f_code.co_name}, New klas {sdh_klas["klascode"]}')
                 deleted_klassen = [v for (k, v) in db_klas_cache.items()]
                 for klas in deleted_klassen:
-                    log.info(f'{sys._getframe().f_code.co_name}, Delete klas {klas.code}')
+                    log.info(f'{sys._getframe().f_code.co_name}, Delete klas {klas.klascode}')
                 mklas.klas_add_m(new_klassen)
                 mklas.klas_delete_m(klassen=deleted_klassen)
                 log.info(f'{sys._getframe().f_code.co_name}, klassen add {len(new_klassen)}, delete {len(deleted_klassen)}')

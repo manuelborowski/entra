@@ -1,7 +1,7 @@
 from app import flask_app
 from azure.identity import ClientSecretCredential
 from msgraph.core import GraphClient
-import sys, datetime, json, re
+import sys, datetime, json, re, copy
 from app.data import group as mgroup, staff as mstaff, student as mstudent, klas as mklas
 from app.data.group import Group
 from app.data.models import add, commit
@@ -26,7 +26,7 @@ class Graph:
         self.client_credential = ClientSecretCredential(tenant_id, client_id, client_secret)
         self.client = GraphClient(credential=self.client_credential, scopes=['https://graph.microsoft.com/.default'])
 
-    def create_team(self, data):
+    def create_team_with_members(self, data):
         body = {
             "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('educationClass')",
             "displayName": data["name"],
@@ -41,12 +41,13 @@ class Graph:
             location = resp.headers.get("location")
             team_id = re.match("/teams\('(.*)'\)/oper", location)[1]
             data["id"] = team_id
-            data["owners"].pop(0)
-            self.add_persons(data)
+            persons_data = copy.deepcopy(data)
+            persons_data["owners"].pop(0)
+            self.add_persons(persons_data)
             log.info(f'{sys._getframe().f_code.co_name}: New cc-team {team_id}')
             return team_id
         else:
-            log.error(f'{sys._getframe().f_code.co_name}: post.teams returned status_code {resp.status_code}')
+            log.error(f'{sys._getframe().f_code.co_name}: post.teams returned error {resp.text}')
         return None
 
     def delete_group(self, group_id):
@@ -55,40 +56,46 @@ class Graph:
             log.info(f'{sys._getframe().f_code.co_name}: Delete group {group_id}')
             return group_id
         else:
-            log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{group_id} returned status_code {resp.status_code}')
+            log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{group_id} returned error {resp.text}')
         return None
 
     def add_persons(self, data):
         values =[]
-        for member in data["members"]:
-            values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":[], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{member}')"})
-        for owner in data["owners"]:
-            values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":["owner"], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{owner}')"})
+        if "members" in data:
+            for member in data["members"]:
+                values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":[], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{member}')"})
+        if "owners" in data:
+            for owner in data["owners"]:
+                values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":["owner"], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{owner}')"})
         if values:
             resp = self.client.post(f"/teams/{data['id']}/members/add", json={"values": values})
             if resp.status_code == 200:
                 log.info(f'{sys._getframe().f_code.co_name}: Add members and owners to {data["id"]}')
                 return True
-            log.error(f'{sys._getframe().f_code.co_name}: post.teams{data["id"]}/members/add returned status_code {resp.status_code}')
+            log.error(f'{sys._getframe().f_code.co_name}: post.teams {data["id"]}/members/add returned error {resp.text}')
             return False
-        return True
+        return False
 
     def delete_persons(self, data):
-        values =[]
         for member in data["members"]:
-            resp = self.client.delete(f"/teams/{data['id']}/members/{member}")
+            resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
             if resp.status_code == 204:
                 log.info(f'{sys._getframe().f_code.co_name}: Delete member {member} from {data["id"]}')
             else:
-                log.error(f'{sys._getframe().f_code.co_name}: post.teams{data["id"]}/members/add returned status_code {resp.status_code}')
+                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
 
         for member in data["owners"]:
-            resp = self.client.delete(f"/teams/{data['id']}/members/{member}")
+            resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
+            if resp.status_code == 204:
+                log.info(f'{sys._getframe().f_code.co_name}: Delete owner/member {member} from {data["id"]}')
+            else:
+                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
+            resp = self.client.delete(f"/groups/{data['id']}/owners/{member}/$ref")
             if resp.status_code == 204:
                 log.info(f'{sys._getframe().f_code.co_name}: Delete owner {member} from {data["id"]}')
             else:
-                log.error(f'{sys._getframe().f_code.co_name}: post.teams{data["id"]}/members/add returned status_code {resp.status_code}')
-        return False
+                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/owners/{member} returned error {resp.text}')
+        return True
 
 
 
@@ -213,9 +220,8 @@ def cron_sync_cc_teams(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     try:
         class MetaTeam():
-            def __init__(self, team=None, klasgroepcode=None):
+            def __init__(self, team=None):
                 self.team = team
-                self.klasgroepcode = klasgroepcode
                 self._owners_to_add = []
                 self._owners_to_remove = []
                 self._members_to_add = []
@@ -224,7 +230,7 @@ def cron_sync_cc_teams(opaque=None, **kwargs):
             def get_owners_to_add(self):
                 return self._owners_to_add
 
-            def get_ownser_to_remove(self):
+            def get_owners_to_remove(self):
                 return self._owners_to_remove
 
             def get_members_to_add(self):
@@ -248,19 +254,18 @@ def cron_sync_cc_teams(opaque=None, **kwargs):
         update_teams = {}
         db_klassen = mklas.klas_get_m()
         klassen = {k.klascode: k.klasgroepcode for k in db_klassen}
-        klasgroepen_cache = [k.klasgroepcode for k in db_klassen]
-        db_cc_teams = mgroup.group_get_m(("type", "=", "cc"))
-        meta_teams = {t.description.split("-")[1]: MetaTeam(team=t) for t in db_cc_teams}
+        klasgroepen_cache = list(set([k.klasgroepcode for k in db_klassen]))
+        db_cc_teams = mgroup.group_get_m(("type", "=", mgroup.Group.Types.cc_auto))
         new_staffs = mstaff.staff_get_m(("new", "=", True))
         delete_staffs = mstaff.staff_get_m(("delete", "=", True))
-        current_staffs = mstaff.staff_get_m(("delete", "=", False))
+        current_staffs = mstaff.staff_get_m([("delete", "=", False), ("new", "=", False)])
 
         delete_cc_teams = []
         new_cc_teams = []
         for cc_team in db_cc_teams:
             klasgroepcode = cc_team.get_klasgroepcode()
             if klasgroepcode in klasgroepen_cache:
-                del(klasgroepen_cache[klasgroepcode])
+                klasgroepen_cache.remove(klasgroepcode)
             else:
                 delete_cc_teams.append(cc_team)
         # deleted klasgroepen
@@ -270,41 +275,47 @@ def cron_sync_cc_teams(opaque=None, **kwargs):
         # new klasgroepen
         for klasgroepcode in klasgroepen_cache:
             data = {
-                "name": f"cc-{klasgroepcode}",
-                "description": f"cc-{klasgroepcode}",
+                "name": mgroup.Group.get_cc_display_name(klasgroepcode),
+                "description": mgroup.Group.get_cc_description(klasgroepcode),
                 "owners": [o.entra_id for o in current_staffs]
             }
-            team_id = entra.create_team(data)
+            team_id = entra.create_team_with_members(data)
             if team_id:
                 new_cc_teams.append({"entra_id": team_id, "display_name": data["name"], "description": data["description"],
-                                  "created": datetime.datetime.now(), "type": mgroup.Group.Types.cc, "owners": data["owners"]})
+                                  "created": datetime.datetime.now(), "type": mgroup.Group.Types.cc_auto, "owners": json.dumps(data["owners"])})
         mgroup.group_add_m(new_cc_teams)
+        db_cc_teams = mgroup.group_get_m(("type", "=", mgroup.Group.Types.cc_auto))
+        meta_teams = {t.get_klasgroepcode(): MetaTeam(team=t) for t in db_cc_teams}
 
         db_students = mstudent.student_get_m(("new", "=", True))
         for student in db_students:
-            klasgroepcode = klassen[student.klascode]
-            if klasgroepcode not in meta_teams:
-                meta_teams[klasgroepcode] = MetaTeam(klasgroepcode=klasgroepcode)
-            meta_teams[klasgroepcode].add_members_to_add(student)
+            if student.klascode in klassen:
+                klasgroepcode = klassen[student.klascode]
+                meta_teams[klasgroepcode].add_members_to_add(student)
+            else:
+                log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
 
         db_students = mstudent.student_get_m(("delete", "=", True))
         for student in db_students:
-            klasgroepcode = klassen[student.klascode]
-            if klasgroepcode in meta_teams:
-                meta_teams[klasgroepcode].add_members_to_remove(student)
+            if student.klascode in klassen:
+                klasgroepcode = klassen[student.klascode]
+                if klasgroepcode in meta_teams:
+                    meta_teams[klasgroepcode].add_members_to_remove(student)
+            else:
+                log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
 
         db_students = mstudent.student_get_m(("changed", "!", ""))
         for student in db_students:
-            if "klascode" in student.changed:
+            if "klascode" in student.changed and student.klascode in klassen:
                 klasgroepcode = klassen[student.klascode]
-                if klasgroepcode not in meta_teams:
-                    meta_teams[klasgroepcode] = MetaTeam(klasgroepcode=klasgroepcode)
                 meta_teams[klasgroepcode].add_members_to_add(student)
                 prev_klascode = json.loads(student.changed_old)["klascode"]
                 if prev_klascode in klassen:
                     prev_klasgroepcode = klassen[prev_klascode]
                     if prev_klasgroepcode in meta_teams:
-                        meta_teams[prev_klascode].add_members_to_remove(student)
+                        meta_teams[prev_klasgroepcode].add_members_to_remove(student)
+            else:
+                log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
 
         if new_staffs or delete_staffs:
             for klasgroepcode, meta_team in meta_teams.items():
@@ -313,38 +324,18 @@ def cron_sync_cc_teams(opaque=None, **kwargs):
                 for staff in delete_staffs:
                     meta_team.add_owners_to_remove(staff)
 
-        new_teams = []
-        update_teams = []
         for _, meta_team in meta_teams.items():
-            if meta_team.klasgroepcode is not None: # i.e. team does not exist yet
-                data = {
-                    "name": f"cc-{meta_team.klasgroepcode}",
-                    "description": f"cc-{meta_team.klasgroepcode}",
-                    "members": meta_team.get_members_to_add(),
-                    "owners": [o.entra_id for o in current_staffs]
-                }
-                team_id = entra.create_team(data)
-                if team_id:
-                    new_teams.append({"entra_id": team_id, "display_name": data["name"], "description": data["description"],
-                        "created": datetime.datetime.now(), "type": mgroup.Group.Types.cc, "members": data["members"], "owners": data["owners"] })
-
-            if meta_team.team is not None:
-                del(klasgroepen_cache[meta_team.team.get_klasgroepcode()])
-                add_persons_data = {"members": meta_team.get_members_to_add(), "owners":  meta_team.get_owners_to_add(), "id": meta_team.team.entra_id}
+            add_persons_data = {"members": meta_team.get_members_to_add(), "owners":  meta_team.get_owners_to_add(), "id": meta_team.team.entra_id}
+            resp = entra.add_persons(add_persons_data)
+            if resp:
                 meta_team.team.add_members(add_persons_data["members"])
                 meta_team.team.add_owners(add_persons_data["owners"])
-                entra.add_persons(add_persons_data)
-                
-                remove_persons_data = {"members": meta_team.get_members_to_remove(), "owners":  meta_team.get_owners_to_remove(), "id": meta_team.team.entra_id}
-                meta_team.team.del_members(remove_persons_data["members"])
-                meta_team.team.del_owners(remove_persons_data["owners"])
-                entra.delete_persons(remove_persons_data)
 
-
-        mgroup.group_add_m(new_teams)
+            remove_persons_data = {"members": meta_team.get_members_to_remove(), "owners":  meta_team.get_owners_to_remove(), "id": meta_team.team.entra_id}
+            entra.delete_persons(remove_persons_data)
+            meta_team.team.del_members(remove_persons_data["members"])
+            meta_team.team.del_owners(remove_persons_data["owners"])
         commit()
-
-
         print(meta_teams)
 
     except Exception as e:
