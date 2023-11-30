@@ -234,10 +234,11 @@ settings_formio = \
                     "saveOnEnter": false
                   },
                   {
-                    "label": "Student/Leerkracht paswoord update",
+                    "label": "ClassroomCloud groep",
+                    "applyMaskOn": "change",
                     "autoExpand": false,
                     "tableView": true,
-                    "key": "popup-student-teacher-update-password",
+                    "key": "popup-classroomcloud-group",
                     "type": "textarea",
                     "input": true
                   },

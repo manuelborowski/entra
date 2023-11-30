@@ -201,6 +201,7 @@ default_configuration_settings = {
     'test-staff-rfid-start-code': ('', Settings.SETTING_TYPE.E_STRING),
 
     'popup-new-update-user': ({}, Settings.SETTING_TYPE.E_JSON),
+    'popup-classroomcloud-group': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-student-teacher-update-password': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-database-integrity-check': ({}, Settings.SETTING_TYPE.E_JSON),
     'popup-student-new-update': ({}, Settings.SETTING_TYPE.E_JSON),

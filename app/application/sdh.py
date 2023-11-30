@@ -86,7 +86,7 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
                 db_code_to_staff = {s.code: s for s in db_staffs}
                 for sdh_staff in sdh_staffs["data"]:
                     # TEST BOROWSKI
-                    if sdh_staff["code"].lower() not in ["boro", "heme", "dpot"]:
+                    if sdh_staff["code"].lower() not in ["boro", "heme", "dpot", "toezicht"]:
                         continue
                     if sdh_staff["code"] in db_code_to_staff:
                         # check for changed rfid or classgroup

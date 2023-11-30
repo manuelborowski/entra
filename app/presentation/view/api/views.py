@@ -1,5 +1,5 @@
 from flask import request, render_template
-from app.application import  user as muser, settings as msettings
+from app.application import  user as muser, settings as msettings, group as mgroup
 from app import log
 import json, sys, html, itertools
 from functools import wraps
@@ -50,6 +50,14 @@ def admin_key_required(func):
         def wrapper(*args, **kwargs):
             return api_core(muser.UserLevel.ADMIN, func, *args, **kwargs)
         return wrapper
+
+
+@api.route('/api/team/add', methods=['POST'])
+@supervisor_key_required
+def team_add():
+    data = json.loads(request.data)
+    ret = mgroup.api_team_add(data)
+    return(json.dumps(ret))
 
 
 @api.route('/api/warning/get', methods=['GET'])

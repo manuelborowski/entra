@@ -13,7 +13,8 @@ from app.application.settings import get_configuration_setting
 @group.route('/group/group', methods=['POST', 'GET'])
 @login_required
 def show():
-    ret = datatables.show(table_config, template='datatables.html')
+    popups = {'classroomcloud-group': mgroup.form_prepare_new_team(get_configuration_setting("popup-classroomcloud-group"))}
+    ret = datatables.show(table_config, template='group/group.html', popups=popups)
     return ret
 
 
@@ -22,6 +23,14 @@ def show():
 def table_ajax():
     ret =  datatables.ajax(table_config)
     return ret
+
+
+@group.route('/group/table_action', methods=['GET', 'POST'])
+@group.route('/group/table_action/<string:action>', methods=['GET', 'POST'])
+@group.route('/group/table_action/<string:action>/<string:ids>', methods=['GET', 'POST'])
+@login_required
+def table_action(action, ids=None):
+    return redirect(url_for('group.show'))
 
 
 def get_filters():
@@ -46,12 +55,15 @@ def get_filters():
     ]
 
 
-@group.route('/group/table_action', methods=['GET', 'POST'])
-@group.route('/group/table_action/<string:action>', methods=['GET', 'POST'])
-@group.route('/group/table_action/<string:action>/<string:ids>', methods=['GET', 'POST'])
-@login_required
-def table_action(action, ids=None):
-    return redirect(url_for('group.show'))
+def get_right_click_settings():
+    settings = {
+        'menu': [
+            {'label': 'Nieuw CC team', 'item': 'new-cc-team', 'iconscout': 'user-alt'},
+        ]
+    }
+    return settings
+
+
 
 
 class Config(DatatableConfig):
@@ -73,5 +85,7 @@ class Config(DatatableConfig):
     def show_filter_elements(self):
         return get_filters()
 
+    def get_right_click(self):
+        return get_right_click_settings()
 
 table_config = Config("group", "Overzicht groepen")

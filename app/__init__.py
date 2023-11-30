@@ -21,8 +21,9 @@ flask_app.config.from_pyfile('config.py')
 
 # 0.1: copy of school-data-hub V1.80
 # 0.2: auto update of cc-teams is ok
+# 0.3: added last_activity to groups.  Possible to cc-teams.
 
-version = "V0.2"
+version = "V0.3"
 
 
 db = SQLAlchemy()

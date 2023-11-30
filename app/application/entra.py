@@ -1,152 +1,14 @@
-from app import flask_app
-from azure.identity import ClientSecretCredential
-from msgraph.core import GraphClient
 import sys, datetime, json, re, copy
 from app.data import group as mgroup, staff as mstaff, student as mstudent, klas as mklas
 from app.data.group import Group
 from app.data.models import add, commit
+from app.data.entra import entra
 
 #logging on file level
 import logging
 from app import MyLogFilter, top_log_handle
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
-
-
-class Graph:
-    client_credential: ClientSecretCredential
-    client: GraphClient
-
-    def __init__(self):
-        # in Azure Directory Admin center, in the App Registration, in the app (Python Graph Tutorial), in  API permissions, make sure the TYPE of the permission is Application, NOT Delegated
-        #  The required permissions can be found in the API reference, e.g. https://learn.microsoft.com/en-us/graph/api/user-list?view=graph-rest-1.0&tabs=http
-        client_id = flask_app.config['ENTRA_CLIENT_ID']
-        tenant_id = flask_app.config['ENTRA_TENANT_ID']
-        client_secret = flask_app.config['ENTRA_CLIENT_SECRET']
-        self.client_credential = ClientSecretCredential(tenant_id, client_id, client_secret)
-        self.client = GraphClient(credential=self.client_credential, scopes=['https://graph.microsoft.com/.default'])
-
-    def create_team_with_members(self, data):
-        body = {
-            "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('educationClass')",
-            "displayName": data["name"],
-            "description": data["description"],
-            "members": [{"@odata.type": "#microsoft.graph.aadUserConversationMember", "roles": ["owner"],
-                    "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{data['owners'][0]}')"
-                }
-            ]
-        }
-        resp = self.client.post("/teams", json=body)
-        if resp.status_code == 202:
-            location = resp.headers.get("location")
-            team_id = re.match("/teams\('(.*)'\)/oper", location)[1]
-            data["id"] = team_id
-            persons_data = copy.deepcopy(data)
-            persons_data["owners"].pop(0)
-            self.add_persons(persons_data)
-            log.info(f'{sys._getframe().f_code.co_name}: New cc-team {team_id}')
-            return team_id
-        else:
-            log.error(f'{sys._getframe().f_code.co_name}: post.teams returned error {resp.text}')
-        return None
-
-    def delete_group(self, group_id):
-        resp = self.client.delete(f"/groups/{group_id}")
-        if resp.status_code == 204:
-            log.info(f'{sys._getframe().f_code.co_name}: Delete group {group_id}')
-            return group_id
-        else:
-            log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{group_id} returned error {resp.text}')
-        return None
-
-    def add_persons(self, data):
-        values =[]
-        if "members" in data:
-            for member in data["members"]:
-                values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":[], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{member}')"})
-        if "owners" in data:
-            for owner in data["owners"]:
-                values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":["owner"], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{owner}')"})
-        if values:
-            resp = self.client.post(f"/teams/{data['id']}/members/add", json={"values": values})
-            if resp.status_code == 200:
-                log.info(f'{sys._getframe().f_code.co_name}: Add members and owners to {data["id"]}')
-                return True
-            log.error(f'{sys._getframe().f_code.co_name}: post.teams {data["id"]}/members/add returned error {resp.text}')
-            return False
-        return False
-
-    def delete_persons(self, data):
-        for member in data["members"]:
-            resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
-            if resp.status_code == 204:
-                log.info(f'{sys._getframe().f_code.co_name}: Delete member {member} from {data["id"]}')
-            else:
-                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
-
-        for member in data["owners"]:
-            resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
-            if resp.status_code == 204:
-                log.info(f'{sys._getframe().f_code.co_name}: Delete owner/member {member} from {data["id"]}')
-            else:
-                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
-            resp = self.client.delete(f"/groups/{data['id']}/owners/{member}/$ref")
-            if resp.status_code == 204:
-                log.info(f'{sys._getframe().f_code.co_name}: Delete owner {member} from {data["id"]}')
-            else:
-                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/owners/{member} returned error {resp.text}')
-        return True
-
-
-
-    def get_computers(self, link=None):
-        if link:
-            request_url = link
-        else:
-            endpoint = '/deviceManagement/managedDevices'
-            select="complianceState,managedDeviceOwnerType,deviceName,userPrincipalName"
-            order_by = 'deviceName'
-            request_url = f'{endpoint}?$select={select}&$orderBy={order_by}'
-        response = self.client.get(request_url)
-        return response.json()
-
-    def get_teams(self):
-        items = []
-        url = f'/groups?$select=id,createdDateTime,creationOptions,description,displayName'
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.status_code}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
-        return items
-
-    def get_team_details(self, id):
-        url = f"/teams/{id}?$select=isArchived"
-        resp = self.client.get(url, timeout=200)
-        if resp.status_code != 200:
-            log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.status_code}')
-            return None
-        data = resp.json()
-        return data
-
-    def get_users(self):
-        items = []
-        url = f'/users?$select=id,userPrincipalName'
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.status_code}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
-        return items
-
-
-entra = Graph()
 
 
 def cron_sync_groups(opaque=None, **kwargs):
@@ -196,6 +58,22 @@ def cron_sync_groups(opaque=None, **kwargs):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
+def cron_sync_team_activities(opaque=None, **kwargs):
+    log.info(f"{sys._getframe().f_code.co_name}, START")
+    try:
+        db_groups = mgroup.group_get_m()
+        group_cache = {g.entra_id: g for g in db_groups} if db_groups else {}
+        activities = entra.get_team_activity_details()
+        for activity in activities:
+            if "Team Id" in activity and activity["Team Id"] in group_cache:
+                if activity["Last Activity Date"] != "":
+                    last_activity = datetime.datetime.strptime(activity["Last Activity Date"], "%Y-%m-%d").date()
+                    group_cache[activity["Team Id"]].last_activity = last_activity
+        commit()
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+
 def cron_sync_users(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     try:
@@ -215,8 +93,9 @@ def cron_sync_users(opaque=None, **kwargs):
 
 
 
+#Sync classroomcloud auto-teams, i.e. which are automatically created from klassen, klasgroepen, studenten en staff from SDH
 # for all classes in the students table, create a team, add the students as members and add all teachers as owners.
-def cron_sync_cc_teams(opaque=None, **kwargs):
+def cron_sync_cc_auto_teams(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     try:
         class MetaTeam():
@@ -251,7 +130,6 @@ def cron_sync_cc_teams(opaque=None, **kwargs):
             def add_members_to_remove(self, member):
                 self._members_to_remove.append(member.entra_id)
 
-        update_teams = {}
         db_klassen = mklas.klas_get_m()
         klassen = {k.klascode: k.klasgroepcode for k in db_klassen}
         klasgroepen_cache = list(set([k.klasgroepcode for k in db_klassen]))
@@ -306,16 +184,17 @@ def cron_sync_cc_teams(opaque=None, **kwargs):
 
         db_students = mstudent.student_get_m(("changed", "!", ""))
         for student in db_students:
-            if "klascode" in student.changed and student.klascode in klassen:
-                klasgroepcode = klassen[student.klascode]
-                meta_teams[klasgroepcode].add_members_to_add(student)
-                prev_klascode = json.loads(student.changed_old)["klascode"]
-                if prev_klascode in klassen:
-                    prev_klasgroepcode = klassen[prev_klascode]
-                    if prev_klasgroepcode in meta_teams:
-                        meta_teams[prev_klasgroepcode].add_members_to_remove(student)
-            else:
-                log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
+            if "klascode" in student.changed:
+                if student.klascode in klassen:
+                    klasgroepcode = klassen[student.klascode]
+                    meta_teams[klasgroepcode].add_members_to_add(student)
+                    prev_klascode = json.loads(student.changed_old)["klascode"]
+                    if prev_klascode in klassen:
+                        prev_klasgroepcode = klassen[prev_klascode]
+                        if prev_klasgroepcode in meta_teams:
+                            meta_teams[prev_klasgroepcode].add_members_to_remove(student)
+                else:
+                    log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
 
         if new_staffs or delete_staffs:
             for klasgroepcode, meta_team in meta_teams.items():
@@ -336,10 +215,11 @@ def cron_sync_cc_teams(opaque=None, **kwargs):
             meta_team.team.del_members(remove_persons_data["members"])
             meta_team.team.del_owners(remove_persons_data["owners"])
         commit()
-        print(meta_teams)
 
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+
 
 
 

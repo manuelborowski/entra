@@ -20,12 +20,13 @@ class Group(db.Model, SerializerMixin):
 
     id = db.Column(db.Integer(), primary_key=True)
     entra_id = db.Column(db.String(256), default='')
-    name = db.Column(db.String(256), default='')
+    klassen = db.Column(db.TEXT, default='')
     description = db.Column(db.TEXT, default='')
     display_name = db.Column(db.TEXT, default='')
     owners = db.Column(db.TEXT, default='[]')
     members = db.Column(db.TEXT, default='[]')
     created = db.Column(db.DateTime, default=None)
+    last_activity = db.Column(db.Date, default=None)
     type = db.Column(db.String(256), default=Types.team)
     archived = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)    # long term
