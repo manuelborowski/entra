@@ -52,6 +52,38 @@ def admin_key_required(func):
         return wrapper
 
 
+@api.route('/api/user/add', methods=['POST'])
+@admin_key_required
+def user_add():
+    data = json.loads(request.data)
+    ret = muser.api_user_add(data)
+    return(json.dumps(ret))
+
+
+@api.route('/api/user/update', methods=['POST'])
+@admin_key_required
+def user_update():
+    data = json.loads(request.data)
+    ret = muser.api_user_update(data)
+    return(json.dumps(ret))
+
+
+@api.route('/api/user/delete', methods=['POST'])
+@admin_key_required
+def user_delete():
+    data = json.loads(request.data)
+    ret = muser.api_user_delete(data)
+    return(json.dumps(ret))
+
+
+@api.route('/api/user/get', methods=['GET'])
+@admin_key_required
+def user_get():
+    options = request.args
+    ret = muser.api_user_get(options)
+    return(json.dumps(ret))
+
+
 @api.route('/api/team/add', methods=['POST'])
 @supervisor_key_required
 def team_add():

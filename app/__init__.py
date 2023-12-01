@@ -24,9 +24,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.3: added last_activity to groups.  Possible to cc-teams.
 # 0.4: added links to entra for students/staff
 # 0.5: replaced background picture
+# 0.6: update api
 
 
-version = "V0.5"
+version = "V0.6"
 
 
 db = SQLAlchemy()
