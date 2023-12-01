@@ -88,10 +88,10 @@ def format_data(db_list, total_count=None, filtered_count=None):
     out = []
     for obj in db_list:
         em = obj.to_dict()
-        em["display_name"] = f'<a href="https://entra.microsoft.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/{em["entra_id"]}/menuId/" target="_blank">{em["display_name"]}</a>'
         em.update({
             'row_action': obj.id,
-            'DT_RowId': obj.id
+            'DT_RowId': obj.id,
+            "display_name": f'<a href="https://entra.microsoft.com/#view/Microsoft_AAD_IAM/GroupDetailsMenuBlade/~/Overview/groupId/{em["entra_id"]}/menuId/" target="_blank">{em["display_name"]}</a>'
         })
         out.append(em)
     return total_count, filtered_count, out

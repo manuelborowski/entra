@@ -19,7 +19,8 @@ def format_data(db_list, total_count=None, filtered_count=None):
         em = student.to_dict()
         em.update({
             'row_action': student.id,
-            'DT_RowId': student.id
+            'DT_RowId': student.id,
+            "naam": f'<a href="https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/{student.entra_id}/hidePreviewBanner~/true" target="_blank">{student.naam}</a>',
         })
         out.append(em)
     return total_count, filtered_count, out
