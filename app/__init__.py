@@ -23,8 +23,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.2: auto update of cc-teams is ok
 # 0.3: added last_activity to groups.  Possible to cc-teams.
 # 0.4: added links to entra for students/staff
+# 0.5: replaced background picture
 
-version = "V0.4"
+
+version = "V0.5"
 
 
 db = SQLAlchemy()
