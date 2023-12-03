@@ -172,6 +172,7 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
 
         delete_cc_teams = []
         new_cc_teams = []
+        team_ids = []
         for sgc in staff_groep_codes:
             for cc_team in db_cc_teams[sgc]:
                 kgc = cc_team.get_klasgroep_code()
@@ -188,12 +189,19 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
                 data = {
                     "name": mgroup.Group.get_cc_display_name(sgc, kgc),
                     "description": mgroup.Group.get_cc_description(sgc, kgc),
-                    "owners": [o.entra_id for o in current_staffs[sgc]]
+                    "owners": [current_staffs[sgc][0].entra_id]
                 }
-                team_id = entra.create_team_with_members(data)
+                team_id = entra.create_team(data)
                 if team_id:
+                    team_ids.append((sgc, team_id))
                     new_cc_teams.append({"entra_id": team_id, "display_name": data["name"], "description": data["description"],
                                       "created": datetime.datetime.now(), "type": mgroup.Group.Types.cc_auto, "owners": json.dumps([o.code for o in current_staffs[sgc]])})
+        for item in team_ids:
+            sgc = item[0]
+            team_id = item[1]
+            add_persons_data = {"owners": [o.entra_id for o in current_staffs[sgc]], "id": team_id}
+            entra.add_persons(add_persons_data)
+
         mgroup.group_add_m(new_cc_teams)
         db_cc_teams = mgroup.group_get_m(("type", "=", mgroup.Group.Types.cc_auto))
         meta_teams = {sgc: {dct.get_klasgroep_code(): MetaTeam(dct) for dct in db_cc_teams if dct.get_staff_code() == sgc} for sgc in staff_groep_codes}

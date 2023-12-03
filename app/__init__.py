@@ -26,9 +26,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.5: replaced background picture
 # 0.6: update api
 # 0.7: cc-auto: only 50 staff per team are allowed, so split up the teams
+# 0.8: first create all teams and then add members
 
 
-version = "V0.7"
+version = "V0.8"
 
 
 db = SQLAlchemy()

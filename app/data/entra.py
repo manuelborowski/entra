@@ -24,6 +24,26 @@ class Graph:
         self.client_credential = ClientSecretCredential(tenant_id, client_id, client_secret)
         self.client = GraphClient(credential=self.client_credential, scopes=['https://graph.microsoft.com/.default'])
 
+    def create_team(self, data):
+        body = {
+            "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('educationClass')",
+            "displayName": data["name"],
+            "description": data["description"],
+            "members": [{"@odata.type": "#microsoft.graph.aadUserConversationMember", "roles": ["owner"],
+                    "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{data['owners'][0]}')"
+                }
+            ]
+        }
+        resp = self.client.post("/teams", json=body)
+        if resp.status_code == 202:
+            location = resp.headers.get("location")
+            team_id = re.match("/teams\('(.*)'\)/oper", location)[1]
+            log.info(f'{sys._getframe().f_code.co_name}: New cc-team {team_id}')
+            return team_id
+        else:
+            log.error(f'{sys._getframe().f_code.co_name}: post.teams returned error {resp.text}')
+        return None
+
     def create_team_with_members(self, data):
         body = {
             "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('educationClass')",
