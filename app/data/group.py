@@ -32,36 +32,40 @@ class Group(db.Model, SerializerMixin):
     active = db.Column(db.Boolean, default=True)    # long term
 
     def add_owners(self, owners):
-        self.owners = json.dumps(json.loads(self.owners) + owners)
+        self.owners = json.dumps(json.loads(self.owners) + [o.code for o in owners])
         
     def del_owners(self, owners):
         if owners:
             current_owners = json.loads(self.owners)
             for owner in owners:
-                if owner in current_owners:
-                    current_owners.remove(owner)
+                if owner.code in current_owners:
+                    current_owners.remove(owner.code)
             self.owners = json.dumps(current_owners)
 
     def add_members(self, members):
-        self.members = json.dumps(json.loads(self.members) + members)
+        self.members = json.dumps(json.loads(self.members) + [m.leerlingnummer for m in members])
         
     def del_members(self, members):
         if members:
             current_members = json.loads(self.members)
             for member in members:
-                if member in current_members:
-                    current_members.remove(member)
+                if member.leerlingnummer in current_members:
+                    current_members.remove(member.leerlingnummer)
             self.members = json.dumps(current_members)
 
-    def get_klasgroepcode(self):
+    def get_staff_code(self):
         if "cc-" in self.description:
-            return self.description.split("-")[1]
+            return self.description[3]
 
-    def get_cc_description(klasgroepcode):
-        return f"cc-{klasgroepcode}"
+    def get_klasgroep_code(self):
+        if "cc-" in self.description:
+            return self.description[5:]
 
-    def get_cc_display_name(klasgroepcode):
-        return f"cc-{klasgroepcode}"
+    def get_cc_description(staff_code, klasgroep_code):
+        return f"cc-{staff_code}-{klasgroep_code}"
+
+    def get_cc_display_name(staff_code, klasgroep_code):
+        return f"cc-{staff_code}-{klasgroep_code}"
 
 
 def get_columns():

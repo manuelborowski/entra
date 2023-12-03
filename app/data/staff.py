@@ -27,6 +27,7 @@ class Staff(db.Model, SerializerMixin):
     voornaam = db.Column(db.String(256), default='')
     naam = db.Column(db.String(256), default='')
     code = db.Column(db.String(256), default='')
+    groep_code = db.Column(db.String(256), default='')
     groups = db.Column(db.TEXT, default='[]')
     new = db.Column(db.Boolean, default=True)
     delete = db.Column(db.Boolean, default=False)
@@ -72,6 +73,34 @@ def staff_get_m(filters=[], fields=[], order_by=None, first=False, count=False, 
 def staff_get(filters=[]):
     return app.data.models.get_first_single(Staff, filters)
 
+
+def init_groep_codes():
+    try:
+        groep_codes = [0 for i in range(10)]
+        staffs = staff_get_m(fields=["groep_code"])
+        for staff in staffs:
+            groep_codes[ord(staff[0]) - ord("a")] += 1
+        return groep_codes
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+    return None
+
+
+def get_next_groep_code(groep_codes):
+    try:
+        for i, g in enumerate(groep_codes):
+            if g < 50:
+                groep_codes[i] += 1
+                return chr(i + ord("a")), groep_codes
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+    return None
+
+
+def get_groep_codes():
+    codes = init_groep_codes()
+    groep_codes = [chr(i + ord("a")) for i, c in enumerate(codes) if c > 0]
+    return groep_codes
 
 # data is a list, with:
 # staff: the ORM-staff-object

@@ -61,10 +61,12 @@ class Graph:
         values =[]
         if "members" in data:
             for member in data["members"]:
-                values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":[], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{member}')"})
+                if member != "":
+                    values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":[], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{member}')"})
         if "owners" in data:
             for owner in data["owners"]:
-                values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":["owner"], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{owner}')"})
+                if owner != "":
+                    values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":["owner"], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{owner}')"})
         if values:
             resp = self.client.post(f"/teams/{data['id']}/members/add", json={"values": values})
             if resp.status_code == 200:

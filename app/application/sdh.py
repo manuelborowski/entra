@@ -67,6 +67,7 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
     return len(new_students), nbr_updated, len(deleted_students)
 
 
+
 def cron_staff_load_from_sdh(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     updated_staffs = []
@@ -74,7 +75,7 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
     new_staffs = []
     deleted_staffs = []
     try:
-        # check for new, updated or deleted students
+        groep_codes = mstaff.init_groep_codes()
         sdh_staff_url = flask_app.config["SDH_GET_STAFF_URL"]
         sdh_key = flask_app.config["SDH_KEY"]
         res = requests.get(sdh_staff_url, headers={'x-api-key': sdh_key})
@@ -85,9 +86,6 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
                 db_staffs = mstaff.staff_get_m()
                 db_code_to_staff = {s.code: s for s in db_staffs}
                 for sdh_staff in sdh_staffs["data"]:
-                    # TEST BOROWSKI
-                    if sdh_staff["code"].lower() not in ["boro", "heme", "dpot", "toezicht"]:
-                        continue
                     if sdh_staff["code"] in db_code_to_staff:
                         # check for changed rfid or classgroup
                         db_staff = db_code_to_staff[sdh_staff["code"]]
@@ -103,8 +101,9 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
                             nbr_updated += 1
                         del(db_code_to_staff[sdh_staff["code"]])
                     else:
-                        new_staffs.append({"code": sdh_staff["code"], "naam": sdh_staff["naam"], "voornaam": sdh_staff["voornaam"]})
-                        log.info(f'{sys._getframe().f_code.co_name}, New staff {sdh_staff["code"]}')
+                        groep_code, groep_codes = mstaff.get_next_groep_code(groep_codes)
+                        new_staffs.append({"code": sdh_staff["code"], "naam": sdh_staff["naam"], "voornaam": sdh_staff["voornaam"], "groep_code": groep_code})
+                        log.info(f'{sys._getframe().f_code.co_name}, New staff {sdh_staff["code"]}, Groep code {groep_code}')
                 deleted_staffs = [v for (k, v) in db_code_to_staff.items()]
                 for staff in deleted_staffs:
                     updated_staffs.append({"staff": staff, "delete": True, "changed": ["delete"]})
@@ -121,6 +120,7 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return 0, 0, 0
     return len(new_staffs), nbr_updated, len(deleted_staffs)
+
 
 
 def cron_klas_load_from_sdh(opaque=None, **kwargs):

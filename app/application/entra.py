@@ -78,15 +78,27 @@ def cron_sync_users(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     try:
         entra_users = entra.get_users()
-        user_cache = {u["userPrincipalName"].split("@")[0]: u for u in entra_users}
+        user_cache = {u["userPrincipalName"].split("@")[0].lower(): u for u in entra_users}
         db_students = mstudent.student_get_m()
+        found = []
         for student in db_students:
-            if student.username in user_cache:
-                student.entra_id = user_cache[student.username]["id"]
+            if student.username.lower() in user_cache:
+                student.entra_id = user_cache[student.username.lower()]["id"]
+                found.append(student)
+        for student in db_students:
+            if student not in found:
+                log.info(f'{sys._getframe().f_code.co_name}: Student not found in Entra {student.leerlingnummer}, {student.naam} {student.voornaam}')
+
+        found = []
         db_staffs = mstaff.staff_get_m()
         for staff in db_staffs:
-            if staff.code in user_cache:
-                staff.entra_id = user_cache[staff.code]["id"]
+            if staff.code.lower() in user_cache:
+                staff.entra_id = user_cache[staff.code.lower()]["id"]
+                found.append(staff)
+        for staff in db_staffs:
+            if staff not in found:
+                log.info(f'{sys._getframe().f_code.co_name}: Staff not found in Entra {staff.code}, {staff.naam} {staff.voornaam}')
+
         commit()
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
@@ -118,102 +130,129 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
             def get_members_to_remove(self):
                 return self._members_to_remove
 
-            def add_owners_to_add(self, owner):
-                self._owners_to_add.append(owner.entra_id)
+            def add_owners_to_add(self, owners):
+                if type(owners) is not list:
+                    owners = [owners]
+                self._owners_to_add += owners
 
-            def add_owners_to_remove(self, owner):
-                self._owners_to_remove.append(owner.entra_id)
+            def add_owners_to_remove(self, owners):
+                if type(owners) is not list:
+                    owners = [owners]
+                self._owners_to_remove += owners
 
-            def add_members_to_add(self, member):
-                self._members_to_add.append(member.entra_id)
+            def add_members_to_add(self, members):
+                if type(members) is not list:
+                    members = [members]
+                self._members_to_add += members
 
-            def add_members_to_remove(self, member):
-                self._members_to_remove.append(member.entra_id)
+            def add_members_to_remove(self, members):
+                if type(members) is not list:
+                    members = [members]
+                self._members_to_remove += members
+
+
+        def _check_if_not_empty(dict_list):
+            for _, l in dict_list.items():
+                if l != []:
+                    return True
+            return False
 
         db_klassen = mklas.klas_get_m()
+        staff_groep_codes = mstaff.get_groep_codes()
         klassen = {k.klascode: k.klasgroepcode for k in db_klassen}
-        klasgroepen_cache = list(set([k.klasgroepcode for k in db_klassen]))
+        klasgroepen = {sgc: list(set([k.klasgroepcode for k in db_klassen])) for sgc in staff_groep_codes}
         db_cc_teams = mgroup.group_get_m(("type", "=", mgroup.Group.Types.cc_auto))
+        db_cc_teams = {sgc: [dct for dct in db_cc_teams if dct.get_staff_code() == sgc] for sgc in staff_groep_codes}
         new_staffs = mstaff.staff_get_m(("new", "=", True))
+        new_staffs = {sgc : [s for s in new_staffs if s.groep_code == sgc ] for sgc in staff_groep_codes}
         delete_staffs = mstaff.staff_get_m(("delete", "=", True))
+        delete_staffs = {sgc : [s for s in delete_staffs if s.groep_code == sgc ] for sgc in staff_groep_codes}
         current_staffs = mstaff.staff_get_m([("delete", "=", False), ("new", "=", False)])
+        current_staffs = {sgc : [s for s in current_staffs if s.groep_code == sgc ] for sgc in staff_groep_codes}
 
         delete_cc_teams = []
         new_cc_teams = []
-        for cc_team in db_cc_teams:
-            klasgroepcode = cc_team.get_klasgroepcode()
-            if klasgroepcode in klasgroepen_cache:
-                klasgroepen_cache.remove(klasgroepcode)
-            else:
-                delete_cc_teams.append(cc_team)
-        # deleted klasgroepen
-        for cc_team in delete_cc_teams:
-            entra.delete_group(cc_team.entra_id)
-        mgroup.group_delete_m(groups=delete_cc_teams)
-        # new klasgroepen
-        for klasgroepcode in klasgroepen_cache:
-            data = {
-                "name": mgroup.Group.get_cc_display_name(klasgroepcode),
-                "description": mgroup.Group.get_cc_description(klasgroepcode),
-                "owners": [o.entra_id for o in current_staffs]
-            }
-            team_id = entra.create_team_with_members(data)
-            if team_id:
-                new_cc_teams.append({"entra_id": team_id, "display_name": data["name"], "description": data["description"],
-                                  "created": datetime.datetime.now(), "type": mgroup.Group.Types.cc_auto, "owners": json.dumps(data["owners"])})
+        for sgc in staff_groep_codes:
+            for cc_team in db_cc_teams[sgc]:
+                kgc = cc_team.get_klasgroep_code()
+                if kgc in klasgroepen[sgc]:
+                    klasgroepen[sgc].remove(kgc)
+                else:
+                    delete_cc_teams.append(cc_team)
+            # deleted klasgroepen
+            for cc_team in delete_cc_teams:
+                entra.delete_group(cc_team.entra_id)
+            mgroup.group_delete_m(groups=delete_cc_teams)
+            # new klasgroepen
+            for kgc in klasgroepen[sgc]:
+                data = {
+                    "name": mgroup.Group.get_cc_display_name(sgc, kgc),
+                    "description": mgroup.Group.get_cc_description(sgc, kgc),
+                    "owners": [o.entra_id for o in current_staffs[sgc]]
+                }
+                team_id = entra.create_team_with_members(data)
+                if team_id:
+                    new_cc_teams.append({"entra_id": team_id, "display_name": data["name"], "description": data["description"],
+                                      "created": datetime.datetime.now(), "type": mgroup.Group.Types.cc_auto, "owners": json.dumps([o.code for o in current_staffs[sgc]])})
         mgroup.group_add_m(new_cc_teams)
         db_cc_teams = mgroup.group_get_m(("type", "=", mgroup.Group.Types.cc_auto))
-        meta_teams = {t.get_klasgroepcode(): MetaTeam(team=t) for t in db_cc_teams}
+        meta_teams = {sgc: {dct.get_klasgroep_code(): MetaTeam(dct) for dct in db_cc_teams if dct.get_staff_code() == sgc} for sgc in staff_groep_codes}
 
         db_students = mstudent.student_get_m(("new", "=", True))
         for student in db_students:
             if student.klascode in klassen:
-                klasgroepcode = klassen[student.klascode]
-                meta_teams[klasgroepcode].add_members_to_add(student)
+                kgc = klassen[student.klascode]
+                for staff_groep in staff_groep_codes:
+                    meta_teams[staff_groep][kgc].add_members_to_add(student)
             else:
                 log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
 
         db_students = mstudent.student_get_m(("delete", "=", True))
         for student in db_students:
             if student.klascode in klassen:
-                klasgroepcode = klassen[student.klascode]
-                if klasgroepcode in meta_teams:
-                    meta_teams[klasgroepcode].add_members_to_remove(student)
+                kgc = klassen[student.klascode]
+                for staff_groep in staff_groep_codes:
+                    if kgc in meta_teams[staff_groep]:
+                        meta_teams[staff_groep][kgc].add_members_to_remove(student)
             else:
-                log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
+                log.info(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
 
         db_students = mstudent.student_get_m(("changed", "!", ""))
         for student in db_students:
             if "klascode" in student.changed:
                 if student.klascode in klassen:
-                    klasgroepcode = klassen[student.klascode]
-                    meta_teams[klasgroepcode].add_members_to_add(student)
+                    kgc = klassen[student.klascode]
                     prev_klascode = json.loads(student.changed_old)["klascode"]
-                    if prev_klascode in klassen:
-                        prev_klasgroepcode = klassen[prev_klascode]
-                        if prev_klasgroepcode in meta_teams:
-                            meta_teams[prev_klasgroepcode].add_members_to_remove(student)
+                    prev_klasgroep_code = klassen[prev_klascode] if prev_klascode in klassen else None
+                    for staff_groep in staff_groep_codes:
+                        meta_teams[staff_groep][kgc].add_members_to_add(student)
+                        if prev_klasgroep_code in meta_teams[staff_groep]:
+                            meta_teams[staff_groep][prev_klasgroep_code].add_members_to_remove(student)
                 else:
                     log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
 
-        if new_staffs or delete_staffs:
-            for klasgroepcode, meta_team in meta_teams.items():
-                for staff in new_staffs:
-                    meta_team.add_owners_to_add(staff)
-                for staff in delete_staffs:
-                    meta_team.add_owners_to_remove(staff)
+        if _check_if_not_empty(new_staffs) or _check_if_not_empty(delete_staffs):
+            for sgc, klasgroep_meta_teams in meta_teams.items():
+                for kgc, meta_team in klasgroep_meta_teams.items():
+                    meta_team.add_owners_to_add(new_staffs[sgc])
+                    meta_team.add_owners_to_remove(delete_staffs[sgc])
 
-        for _, meta_team in meta_teams.items():
-            add_persons_data = {"members": meta_team.get_members_to_add(), "owners":  meta_team.get_owners_to_add(), "id": meta_team.team.entra_id}
-            resp = entra.add_persons(add_persons_data)
-            if resp:
-                meta_team.team.add_members(add_persons_data["members"])
-                meta_team.team.add_owners(add_persons_data["owners"])
+        for _, klasgroep_meta_teams in meta_teams.items():
+            for _, meta_team in klasgroep_meta_teams.items():
+                add_persons_data = {"members": [m.entra_id for m in meta_team.get_members_to_add()],
+                                    "owners":  [o.entra_id for o in meta_team.get_owners_to_add()],
+                                    "id": meta_team.team.entra_id}
+                resp = entra.add_persons(add_persons_data)
+                if resp:
+                    meta_team.team.add_members(meta_team.get_members_to_add())
+                    meta_team.team.add_owners(meta_team.get_owners_to_add())
 
-            remove_persons_data = {"members": meta_team.get_members_to_remove(), "owners":  meta_team.get_owners_to_remove(), "id": meta_team.team.entra_id}
-            entra.delete_persons(remove_persons_data)
-            meta_team.team.del_members(remove_persons_data["members"])
-            meta_team.team.del_owners(remove_persons_data["owners"])
+                remove_persons_data = {"members": [m.entra_id for m in meta_team.get_members_to_remove()],
+                                       "owners":  [o.entra_id for o in meta_team.get_owners_to_remove()],
+                                       "id": meta_team.team.entra_id}
+                entra.delete_persons(remove_persons_data)
+                meta_team.team.del_members(meta_team.get_members_to_remove())
+                meta_team.team.del_owners(meta_team.get_owners_to_remove())
         commit()
 
     except Exception as e:
