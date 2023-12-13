@@ -36,6 +36,7 @@ var menu = [
     ["student.show", "Studenten", 1],
     ["staff.show", "Personeel", 1],
     ["group.show", "Groepen", 1],
+    ["device.show", "Toestellen", 1],
     ["logging.show", "Logging", 3],
     ["user.show", "Gebruikers", 5],
     ["settings.show", "Instellingen", 5],

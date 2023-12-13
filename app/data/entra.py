@@ -117,18 +117,20 @@ class Graph:
                 log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/owners/{member} returned error {resp.text}')
         return True
 
-
-
-    def get_computers(self, link=None):
-        if link:
-            request_url = link
-        else:
-            endpoint = '/deviceManagement/managedDevices'
-            select="complianceState,managedDeviceOwnerType,deviceName,userPrincipalName"
-            order_by = 'deviceName'
-            request_url = f'{endpoint}?$select={select}&$orderBy={order_by}'
-        response = self.client.get(request_url)
-        return response.json()
+    def get_devices(self):
+        items = []
+        select="lastSyncDateTime,enrolledDateTime,deviceName,userId,id,serialNumber"
+        order_by = 'deviceName'
+        url = f'/deviceManagement/managedDevices?$select={select}&$orderBy={order_by}'
+        while url:
+            resp = self.client.get(url)
+            if resp.status_code != 200:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+                return []
+            data = resp.json()
+            items += data["value"]
+            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        return items
 
     def get_teams(self):
         items = []

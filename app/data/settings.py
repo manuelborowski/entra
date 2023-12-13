@@ -111,6 +111,9 @@ default_configuration_settings = {
     'student-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
     'student-max-students-to-view-with-one-click': (5, Settings.SETTING_TYPE.E_INT),
 
+    'device-formio-template': ({}, Settings.SETTING_TYPE.E_JSON),
+    'device-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
+
     'staff-formio-template': ({}, Settings.SETTING_TYPE.E_JSON),
     'staff-datatables-template': ({}, Settings.SETTING_TYPE.E_JSON),
     'staff-new-staff-email-template': ('', Settings.SETTING_TYPE.E_STRING),

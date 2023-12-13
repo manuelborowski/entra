@@ -332,6 +332,56 @@ settings_formio = \
             ]
           },
           {
+            "label": "devices",
+            "tableView": false,
+            "key": "devices",
+            "type": "container",
+            "input": true,
+            "components": [
+              {
+                "title": "Toestellen",
+                "theme": "primary",
+                "collapsible": true,
+                "key": "RegistratieTemplate1",
+                "type": "panel",
+                "label": "Studenten",
+                "collapsed": true,
+                "input": false,
+                "tableView": false,
+                "components": [
+                  {
+                    "label": "Opslaan",
+                    "showValidations": false,
+                    "theme": "warning",
+                    "tableView": false,
+                    "key": "submit",
+                    "type": "button",
+                    "input": true,
+                    "saveOnEnter": false
+                  },
+                  {
+                    "label": "Detail template (formio)",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "device-formio-template",
+                    "type": "textarea",
+                    "input": true
+                  },
+                  {
+                    "label": "Lijst template (JSON)",
+                    "applyMaskOn": "change",
+                    "autoExpand": false,
+                    "tableView": true,
+                    "key": "device-datatables-template",
+                    "type": "textarea",
+                    "input": true
+                  }
+                ]
+              }
+            ]
+          },
+          {
             "label": "Groepen",
             "tableView": false,
             "key": "groups",

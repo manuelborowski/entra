@@ -27,9 +27,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.6: update api
 # 0.7: cc-auto: only 50 staff per team are allowed, so split up the teams
 # 0.8: first create all teams and then add members
+# 0.9: sync devices with entra
 
 
-version = "V0.8"
+version = "V0.9"
 
 
 db = SQLAlchemy()
@@ -163,7 +164,7 @@ else:
             return func(*args, **kwargs)
         return decorated_view
 
-    from app.presentation.view import auth, user, settings,  api, logging, student, staff, group
+    from app.presentation.view import auth, user, settings,  api, logging, student, staff, group, device
     flask_app.register_blueprint(api.api)
     flask_app.register_blueprint(auth.auth)
     flask_app.register_blueprint(user.user)
@@ -172,6 +173,7 @@ else:
     flask_app.register_blueprint(group.group)
     flask_app.register_blueprint(staff.staff)
     flask_app.register_blueprint(logging.logging)
+    flask_app.register_blueprint(device.device)
 
     @flask_app.errorhandler(403)
     def forbidden(error):

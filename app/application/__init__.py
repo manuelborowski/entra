@@ -2,7 +2,7 @@ __all__ = ['tables', 'datatables', 'socketio', 'settings', 'logging', 'cron', 's
 
 from app import flask_app
 from app.application.sdh import cron_staff_load_from_sdh, cron_student_load_from_sdh, cron_klas_load_from_sdh, cron_cleanup_sdh
-from app.application.entra import cron_sync_groups, cron_sync_users, cron_sync_cc_auto_teams, cron_sync_team_activities
+from app.application.entra import cron_sync_groups, cron_sync_users, cron_sync_cc_auto_teams, cron_sync_team_activities, cron_sync_devices
 
 
 # tag, cront-task, label, help
@@ -14,6 +14,7 @@ cron_table = [
     ('ENTRA-SYNC-GROUPS', cron_sync_groups, 'VAN ENTRA, sync groepen', '', False),
     ('ENTRA-SYNC-ACTIVITIES', cron_sync_team_activities, 'VAN ENTRA, sync team activities', '', False),
     ('ENTRA-SYNC-CC-TEAMS', cron_sync_cc_auto_teams, 'NAAR ENTRA, sync classroomcloud teams', '', False),
+    ('ENTRA-SYNC-DEVICES', cron_sync_devices, 'NAAR DB, sync devices', '', False),
     ('SDH-CLEANUP', cron_cleanup_sdh, 'NAAR DB, reset DB vlaggen', '', False),
 ]
 

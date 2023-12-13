@@ -1,5 +1,5 @@
 import sys, datetime, json, re, copy
-from app.data import group as mgroup, staff as mstaff, student as mstudent, klas as mklas
+from app.data import group as mgroup, staff as mstaff, student as mstudent, klas as mklas, device as mdevice
 from app.data.group import Group
 from app.data.models import add, commit
 from app.data.entra import entra
@@ -263,6 +263,54 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
                 meta_team.team.del_owners(meta_team.get_owners_to_remove())
         commit()
 
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+
+def cron_sync_devices(opaque=None, **kwargs):
+    log.info(f"{sys._getframe().f_code.co_name}, START")
+    try:
+        not_in_entra = []
+        entra_devices = entra.get_devices()
+        device_cache = {d["id"]: d for d in entra_devices}
+        db_devices = mdevice.device_get_m()
+
+        for device in db_devices:
+            if device.entra_id in device_cache:
+                entra_device = device_cache[device.entra_id]
+                device.lastsync_date = entra_device["lastSyncDateTime"]
+                del(device_cache[device.entra_id])
+            else:
+                not_in_entra.append(device)
+                log.info(f'{sys._getframe().f_code.co_name}: Device not found in Entra {device.device_name}, {device.user_naam} {device.user_voornaam}')
+        mdevice.device_delete_m(devices=not_in_entra)
+        new_devices = []
+        db_students = mstudent.student_get_m()
+        db_staffs = mstaff.staff_get_m()
+        db_persons = db_staffs + db_students
+        person_cache = {p.entra_id: p for p in db_persons}
+        for _, ed in device_cache.items():
+            user = None
+            if ed["userId"] in person_cache:
+                person = person_cache[ed["userId"]]
+                user = {
+                    "user_voornaam": person.voornaam,
+                    "user_naam": person.naam,
+                    "user_klascode": person.klascode if isinstance(person, mstudent.Student) else "",
+                    "user_username": person.username if isinstance(person, mstudent.Student) else person.code,
+                }
+            new_device = {
+                "entra_id": ed["id"],
+                "device_name": ed["deviceName"],
+                "serial_number": ed["serialNumber"],
+                "enrolled_date": datetime.datetime.strptime(ed["enrolledDateTime"], "%Y-%m-%dT%H:%M:%SZ"),
+                "lastsync_date": datetime.datetime.strptime(ed["lastSyncDateTime"], "%Y-%m-%dT%H:%M:%SZ"),
+                "user_entra_id": ed["userId"],
+            }
+            if user:
+                new_device.update(user)
+            new_devices.append(new_device)
+        mdevice.device_add_m(new_devices)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
