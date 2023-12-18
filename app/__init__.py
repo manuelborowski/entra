@@ -28,9 +28,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.7: cc-auto: only 50 staff per team are allowed, so split up the teams
 # 0.8: first create all teams and then add members
 # 0.9: sync devices with entra
+# 0.10: bugfixed wrong date format
 
 
-version = "V0.9"
+version = "V0.10"
 
 
 db = SQLAlchemy()

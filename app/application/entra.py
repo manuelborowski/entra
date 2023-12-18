@@ -278,7 +278,10 @@ def cron_sync_devices(opaque=None, **kwargs):
         for device in db_devices:
             if device.entra_id in device_cache:
                 entra_device = device_cache[device.entra_id]
-                device.lastsync_date = entra_device["lastSyncDateTime"]
+                lastsync_date = entra_device["lastSyncDateTime"]
+                if lastsync_date[0] == "0":
+                    lastsync_date = "2000-01-01T00:00:00Z"
+                device.lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
                 del(device_cache[device.entra_id])
             else:
                 not_in_entra.append(device)
@@ -299,12 +302,19 @@ def cron_sync_devices(opaque=None, **kwargs):
                     "user_klascode": person.klascode if isinstance(person, mstudent.Student) else "",
                     "user_username": person.username if isinstance(person, mstudent.Student) else person.code,
                 }
+            lastsync_date = ed["lastSyncDateTime"]
+            if lastsync_date[0] == "0":
+                lastsync_date = "2000-01-01T00:00:00Z"
+            enrolled_date = ed["enrolledDateTime"]
+            if enrolled_date[0] == "0":
+                enrolled_date = "2000-01-01T00:00:00Z"
+
             new_device = {
                 "entra_id": ed["id"],
                 "device_name": ed["deviceName"],
                 "serial_number": ed["serialNumber"],
-                "enrolled_date": datetime.datetime.strptime(ed["enrolledDateTime"], "%Y-%m-%dT%H:%M:%SZ"),
-                "lastsync_date": datetime.datetime.strptime(ed["lastSyncDateTime"], "%Y-%m-%dT%H:%M:%SZ"),
+                "enrolled_date": datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ"),
+                "lastsync_date": datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ"),
                 "user_entra_id": ed["userId"],
             }
             if user:
