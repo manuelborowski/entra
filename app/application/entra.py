@@ -275,6 +275,11 @@ def cron_sync_devices(opaque=None, **kwargs):
         device_cache = {d["id"]: d for d in entra_devices}
         db_devices = mdevice.device_get_m()
 
+        db_students = mstudent.student_get_m()
+        db_staffs = mstaff.staff_get_m()
+        db_persons = db_staffs + db_students
+        person_cache = {p.entra_id: p for p in db_persons}
+
         for device in db_devices:
             if device.entra_id in device_cache:
                 entra_device = device_cache[device.entra_id]
@@ -282,18 +287,31 @@ def cron_sync_devices(opaque=None, **kwargs):
                 if lastsync_date[0] == "0":
                     lastsync_date = "2000-01-01T00:00:00Z"
                 device.lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
+                person_entra_id = entra_device["userId"]
+                if person_entra_id in person_cache:
+                    person = person_cache[person_entra_id]
+                    person.computer_lastsync_date = device.lastsync_date
+                    person.computer_name = device.device_name
+                    person.computer_entra_id = device.entra_id
+                    device.user_entra_id = person_entra_id
+                    device.user_voornaam = person.voornaam,
+                    device.user_naam = person.naam
+                    device.user_klascode = person.klascode if isinstance(person, mstudent.Student) else "",
+                    device.user_username = person.username if isinstance(person, mstudent.Student) else person.code,
                 del(device_cache[device.entra_id])
             else:
                 not_in_entra.append(device)
                 log.info(f'{sys._getframe().f_code.co_name}: Device not found in Entra {device.device_name}, {device.user_naam} {device.user_voornaam}')
         mdevice.device_delete_m(devices=not_in_entra)
         new_devices = []
-        db_students = mstudent.student_get_m()
-        db_staffs = mstaff.staff_get_m()
-        db_persons = db_staffs + db_students
-        person_cache = {p.entra_id: p for p in db_persons}
         for _, ed in device_cache.items():
             user = None
+            lastsync_date = ed["lastSyncDateTime"]
+            if lastsync_date[0] == "0":
+                lastsync_date = "2000-01-01T00:00:00Z"
+            enrolled_date = ed["enrolledDateTime"]
+            if enrolled_date[0] == "0":
+                enrolled_date = "2000-01-01T00:00:00Z"
             if ed["userId"] in person_cache:
                 person = person_cache[ed["userId"]]
                 user = {
@@ -302,12 +320,9 @@ def cron_sync_devices(opaque=None, **kwargs):
                     "user_klascode": person.klascode if isinstance(person, mstudent.Student) else "",
                     "user_username": person.username if isinstance(person, mstudent.Student) else person.code,
                 }
-            lastsync_date = ed["lastSyncDateTime"]
-            if lastsync_date[0] == "0":
-                lastsync_date = "2000-01-01T00:00:00Z"
-            enrolled_date = ed["enrolledDateTime"]
-            if enrolled_date[0] == "0":
-                enrolled_date = "2000-01-01T00:00:00Z"
+                person.computer_lastsync_date = lastsync_date
+                person.computer_name = ed["deviceName"]
+                person.computer_entra_id = ed["id"]
 
             new_device = {
                 "entra_id": ed["id"],
@@ -320,6 +335,7 @@ def cron_sync_devices(opaque=None, **kwargs):
             if user:
                 new_device.update(user)
             new_devices.append(new_device)
+
         mdevice.device_add_m(new_devices)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')

@@ -21,6 +21,7 @@ def format_data(db_list, total_count=None, filtered_count=None):
             'row_action': student.id,
             'DT_RowId': student.id,
             "naam": f'<a href="https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/{student.entra_id}/hidePreviewBanner~/true" target="_blank">{student.naam}</a>',
+            "computer_name": f'<a href="https://intune.microsoft.com/#view/Microsoft_Intune_Devices/DeviceSettingsMenuBlade/~/overview/mdmDeviceId/{student.computer_entra_id}" target="_blank">{student.computer_name}</a>',
         })
         out.append(em)
     return total_count, filtered_count, out

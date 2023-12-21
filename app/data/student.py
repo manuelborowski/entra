@@ -19,7 +19,9 @@ class Student(db.Model, SerializerMixin):
     leerlingnummer = db.Column(db.String(256), default='')
     klascode = db.Column(db.String(256), default='')
     klasnummer = db.Column(db.Integer(), default=-1)
-    computer = db.Column(db.String(256), default='')
+    computer_name = db.Column(db.String(256), default='')
+    computer_entra_id = db.Column(db.String(256), default='')
+    computer_lastsync_date = db.Column(db.String(256), default='')
     username = db.Column(db.String(256), default='')
     groups = db.Column(db.TEXT, default='[]')
 

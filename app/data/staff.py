@@ -29,6 +29,11 @@ class Staff(db.Model, SerializerMixin):
     code = db.Column(db.String(256), default='')
     groep_code = db.Column(db.String(256), default='')
     groups = db.Column(db.TEXT, default='[]')
+
+    computer_name = db.Column(db.String(256), default='')
+    computer_entra_id = db.Column(db.String(256), default='')
+    computer_lastsync_date = db.Column(db.String(256), default='')
+
     new = db.Column(db.Boolean, default=True)
     delete = db.Column(db.Boolean, default=False)
     active = db.Column(db.Boolean, default=True)    # long term
