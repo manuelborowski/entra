@@ -1,5 +1,5 @@
 from flask import request, render_template
-from app.application import  user as muser, settings as msettings, group as mgroup
+from app.application import  user as muser, settings as msettings, group as mgroup, device as mdevice
 from app import log
 import json, sys, html, itertools
 from functools import wraps
@@ -96,4 +96,13 @@ def team_add():
 def get_warning():
     warning = warning_get_message()
     return json.dumps({"message": warning})
+
+
+@api.route('/api/device/get', methods=['GET'])
+@user_key_required
+def device_get():
+    options = request.args
+    ret = mdevice.api_device_get(options)
+    return json.dumps(ret, ensure_ascii=False)
+
 

@@ -30,9 +30,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.9: sync devices with entra
 # 0.10: bugfixed wrong date format
 # 0.11: copy device info into staff/student table
+# 0.12: added api to get devices.  Update student/staff lastsync_date
 
 
-version = "V0.11"
+version = "V0.12"
 
 
 db = SQLAlchemy()

@@ -309,9 +309,11 @@ def cron_sync_devices(opaque=None, **kwargs):
             lastsync_date = ed["lastSyncDateTime"]
             if lastsync_date[0] == "0":
                 lastsync_date = "2000-01-01T00:00:00Z"
+            lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
             enrolled_date = ed["enrolledDateTime"]
             if enrolled_date[0] == "0":
                 enrolled_date = "2000-01-01T00:00:00Z"
+            enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ"),
             if ed["userId"] in person_cache:
                 person = person_cache[ed["userId"]]
                 user = {
@@ -328,8 +330,8 @@ def cron_sync_devices(opaque=None, **kwargs):
                 "entra_id": ed["id"],
                 "device_name": ed["deviceName"],
                 "serial_number": ed["serialNumber"],
-                "enrolled_date": datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ"),
-                "lastsync_date": datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ"),
+                "enrolled_date": enrolled_date,
+                "lastsync_date": lastsync_date,
                 "user_entra_id": ed["userId"],
             }
             if user:
