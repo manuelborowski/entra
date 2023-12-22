@@ -31,9 +31,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.10: bugfixed wrong date format
 # 0.11: copy device info into staff/student table
 # 0.12: added api to get devices.  Update student/staff lastsync_date
+# 0.13: push devices to sdh
 
 
-version = "V0.12"
+version = "V0.13"
 
 
 db = SQLAlchemy()

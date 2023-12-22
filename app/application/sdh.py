@@ -18,7 +18,7 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
     try:
         # check for new, updated or deleted students
         sdh_student_url = flask_app.config["SDH_GET_STUDENT_URL"]
-        sdh_key = flask_app.config["SDH_KEY"]
+        sdh_key = flask_app.config["SDH_GET_KEY"]
         res = requests.get(sdh_student_url, headers={'x-api-key': sdh_key})
         if res.status_code == 200:
             sdh_students = res.json()
@@ -78,7 +78,7 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
     try:
         groep_codes = mstaff.init_groep_codes()
         sdh_staff_url = flask_app.config["SDH_GET_STAFF_URL"]
-        sdh_key = flask_app.config["SDH_KEY"]
+        sdh_key = flask_app.config["SDH_GET_KEY"]
         res = requests.get(sdh_staff_url, headers={'x-api-key': sdh_key})
         if res.status_code == 200:
             sdh_staffs = res.json()
@@ -132,7 +132,7 @@ def cron_klas_load_from_sdh(opaque=None, **kwargs):
     try:
         # check for new, updated or deleted students
         sdh_klas_url = flask_app.config["SDH_GET_KLAS_URL"]
-        sdh_key = flask_app.config["SDH_KEY"]
+        sdh_key = flask_app.config["SDH_GET_KEY"]
         res = requests.get(sdh_klas_url, headers={'x-api-key': sdh_key})
         if res.status_code == 200:
             sdh_klassen = res.json()
@@ -187,4 +187,45 @@ def cron_cleanup_sdh(opaque=None, **kwargs):
         mstaff.staff_delete_m(staffs=db_staffs)
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+
+def cron_push_devices(opaque=None, **kwargs):
+
+    def push_data(data, properties, label):
+        try:
+            data_out = []
+            for item in data:
+                data_out.append({
+                    properties[0]: item[0],
+                    properties[1]: item[1],
+                    properties[2]: str(item[2]) if item[2] else None,
+                    properties[3]: item[3]
+                })
+            res = requests.post(sdh_device_url, headers={'x-api-key': sdh_key}, json=data_out)
+            if res.status_code == 200:
+                status = json.loads(res.text)
+                if status["status"]:
+                    log.info(f'{sys._getframe().f_code.co_name}, Deviceupdate for {len(data)} {label}, status, {status["data"]}')
+                else:
+                    log.error(f'{sys._getframe().f_code.co_name}, Deviceupdate for label, error, {status["data"]}')
+            else:
+                log.error(f'{sys._getframe().f_code.co_name}: api call to {sdh_device_url} returned {res.status_code}')
+        except Exception as e:
+            log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+    log.info(f"{sys._getframe().f_code.co_name}, START")
+    try:
+        sdh_device_url = flask_app.config["SDH_POST_DEVICE_URL"]
+        sdh_key = flask_app.config["SDH_POST_KEY"]
+
+        db_students = mstudent.student_get_m(fields=["leerlingnummer", "computer_name", "computer_lastsync_date", "computer_entra_id"])
+        push_data(db_students, ["leerlingnummer", "computer_name", "computer_lastsync_date", "computer_entra_id"], "Students")
+
+        db_staffs = mstaff.staff_get_m(fields=["code", "computer_name", "computer_lastsync_date", "computer_entra_id"])
+        push_data(db_staffs, ["code", "computer_name", "computer_lastsync_date", "computer_entra_id"], "Staff")
+
+        log.info(f"{sys._getframe().f_code.co_name}, STOP")
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
 
