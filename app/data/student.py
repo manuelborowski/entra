@@ -133,7 +133,7 @@ def pre_sql_filter(query, filter):
 def pre_sql_search(search_string):
     search_constraints = []
     search_constraints.append(Student.username.like(search_string))
-    search_constraints.append(Student.computer.like(search_string))
+    search_constraints.append(Student.computer_name.like(search_string))
     search_constraints.append(Student.naam.like(search_string))
     search_constraints.append(Student.voornaam.like(search_string))
     search_constraints.append(Student.leerlingnummer.like(search_string))
