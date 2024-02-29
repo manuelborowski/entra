@@ -33,9 +33,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.12: added api to get devices.  Update student/staff lastsync_date
 # 0.13: push devices to sdh
 # 0.14: bugfix, wrong propertyname in search function
+# 0.15: entra device, added fields for better checking
 
-
-version = "V0.14"
+version = "V0.15"
 
 
 db = SQLAlchemy()

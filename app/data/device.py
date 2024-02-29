@@ -73,4 +73,7 @@ def pre_sql_filter(query, filter):
 def pre_sql_search(search_string):
     search_constraints = []
     search_constraints.append(Device.device_name.like(search_string))
+    search_constraints.append(Device.user_voornaam.like(search_string))
+    search_constraints.append(Device.user_naam.like(search_string))
+    search_constraints.append(Device.user_username.like(search_string))
     return search_constraints

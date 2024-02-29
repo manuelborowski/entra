@@ -147,7 +147,7 @@ def get_multiple(model, filters=[], fields=[], ids=[], order_by=None, first=Fals
         if count:
             return q.count()
         objs = q.all()
-        return objs
+        return objs if objs else []
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
     return None

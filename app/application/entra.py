@@ -305,6 +305,8 @@ def cron_sync_devices(opaque=None, **kwargs):
         mdevice.device_delete_m(devices=not_in_entra)
         new_devices = []
         for _, ed in device_cache.items():
+            if ed["complianceState"] != "compliant" or ed["deviceEnrollmentType"] == "windowsAutoEnrollment": continue
+
             user = None
             lastsync_date = ed["lastSyncDateTime"]
             if lastsync_date[0] == "0":
