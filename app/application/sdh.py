@@ -27,6 +27,7 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
                 db_students = mstudent.student_get_m()
                 db_leerlingnummer_to_student = {s.leerlingnummer: s for s in db_students} if db_students else {}
                 for sdh_student in sdh_students["data"]:
+                    if int(sdh_student["leerlingnummer"]) < 0: continue
                     if sdh_student["leerlingnummer"] in db_leerlingnummer_to_student:
                         # check for changed rfid or classgroup
                         db_student = db_leerlingnummer_to_student[sdh_student["leerlingnummer"]]
@@ -76,7 +77,7 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
     new_staffs = []
     deleted_staffs = []
     try:
-        groep_codes = mstaff.init_groep_codes()
+        groep_codes = mstaff.get_nbr_staff_per_groep()
         sdh_staff_url = flask_app.config["SDH_GET_STAFF_URL"]
         sdh_key = flask_app.config["SDH_GET_KEY"]
         res = requests.get(sdh_staff_url, headers={'x-api-key': sdh_key})
@@ -96,7 +97,8 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
                         if db_staff.naam != sdh_staff["naam"]:
                             update["naam"] = sdh_staff["naam"]
                         if update:
-                            update.update({"item": db_staff})
+                            update["changed"] = list(update.keys())
+                            update.update({"staff": db_staff})
                             updated_staffs.append(update)
                             log.info(f'{sys._getframe().f_code.co_name}, Update staff {db_staff.code}, update {update}')
                             nbr_updated += 1

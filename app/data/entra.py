@@ -90,32 +90,29 @@ class Graph:
         if values:
             resp = self.client.post(f"/teams/{data['id']}/members/add", json={"values": values})
             if resp.status_code == 200:
-                log.info(f'{sys._getframe().f_code.co_name}: Add members and owners to {data["id"]}')
                 return True
             log.error(f'{sys._getframe().f_code.co_name}: post.teams {data["id"]}/members/add returned error {resp.text}')
             return False
         return False
 
     def delete_persons(self, data):
+        ret = True
         for member in data["members"]:
             resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
-            if resp.status_code == 204:
-                log.info(f'{sys._getframe().f_code.co_name}: Delete member {member} from {data["id"]}')
-            else:
+            if resp.status_code != 204:
                 log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
+                ret = False
 
         for member in data["owners"]:
             resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
-            if resp.status_code == 204:
-                log.info(f'{sys._getframe().f_code.co_name}: Delete owner/member {member} from {data["id"]}')
-            else:
+            if resp.status_code != 204:
                 log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
+                ret = False
             resp = self.client.delete(f"/groups/{data['id']}/owners/{member}/$ref")
-            if resp.status_code == 204:
-                log.info(f'{sys._getframe().f_code.co_name}: Delete owner {member} from {data["id"]}')
-            else:
+            if resp.status_code != 204:
                 log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/owners/{member} returned error {resp.text}')
-        return True
+                ret = False
+        return ret
 
     def get_devices(self):
         items = []
@@ -147,6 +144,15 @@ class Graph:
 
     def get_team_details(self, id):
         url = f"/teams/{id}?$select=isArchived"
+        resp = self.client.get(url, timeout=200)
+        if resp.status_code != 200:
+            log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+            return None
+        data = resp.json()
+        return data
+
+    def get_team_members(self, id):
+        url = f"/groups/{id}/members?$select=id,officeLocation"
         resp = self.client.get(url, timeout=200)
         if resp.status_code != 200:
             log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')

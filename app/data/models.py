@@ -33,6 +33,14 @@ def commit():
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
+def delete(obj):
+    try:
+        db.session.delete(obj)
+    except Exception as e:
+        db.session.rollback()
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+
 def add(object):
     try:
         db.session.add(object)

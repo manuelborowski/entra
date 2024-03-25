@@ -34,8 +34,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.13: push devices to sdh
 # 0.14: bugfix, wrong propertyname in search function
 # 0.15: entra device, added fields for better checking
+# 0.16: add cc-teams verify to check the differences between database and entra
 
-version = "V0.15"
+version = "V0.16"
 
 
 db = SQLAlchemy()

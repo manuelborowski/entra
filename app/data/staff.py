@@ -79,7 +79,8 @@ def staff_get(filters=[]):
     return app.data.models.get_first_single(Staff, filters)
 
 
-def init_groep_codes():
+# counts the number of staff per groep_code and return a list, where index 0 contains number in groep "a", index 1 contains number in groep "b",...
+def get_nbr_staff_per_groep():
     try:
         groep_codes = [0 for i in range(10)]
         staffs = staff_get_m(fields=["groep_code"])
@@ -102,8 +103,9 @@ def get_next_groep_code(groep_codes):
     return None
 
 
+# Get all the groeps with staff present.
 def get_groep_codes():
-    codes = init_groep_codes()
+    codes = get_nbr_staff_per_groep()
     groep_codes = [chr(i + ord("a")) for i, c in enumerate(codes) if c > 0]
     return groep_codes
 

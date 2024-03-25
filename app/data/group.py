@@ -32,7 +32,7 @@ class Group(db.Model, SerializerMixin):
     active = db.Column(db.Boolean, default=True)    # long term
 
     def add_owners(self, owners):
-        self.owners = json.dumps(json.loads(self.owners) + [o.code for o in owners])
+        self.owners = json.dumps(list(set(json.loads(self.owners) + [o.code for o in owners])))
         
     def del_owners(self, owners):
         if owners:
@@ -43,7 +43,7 @@ class Group(db.Model, SerializerMixin):
             self.owners = json.dumps(current_owners)
 
     def add_members(self, members):
-        self.members = json.dumps(json.loads(self.members) + [m.leerlingnummer for m in members])
+        self.members = json.dumps(list(set(json.loads(self.members) + [m.leerlingnummer for m in members])))
         
     def del_members(self, members):
         if members:
