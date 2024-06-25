@@ -438,7 +438,6 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
 def cron_sync_devices(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     try:
-        not_in_entra = []
         entra_devices = entra.get_devices()
         device_cache = {d["id"]: d for d in entra_devices}
         db_devices = mdevice.device_get_m()
@@ -448,64 +447,86 @@ def cron_sync_devices(opaque=None, **kwargs):
         db_persons = db_staffs + db_students
         person_cache = {p.entra_id: p for p in db_persons}
 
-        for device in db_devices:
-            if device.entra_id in device_cache:
-                entra_device = device_cache[device.entra_id]
+        # process the active devices (deleted or changed) of a user.
+        not_in_entra = []
+        for dd in db_devices:
+            if dd.entra_id in device_cache:
+                entra_device = device_cache[dd.entra_id]
                 lastsync_date = entra_device["lastSyncDateTime"]
                 if lastsync_date[0] == "0":
                     lastsync_date = "2000-01-01T00:00:00Z"
-                device.lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
+                dd.lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
+                enrolled_date = entra_device["enrolledDateTime"]
+                if enrolled_date[0] == "0":
+                    enrolled_date = "2000-01-01T00:00:00Z"
+                dd.enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ"),
                 person_entra_id = entra_device["userId"]
                 if person_entra_id in person_cache:
                     person = person_cache[person_entra_id]
-                    person.computer_lastsync_date = device.lastsync_date
-                    person.computer_name = device.device_name
-                    person.computer_entra_id = device.entra_id
-                    device.user_entra_id = person_entra_id
-                    device.user_voornaam = person.voornaam,
-                    device.user_naam = person.naam
-                    device.user_klascode = person.klascode if isinstance(person, mstudent.Student) else "",
-                    device.user_username = person.username if isinstance(person, mstudent.Student) else person.code,
-                del(device_cache[device.entra_id])
+                    person.computer_lastsync_date = dd.lastsync_date
+                    person.computer_name = dd.device_name
+                    person.computer_entra_id = dd.entra_id
+                    dd.user_entra_id = person_entra_id
+                    dd.user_voornaam = person.voornaam,
+                    dd.user_naam = person.naam
+                    dd.user_klascode = person.klascode if isinstance(person, mstudent.Student) else "",
+                    dd.user_username = person.username if isinstance(person, mstudent.Student) else person.code,
+                del(device_cache[dd.entra_id])
             else:
-                not_in_entra.append(device)
-                log.info(f'{sys._getframe().f_code.co_name}: Device not found in Entra {device.device_name}, {device.user_naam} {device.user_voornaam}')
+                not_in_entra.append(dd)
+                log.info(f'{sys._getframe().f_code.co_name}: Active device not found in Entra {dd.device_name}, {dd.user_naam} {dd.user_voornaam}')
         mdevice.device_delete_m(devices=not_in_entra)
+
+        # process the non-active devices (deleted or changed) of a user
+        not_in_entra = []
+        db_devices = mdevice.device_get_m(active=False)
+        for dd in db_devices:
+            if dd.entra_id in device_cache:
+                del(device_cache[dd.entra_id])
+            else:
+                not_in_entra.append(dd)
+                log.info(f'{sys._getframe().f_code.co_name}: Non-active device not found in Entra {dd.device_name}, {dd.user_naam} {dd.user_voornaam}')
+        mdevice.device_delete_m(devices=not_in_entra)
+
         new_devices = []
         for _, ed in device_cache.items():
-            if ed["complianceState"] != "compliant" or ed["deviceEnrollmentType"] == "windowsAutoEnrollment": continue
-
-            user = None
-            lastsync_date = ed["lastSyncDateTime"]
-            if lastsync_date[0] == "0":
-                lastsync_date = "2000-01-01T00:00:00Z"
-            lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
-            enrolled_date = ed["enrolledDateTime"]
-            if enrolled_date[0] == "0":
-                enrolled_date = "2000-01-01T00:00:00Z"
-            enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ"),
-            if ed["userId"] in person_cache:
-                person = person_cache[ed["userId"]]
-                user = {
-                    "user_voornaam": person.voornaam,
-                    "user_naam": person.naam,
-                    "user_klascode": person.klascode if isinstance(person, mstudent.Student) else "",
-                    "user_username": person.username if isinstance(person, mstudent.Student) else person.code,
-                }
-                person.computer_lastsync_date = lastsync_date
-                person.computer_name = ed["deviceName"]
-                person.computer_entra_id = ed["id"]
-
             new_device = {
                 "entra_id": ed["id"],
                 "device_name": ed["deviceName"],
                 "serial_number": ed["serialNumber"],
-                "enrolled_date": enrolled_date,
-                "lastsync_date": lastsync_date,
                 "user_entra_id": ed["userId"],
             }
-            if user:
-                new_device.update(user)
+            person = None
+            if ed["userId"] in person_cache:
+                person = person_cache[ed["userId"]]
+                new_device.update({
+                    "user_voornaam": person.voornaam,
+                    "user_naam": person.naam,
+                    "user_klascode": person.klascode if isinstance(person, mstudent.Student) else "",
+                    "user_username": person.username if isinstance(person, mstudent.Student) else person.code,
+                })
+
+            if ed["complianceState"] != "compliant" or ed["deviceEnrollmentType"] == "windowsAutoEnrollment":
+                # non-active device
+                lastsync_date = None
+                enrolled_date = None
+                new_device.update({"active": False})
+            else:
+                # active device
+                lastsync_date = ed["lastSyncDateTime"]
+                if lastsync_date[0] == "0":
+                    lastsync_date = "2000-01-01T00:00:00Z"
+                lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
+                enrolled_date = ed["enrolledDateTime"]
+                if enrolled_date[0] == "0":
+                    enrolled_date = "2000-01-01T00:00:00Z"
+                enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ"),
+                if person:
+                    person.computer_lastsync_date = lastsync_date
+                    person.computer_name = ed["deviceName"]
+                    person.computer_entra_id = ed["id"]
+
+            new_device.update({"enrolled_date": enrolled_date, "lastsync_date": lastsync_date,})
             new_devices.append(new_device)
 
         mdevice.device_add_m(new_devices)

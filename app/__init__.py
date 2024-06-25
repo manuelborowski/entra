@@ -35,8 +35,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.14: bugfix, wrong propertyname in search function
 # 0.15: entra device, added fields for better checking
 # 0.16: add cc-teams verify to check the differences between database and entra
+# 0.16-save_non_active_devices-0.1: save non-active devices
 
-version = "V0.16"
+
+version = "V0.16-save_non_active_devices-0.1"
 
 
 db = SQLAlchemy()
