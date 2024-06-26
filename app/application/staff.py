@@ -20,7 +20,7 @@ def format_data(db_list, total_count=None, filtered_count=None):
             'row_action': staff.id,
             'DT_RowId': staff.id,
             "naam": f'<a href="https://entra.microsoft.com/#view/Microsoft_AAD_UsersAndTenants/UserProfileMenuBlade/~/overview/userId/{staff.entra_id}/hidePreviewBanner~/true" target="_blank">{staff.naam}</a>',
-            "computer_name": f'<a href="https://intune.microsoft.com/#view/Microsoft_Intune_Devices/DeviceSettingsMenuBlade/~/overview/mdmDeviceId/{staff.computer_entra_id}" target="_blank">{staff.computer_name}</a>',
+            "computer_name": f'<a href="https://intune.microsoft.com/#view/Microsoft_Intune_Devices/DeviceSettingsMenuBlade/~/overview/mdmDeviceId/{staff.computer_intune_id}" target="_blank">{staff.computer_name}</a>',
         })
         out.append(em)
     return total_count, filtered_count, out

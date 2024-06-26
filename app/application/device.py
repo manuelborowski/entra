@@ -27,7 +27,7 @@ def format_data(db_list, total_count=None, filtered_count=None):
         em.update({
             'row_action': device.id,
             'DT_RowId': device.id,
-            "entra_id": f'<a href="https://intune.microsoft.com/#view/Microsoft_Intune_Devices/DeviceSettingsMenuBlade/~/overview/mdmDeviceId/{device.entra_id}" target=_blank">{device.entra_id}</a>',
+            "intune_id": f'<a href="https://intune.microsoft.com/#view/Microsoft_Intune_Devices/DeviceSettingsMenuBlade/~/overview/mdmDeviceId/{device.intune_id}" target=_blank">{device.intune_id}</a>',
         })
         out.append(em)
     return total_count, filtered_count, out

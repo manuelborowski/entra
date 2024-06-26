@@ -13,7 +13,7 @@ class Device(db.Model, SerializerMixin):
 
 
     id = db.Column(db.Integer(), primary_key=True)
-    entra_id = db.Column(db.String(256), default='')
+    intune_id = db.Column(db.String(256), default='')
 
     device_name = db.Column(db.String(256), default='')
     serial_number = db.Column(db.String(256), default='')

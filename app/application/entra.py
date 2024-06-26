@@ -450,48 +450,50 @@ def cron_sync_devices(opaque=None, **kwargs):
         # process the active devices (deleted or changed) of a user.
         not_in_entra = []
         for dd in db_devices:
-            if dd.entra_id in device_cache:
-                entra_device = device_cache[dd.entra_id]
-                lastsync_date = entra_device["lastSyncDateTime"]
+            if dd.intune_id in device_cache:
+                intune_device = device_cache[dd.intune_id]
+                lastsync_date = intune_device["lastSyncDateTime"]
                 if lastsync_date[0] == "0":
                     lastsync_date = "2000-01-01T00:00:00Z"
                 dd.lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
-                enrolled_date = entra_device["enrolledDateTime"]
+                enrolled_date = intune_device["enrolledDateTime"]
                 if enrolled_date[0] == "0":
                     enrolled_date = "2000-01-01T00:00:00Z"
-                dd.enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ"),
-                person_entra_id = entra_device["userId"]
+                dd.enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ")
+                person_entra_id = intune_device["userId"]
                 if person_entra_id in person_cache:
                     person = person_cache[person_entra_id]
                     person.computer_lastsync_date = dd.lastsync_date
                     person.computer_name = dd.device_name
-                    person.computer_entra_id = dd.entra_id
+                    person.computer_intune_id = dd.intune_id
                     dd.user_entra_id = person_entra_id
                     dd.user_voornaam = person.voornaam,
                     dd.user_naam = person.naam
                     dd.user_klascode = person.klascode if isinstance(person, mstudent.Student) else "",
                     dd.user_username = person.username if isinstance(person, mstudent.Student) else person.code,
-                del(device_cache[dd.entra_id])
+                del(device_cache[dd.intune_id])
             else:
                 not_in_entra.append(dd)
                 log.info(f'{sys._getframe().f_code.co_name}: Active device not found in Entra {dd.device_name}, {dd.user_naam} {dd.user_voornaam}')
         mdevice.device_delete_m(devices=not_in_entra)
+        log.info(f"{sys._getframe().f_code.co_name}, deleted, active devices {len(not_in_entra)}")
 
         # process the non-active devices (deleted or changed) of a user
         not_in_entra = []
         db_devices = mdevice.device_get_m(active=False)
         for dd in db_devices:
-            if dd.entra_id in device_cache:
+            if dd.intune_id in device_cache:
                 del(device_cache[dd.entra_id])
             else:
                 not_in_entra.append(dd)
                 log.info(f'{sys._getframe().f_code.co_name}: Non-active device not found in Entra {dd.device_name}, {dd.user_naam} {dd.user_voornaam}')
         mdevice.device_delete_m(devices=not_in_entra)
+        log.info(f"{sys._getframe().f_code.co_name}, deleted, non-active devices {len(not_in_entra)}")
 
         new_devices = []
         for _, ed in device_cache.items():
             new_device = {
-                "entra_id": ed["id"],
+                "intune_id": ed["id"],
                 "device_name": ed["deviceName"],
                 "serial_number": ed["serialNumber"],
                 "user_entra_id": ed["userId"],
@@ -520,16 +522,18 @@ def cron_sync_devices(opaque=None, **kwargs):
                 enrolled_date = ed["enrolledDateTime"]
                 if enrolled_date[0] == "0":
                     enrolled_date = "2000-01-01T00:00:00Z"
-                enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ"),
+                enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ")
                 if person:
                     person.computer_lastsync_date = lastsync_date
                     person.computer_name = ed["deviceName"]
-                    person.computer_entra_id = ed["id"]
+                    person.computer_intune_id = ed["id"]
 
             new_device.update({"enrolled_date": enrolled_date, "lastsync_date": lastsync_date,})
             new_devices.append(new_device)
 
         mdevice.device_add_m(new_devices)
+        log.info(f"{sys._getframe().f_code.co_name}, new devices {len(new_devices)}")
+        log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 

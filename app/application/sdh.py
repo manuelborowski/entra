@@ -220,11 +220,11 @@ def cron_push_devices(opaque=None, **kwargs):
         sdh_device_url = flask_app.config["SDH_POST_DEVICE_URL"]
         sdh_key = flask_app.config["SDH_POST_KEY"]
 
-        db_students = mstudent.student_get_m(fields=["leerlingnummer", "computer_name", "computer_lastsync_date", "computer_entra_id"])
-        push_data(db_students, ["leerlingnummer", "computer_name", "computer_lastsync_date", "computer_entra_id"], "Students")
+        db_students = mstudent.student_get_m(fields=["leerlingnummer", "computer_name", "computer_lastsync_date", "computer_intune_id"])
+        push_data(db_students, ["leerlingnummer", "computer_name", "computer_lastsync_date", "computer_intune_id"], "Students")
 
-        db_staffs = mstaff.staff_get_m(fields=["code", "computer_name", "computer_lastsync_date", "computer_entra_id"])
-        push_data(db_staffs, ["code", "computer_name", "computer_lastsync_date", "computer_entra_id"], "Staff")
+        db_staffs = mstaff.staff_get_m(fields=["code", "computer_name", "computer_lastsync_date", "computer_intune_id"])
+        push_data(db_staffs, ["code", "computer_name", "computer_lastsync_date", "computer_intune_id"], "Staff")
 
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:

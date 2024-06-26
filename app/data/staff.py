@@ -31,7 +31,7 @@ class Staff(db.Model, SerializerMixin):
     groups = db.Column(db.TEXT, default='[]')
 
     computer_name = db.Column(db.String(256), default='')
-    computer_entra_id = db.Column(db.String(256), default='')
+    computer_intune_id = db.Column(db.String(256), default='')
     computer_lastsync_date = db.Column(db.DateTime)
 
     new = db.Column(db.Boolean, default=True)

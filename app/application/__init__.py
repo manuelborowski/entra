@@ -15,7 +15,7 @@ cron_table = [
     ('ENTRA-SYNC-ACTIVITIES', cron_sync_team_activities, 'VAN ENTRA, sync team activities', '', False),
     ('ENTRA-SYNC-CC-TEAMS', cron_sync_cc_auto_teams, 'NAAR ENTRA, sync classroomcloud teams', '', False),
     ('ENTRA-VERIFY-CC-TEAMS', cron_verify_cc_auto_teams, 'VERIFIEER classroomcloud teams', '', False),
-    ('ENTRA-SYNC-DEVICES', cron_sync_devices, 'NAAR DB, sync devices', '', False),
+    ('ENTRA-SYNC-DEVICES', cron_sync_devices, 'VAN ENTRA, sync devices', '', False),
     ('SDH-PUSH-DEVICES', cron_push_devices, 'VAN DB NAAR SDH, sync devices', '', False),
     ('SDH-CLEANUP', cron_cleanup_sdh, 'NAAR DB, reset DB vlaggen', '', False),
 ]
