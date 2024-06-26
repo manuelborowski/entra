@@ -494,6 +494,7 @@ def cron_sync_devices(opaque=None, **kwargs):
         for _, ed in device_cache.items():
             new_device = {
                 "intune_id": ed["id"],
+                "entra_id": ed["azureADDeviceId"],
                 "device_name": ed["deviceName"],
                 "serial_number": ed["serialNumber"],
                 "user_entra_id": ed["userId"],

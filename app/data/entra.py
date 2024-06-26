@@ -116,7 +116,7 @@ class Graph:
 
     def get_devices(self):
         items = []
-        select = "lastSyncDateTime,enrolledDateTime,deviceName,userId,id,serialNumber,complianceState,deviceEnrollmentType"
+        select = "lastSyncDateTime,enrolledDateTime,deviceName,userId,id,serialNumber,complianceState,deviceEnrollmentType,azureADDeviceId"
         order_by = 'deviceName'
         url = f'/deviceManagement/managedDevices?$select={select}&$orderBy={order_by}'
         while url:

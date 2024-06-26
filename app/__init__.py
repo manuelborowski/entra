@@ -37,9 +37,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.16: add cc-teams verify to check the differences between database and entra
 # 0.16-save_non_active_devices-0.1: save non-active devices
 # 0.16-save_non_active_devices-0.2: renamed device entra-id to intune-id
+# 0.16-save_non_active_devices-0.3: added entra-id
 
 
-version = "V0.16-save_non_active_devices-0.2"
+version = "V0.16-save_non_active_devices-0.3"
 
 
 db = SQLAlchemy()
