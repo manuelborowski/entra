@@ -1,4 +1,6 @@
 import sys, datetime, json, re, copy
+
+from app.application.sdh import log
 from app.data import group as mgroup, staff as mstaff, student as mstudent, klas as mklas, device as mdevice
 from app.data.group import Group
 from app.data.models import add, commit, delete
@@ -438,20 +440,33 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
 def cron_sync_devices(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     try:
-        entra_devices = entra.get_devices()
-        device_cache = {d["id"]: d for d in entra_devices}
-        db_devices = mdevice.device_get_m()
+        intune_devices = entra.intune_get_devices()
+        intune_device_cache = {d["id"]: d for d in intune_devices}
+        autopilot_devices = entra.autopilot_get_devices()
+        autopilot_device_cache = {d["managedDeviceId"]: d for d in autopilot_devices} # key is intune id
+        entra_devices = entra.entra_get_devices()
+        entra_device_cache = {d["deviceId"]: d["id"] for d in entra_devices} # key is azureADDeviceId, value is entra object id
+        db_devices = mdevice.device_get_m(active=None) # active and non active devices
+        db_device_cache = {d.intune_id: d for d in db_devices}
 
         db_students = mstudent.student_get_m()
         db_staffs = mstaff.staff_get_m()
-        db_persons = db_staffs + db_students
-        person_cache = {p.entra_id: p for p in db_persons}
+        db_users = db_staffs + db_students
+        user_cache = {p.entra_id: p for p in db_users}
+
+        user_devices = {} # {user-entra-id: [device#1, device#2, ... ], ...}
+
+        def __update_user_devices(user, device):
+            if user in user_devices:
+                user_devices[user].append(device)
+            else:
+                user_devices[user] = [device]
 
         # process the active devices (deleted or changed) of a user.
         not_in_entra = []
         for dd in db_devices:
-            if dd.intune_id in device_cache:
-                intune_device = device_cache[dd.intune_id]
+            if dd.intune_id in intune_device_cache:
+                intune_device = intune_device_cache[dd.intune_id]
                 lastsync_date = intune_device["lastSyncDateTime"]
                 if lastsync_date[0] == "0":
                     lastsync_date = "2000-01-01T00:00:00Z"
@@ -460,85 +475,89 @@ def cron_sync_devices(opaque=None, **kwargs):
                 if enrolled_date[0] == "0":
                     enrolled_date = "2000-01-01T00:00:00Z"
                 dd.enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ")
-                person_entra_id = intune_device["userId"]
-                if person_entra_id in person_cache:
-                    person = person_cache[person_entra_id]
-                    person.computer_lastsync_date = dd.lastsync_date
-                    person.computer_name = dd.device_name
-                    person.computer_intune_id = dd.intune_id
-                    dd.user_entra_id = person_entra_id
-                    dd.user_voornaam = person.voornaam,
-                    dd.user_naam = person.naam
-                    dd.user_klascode = person.klascode if isinstance(person, mstudent.Student) else "",
-                    dd.user_username = person.username if isinstance(person, mstudent.Student) else person.code,
-                del(device_cache[dd.intune_id])
+                __update_user_devices(dd.user_entra_id, dd)
+                del(intune_device_cache[dd.intune_id])
             else:
                 not_in_entra.append(dd)
-                log.info(f'{sys._getframe().f_code.co_name}: Active device not found in Entra {dd.device_name}, {dd.user_naam} {dd.user_voornaam}')
+                log.info(f'{sys._getframe().f_code.co_name}: device not found in Intune {dd.device_name}, {dd.user_naam} {dd.user_voornaam}')
         mdevice.device_delete_m(devices=not_in_entra)
-        log.info(f"{sys._getframe().f_code.co_name}, deleted, active devices {len(not_in_entra)}")
+        log.info(f"{sys._getframe().f_code.co_name}, deleted devices {len(not_in_entra)}")
 
-        # process the non-active devices (deleted or changed) of a user
-        not_in_entra = []
-        db_devices = mdevice.device_get_m(active=False)
-        for dd in db_devices:
-            if dd.intune_id in device_cache:
-                del(device_cache[dd.entra_id])
-            else:
-                not_in_entra.append(dd)
-                log.info(f'{sys._getframe().f_code.co_name}: Non-active device not found in Entra {dd.device_name}, {dd.user_naam} {dd.user_voornaam}')
-        mdevice.device_delete_m(devices=not_in_entra)
-        log.info(f"{sys._getframe().f_code.co_name}, deleted, non-active devices {len(not_in_entra)}")
-
+        # new devices
         new_devices = []
-        for _, ed in device_cache.items():
+        for _, intune_device in intune_device_cache.items():
+            lastsync_date = intune_device["lastSyncDateTime"]
+            if lastsync_date[0] == "0":
+                lastsync_date = "2000-01-01T00:00:00Z"
+            lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
+            enrolled_date = intune_device["enrolledDateTime"]
+            if enrolled_date[0] == "0":
+                enrolled_date = "2000-01-01T00:00:00Z"
+            enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ")
+            autopilot_id = autopilot_device_cache[intune_device["id"]]["id"] if intune_device["id"] in autopilot_device_cache else None
+            entra_id = entra_device_cache[intune_device["azureADDeviceId"]] if intune_device["azureADDeviceId"] in entra_device_cache else None
             new_device = {
-                "intune_id": ed["id"],
-                "entra_id": ed["azureADDeviceId"],
-                "device_name": ed["deviceName"],
-                "serial_number": ed["serialNumber"],
-                "user_entra_id": ed["userId"],
+                "intune_id": intune_device["id"],
+                "entra_id": entra_id,
+                "autopilot_id": autopilot_id,
+                "device_name": intune_device["deviceName"],
+                "serial_number": intune_device["serialNumber"],
+                "user_entra_id": intune_device["userId"],
+                "enrolled_date": enrolled_date,
+                "lastsync_date": lastsync_date,
+                "active": False
             }
-            person = None
-            if ed["userId"] in person_cache:
-                person = person_cache[ed["userId"]]
-                new_device.update({
-                    "user_voornaam": person.voornaam,
-                    "user_naam": person.naam,
-                    "user_klascode": person.klascode if isinstance(person, mstudent.Student) else "",
-                    "user_username": person.username if isinstance(person, mstudent.Student) else person.code,
-                })
-
-            if ed["complianceState"] != "compliant" or ed["deviceEnrollmentType"] == "windowsAutoEnrollment":
-                # non-active device
-                lastsync_date = None
-                enrolled_date = None
-                new_device.update({"active": False})
-            else:
-                # active device
-                lastsync_date = ed["lastSyncDateTime"]
-                if lastsync_date[0] == "0":
-                    lastsync_date = "2000-01-01T00:00:00Z"
-                lastsync_date = datetime.datetime.strptime(lastsync_date, "%Y-%m-%dT%H:%M:%SZ")
-                enrolled_date = ed["enrolledDateTime"]
-                if enrolled_date[0] == "0":
-                    enrolled_date = "2000-01-01T00:00:00Z"
-                enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ")
-                if person:
-                    person.computer_lastsync_date = lastsync_date
-                    person.computer_name = ed["deviceName"]
-                    person.computer_intune_id = ed["id"]
-
-            new_device.update({"enrolled_date": enrolled_date, "lastsync_date": lastsync_date,})
             new_devices.append(new_device)
 
-        mdevice.device_add_m(new_devices)
+        db_new_devices = mdevice.device_add_m(new_devices)
         log.info(f"{sys._getframe().f_code.co_name}, new devices {len(new_devices)}")
+
+        for dd in db_new_devices:
+            __update_user_devices(dd.user_entra_id, dd)
+
+        #for all users, update most-recent-used device, i.e. check lastsync_date
+        for user_id, devices in user_devices.items():
+            if user_id not in user_cache:
+                continue
+            user = user_cache[user_id]
+            if user.computer_lastsync_date == None:
+                user.computer_lastsync_date = datetime.datetime(2000, 1, 1)
+            for device in devices:
+                if device.lastsync_date >= user.computer_lastsync_date:
+                    if user.computer_intune_id and user.computer_intune_id in db_device_cache:
+                        db_device_cache[user.computer_intune_id].active = False
+                    device.active = True
+                    user.computer_lastsync_date = device.lastsync_date
+                    user.computer_intune_id = device.intune_id
+
+        mdevice.commit()
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
+def cron_cleanup_db(opaque=None, **kwargs):
+    log.info(f"{sys._getframe().f_code.co_name}, START")
+    try:
+        db_students = mstudent.student_get_m(("changed", "!", ""))
+        db_students += mstudent.student_get_m(("new", "=", True))
+        for student in db_students:
+            student.new = False
+            student.changed = ""
+            student.changed_old = ""
+        mstudent.commit()
+        db_students = mstudent.student_get_m(("delete", "=", True))
+        mstudent.student_delete_m(students=db_students)
 
-
+        db_staffs = mstaff.staff_get_m(("changed", "!", ""))
+        db_staffs += mstaff.staff_get_m(("new", "=", True))
+        for staff in db_staffs:
+            staff.new = False
+            staff.changed = ""
+            staff.changed_old = ""
+        mstaff.commit()
+        db_staffs = mstaff.staff_get_m(("delete", "=", True))
+        mstaff.staff_delete_m(staffs=db_staffs)
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
 

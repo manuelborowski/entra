@@ -1,5 +1,5 @@
-from app.data import settings as msettings, student as mstudent, staff as mstaff, klas as mklas
-import sys, requests, base64, json
+from app.data import student as mstudent, staff as mstaff, klas as mklas
+import sys, requests, json
 from app import flask_app
 #logging on file level
 import logging
@@ -14,18 +14,18 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
     updated_students = []
     nbr_updated = 0
     new_students = []
-    deleted_students = []
     try:
-        # check for new, updated or deleted students
+        db_students = mstudent.student_get_m()
+        db_leerlingnummer_to_student = {s.leerlingnummer: s for s in db_students} if db_students else {}
         sdh_student_url = flask_app.config["SDH_GET_STUDENT_URL"]
         sdh_key = flask_app.config["SDH_GET_KEY"]
+
+        # check for new and updated students
         res = requests.get(sdh_student_url, headers={'x-api-key': sdh_key})
         if res.status_code == 200:
             sdh_students = res.json()
             if sdh_students['status']:
                 log.info(f'{sys._getframe().f_code.co_name}, retrieved {len(sdh_students["data"])} students from SDH')
-                db_students = mstudent.student_get_m()
-                db_leerlingnummer_to_student = {s.leerlingnummer: s for s in db_students} if db_students else {}
                 for sdh_student in sdh_students["data"]:
                     if int(sdh_student["leerlingnummer"]) < 0: continue
                     if sdh_student["leerlingnummer"] in db_leerlingnummer_to_student:
@@ -50,14 +50,31 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
                                              "voornaam": sdh_student["voornaam"], "klasnummer": sdh_student["klasnummer"], "username": sdh_student["username"],
                                              "new": True})
                         log.info(f'{sys._getframe().f_code.co_name}, New student {sdh_student["leerlingnummer"]}')
-                deleted_students = [v for (k, v) in db_leerlingnummer_to_student.items()]
-                for student in deleted_students:
-                    updated_students.append({"student": student, "delete": True, "changed": ["delete"]})
-                    log.info(f'{sys._getframe().f_code.co_name}, Delete student {student.leerlingnummer}')
                 mstudent.student_add_m(new_students)
                 mstudent.student_change_m(updated_students)
-                # mstudent.student_delete_m(students=deleted_students)
-                log.info(f'{sys._getframe().f_code.co_name}, students add {len(new_students)}, update {nbr_updated}, delete {len(deleted_students)}')
+                log.info(f'{sys._getframe().f_code.co_name}, students add {len(new_students)}, update {nbr_updated}')
+            else:
+                log.info(f'{sys._getframe().f_code.co_name}, error retrieving students from SDH, {sdh_students["data"]}')
+        else:
+            log.error(f'{sys._getframe().f_code.co_name}: api call to {sdh_student_url} returned {res.status_code}')
+
+        # check for inactive students, with devices that need to be removed from entra/intune/autopilot
+        # mark these students for deletion
+        deleted_students = []
+        res = requests.get(f"{sdh_student_url}&filters=active$=$false,status$=$EOL-REMOVE-DEVICE", headers={'x-api-key': sdh_key})
+        if res.status_code == 200:
+            sdh_students = res.json()
+            if sdh_students['status']:
+                log.info(f'{sys._getframe().f_code.co_name}, retrieved {len(sdh_students["data"])} inactive students from SDH')
+                for sdh_student in sdh_students["data"]:
+                    if int(sdh_student["leerlingnummer"]) < 0: continue
+                    if sdh_student["leerlingnummer"] in db_leerlingnummer_to_student:
+                        student = db_leerlingnummer_to_student[sdh_student["leerlingnummer"]]
+                        deleted_students.append({"student": student, "delete": True, "changed": ["delete"]})
+                        log.info(f'{sys._getframe().f_code.co_name}, Delete student {student.leerlingnummer}')
+                        del(db_leerlingnummer_to_student[sdh_student["leerlingnummer"]])
+                mstudent.student_change_m(deleted_students)
+                log.info(f'{sys._getframe().f_code.co_name}, students delete {len(deleted_students)}')
             else:
                 log.info(f'{sys._getframe().f_code.co_name}, error retrieving students from SDH, {sdh_students["data"]}')
         else:
@@ -67,7 +84,6 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return 0, 0, 0
     return len(new_students), nbr_updated, len(deleted_students)
-
 
 
 def cron_staff_load_from_sdh(opaque=None, **kwargs):
@@ -163,32 +179,6 @@ def cron_klas_load_from_sdh(opaque=None, **kwargs):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return 0, 0
     return len(new_klassen), len(deleted_klassen)
-
-
-def cron_cleanup_sdh(opaque=None, **kwargs):
-    log.info(f"{sys._getframe().f_code.co_name}, START")
-    try:
-        db_students = mstudent.student_get_m(("changed", "!", ""))
-        db_students += mstudent.student_get_m(("new", "=", True))
-        for student in db_students:
-            student.new = False
-            student.changed = ""
-            student.changed_old = ""
-        mstudent.commit()
-        db_students = mstudent.student_get_m(("delete", "=", True))
-        mstudent.student_delete_m(students=db_students)
-
-        db_staffs = mstaff.staff_get_m(("changed", "!", ""))
-        db_staffs += mstaff.staff_get_m(("new", "=", True))
-        for staff in db_staffs:
-            staff.new = False
-            staff.changed = ""
-            staff.changed_old = ""
-        mstaff.commit()
-        db_staffs = mstaff.staff_get_m(("delete", "=", True))
-        mstaff.staff_delete_m(staffs=db_staffs)
-    except Exception as e:
-        log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
 def cron_push_devices(opaque=None, **kwargs):

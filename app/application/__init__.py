@@ -1,9 +1,9 @@
-__all__ = ['tables', 'datatables', 'socketio', 'settings', 'logging', 'cron', 'student', 'staff', "entra", "sdh"]
+__all__ = ['tables', 'datatables', 'socketio', 'settings', 'logging', 'cron', 'student', 'staff', "entra", "sdh", "device"]
 
 from app import flask_app
-from app.application.sdh import cron_staff_load_from_sdh, cron_student_load_from_sdh, cron_klas_load_from_sdh, cron_cleanup_sdh, cron_push_devices
-from app.application.entra import cron_sync_groups, cron_sync_users, cron_sync_cc_auto_teams, cron_sync_team_activities, cron_sync_devices, cron_verify_cc_auto_teams
-
+from app.application.sdh import cron_staff_load_from_sdh, cron_student_load_from_sdh, cron_klas_load_from_sdh, cron_push_devices
+from app.application.entra import cron_sync_groups, cron_sync_users, cron_sync_cc_auto_teams, cron_sync_team_activities, cron_sync_devices, cron_verify_cc_auto_teams, cron_cleanup_db
+from app.application.device import cron_remove_devices
 
 # tag, cront-task, label, help
 cron_table = [
@@ -16,8 +16,9 @@ cron_table = [
     ('ENTRA-SYNC-CC-TEAMS', cron_sync_cc_auto_teams, 'NAAR ENTRA, sync classroomcloud teams', '', False),
     ('ENTRA-VERIFY-CC-TEAMS', cron_verify_cc_auto_teams, 'VERIFIEER classroomcloud teams', '', False),
     ('ENTRA-SYNC-DEVICES', cron_sync_devices, 'VAN ENTRA, sync devices', '', False),
+    ('ENTRA-REMOVE-DEVICES', cron_remove_devices, 'NAAR ENTRA, verwijder devices', '', False),
     ('SDH-PUSH-DEVICES', cron_push_devices, 'VAN DB NAAR SDH, sync devices', '', False),
-    ('SDH-CLEANUP', cron_cleanup_sdh, 'NAAR DB, reset DB vlaggen', '', False),
+    ('DB-CLEANUP', cron_cleanup_db, 'NAAR DB, reset DB vlaggen', '', False),
 ]
 
 import app.application.entra

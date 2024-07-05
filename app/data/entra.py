@@ -114,7 +114,7 @@ class Graph:
                 ret = False
         return ret
 
-    def get_devices(self):
+    def intune_get_devices(self):
         items = []
         select = "lastSyncDateTime,enrolledDateTime,deviceName,userId,id,serialNumber,complianceState,deviceEnrollmentType,azureADDeviceId"
         order_by = 'deviceName'
@@ -128,6 +128,51 @@ class Graph:
             items += data["value"]
             url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
         return items
+
+    def entra_get_devices(self):
+        items = []
+        url = "https://graph.microsoft.com/v1.0/devices?$select=id,deviceId"
+        while url:
+            resp = self.client.get(url)
+            if resp.status_code != 200:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+                return []
+            data = resp.json()
+            items += data["value"]
+            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        return items
+
+    def autopilot_get_devices(self):
+        items = []
+        url = f'/deviceManagement/windowsAutopilotDeviceIdentities'
+        while url:
+            resp = self.client.get(url)
+            if resp.status_code != 200:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+                return []
+            data = resp.json()
+            items += data["value"]
+            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        return items
+
+    def delete_device(self, device):
+        if device.intune_id:
+            url = f'https://graph.microsoft.com/v1.0/deviceManagement/managedDevices/{device.intune_id}'
+            resp = self.client.delete(url)
+            if resp.status_code != 204:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+
+        if device.autopilot_id:
+            url = f'https://graph.microsoft.com/v1.0/deviceManagement/windowsAutopilotDeviceIdentities/{device.autopilot_id}'
+            resp = self.client.delete(url)
+            if resp.status_code != 200:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+
+        if device.entra_id:
+            url = f'https://graph.microsoft.com/v1.0/devices/{device.entra_id}'
+            resp = self.client.delete(url)
+            if resp.status_code != 204:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
 
     def get_teams(self):
         items = []

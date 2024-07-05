@@ -68,13 +68,15 @@ def add_single(model, data={}, commit=True):
 
 def add_multiple(model, data=[]):
     try:
+        objs = []
         for d in data:
-            add_single(model, d, commit=False)
+            obj = add_single(model, d, commit=False)
+            objs.append(obj)
         db.session.commit()
     except Exception as e:
         db.session.rollback()
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
-    return None
+    return objs
 
 
 def update_single(model, obj, data={}, commit=True):
@@ -146,7 +148,8 @@ def get_multiple(model, filters=[], fields=[], ids=[], order_by=None, first=Fals
                 q = q.order_by(getattr(model, order_by))
         else:
             q = q.order_by(getattr(model, "id"))
-        q = q.filter(model.active == active)
+        if active is not None:
+            q = q.filter(model.active == active)
         if start is not None and stop is not None:
             q = q.slice(start, stop)
         if first:

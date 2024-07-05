@@ -38,9 +38,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.16-save_non_active_devices-0.1: save non-active devices
 # 0.16-save_non_active_devices-0.2: renamed device entra-id to intune-id
 # 0.16-save_non_active_devices-0.3: added entra-id
+# 0.16-save_non_active_devices-0.4: reworked entra-sync-devices.  All found devices are stored.
+# Lastsync_date is taken into account to determine active device per user.  Add function to remove devices from intune/entra/autopilot
 
-
-version = "V0.16-save_non_active_devices-0.3"
+version = "V0.16-save_non_active_devices-0.4"
 
 
 db = SQLAlchemy()
