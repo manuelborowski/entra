@@ -9,6 +9,8 @@ from app.data.entra import entra
 #logging on file level
 import logging
 from app import MyLogFilter, top_log_handle
+from app.data.utils import get_current_schoolyear
+
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
@@ -106,6 +108,7 @@ def cron_sync_users(opaque=None, **kwargs):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
 
+# team can be a team-object (from the database) or just a team-id (uuid)
 class MetaTeam():
     def __init__(self, team=None):
         self.team = team
@@ -146,6 +149,9 @@ class MetaTeam():
             members = [members]
         self._members_to_remove += members
 
+    def __str__(self):
+        return self.team.display_name
+
 
 def _update_entra_cc_teams(teams):
     try:
@@ -171,13 +177,40 @@ def _update_entra_cc_teams(teams):
             resp = entra.delete_persons(remove_persons_data)
             if resp:
                 if remove_persons_data["members"] != []:
-                    log.info(f'{sys._getframe().f_code.co_name}: Team {team.team.description}, deleted students {[f"{m.leerlingnummer}, {m.naam}{m.voornaam}" for m in team.get_members_to_remove()]}')
+                    log.info(f'{sys._getframe().f_code.co_name}: Team {team.team.description}, deleted students {[f"{m.leerlingnummer}, {m.naam} {m.voornaam}" for m in team.get_members_to_remove()]}')
                 if remove_persons_data["owners"] != []:
                     log.info(f'{sys._getframe().f_code.co_name}: Team {team.team.description}, deleted staff {[m.code for m in team.get_owners_to_remove()]}')
             # update in database
             team.team.del_members(team.get_members_to_remove())
             team.team.del_owners(team.get_owners_to_remove())
-        commit()
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+
+
+def _update_entra_non_cc_teams(teams):
+    try:
+        for team in teams:
+            # update in entra
+            add_persons_data = {"members": [m.entra_id for m in team.get_members_to_add()],
+                                "owners": [o.entra_id for o in team.get_owners_to_add()],
+                                "id": team.team["id"]}
+            resp = entra.add_persons(add_persons_data)
+            if resp:
+                if add_persons_data["members"] != []:
+                    log.info(f'{sys._getframe().f_code.co_name}: Team {team.team["name"]}, added students {[f"{m.leerlingnummer}, {m.naam} {m.voornaam}" for m in team.get_members_to_add()]}')
+                if add_persons_data["owners"] != []:
+                    log.info(f'{sys._getframe().f_code.co_name}: Team {team.team["name"]}, added staff {[m.code for m in team.get_owners_to_add()]}')
+
+            # update in entra
+            remove_persons_data = {"members": [m.entra_id for m in team.get_members_to_remove()],
+                                   "owners": [o.entra_id for o in team.get_owners_to_remove()],
+                                   "id": team.team["id"]}
+            resp = entra.delete_persons(remove_persons_data)
+            if resp:
+                if remove_persons_data["members"] != []:
+                    log.info(f'{sys._getframe().f_code.co_name}: Team {team.team["name"]}, deleted students {[f"{m.leerlingnummer}, {m.naam} {m.voornaam}" for m in team.get_members_to_remove()]}')
+                if remove_persons_data["owners"] != []:
+                    log.info(f'{sys._getframe().f_code.co_name}: Team {team.team["name"]}, deleted staff {[m.code for m in team.get_owners_to_remove()]}')
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
 
@@ -244,59 +277,66 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
 
         # save new teams/groups in database
         mgroup.group_add_m(new_cc_teams)
-        db_cc_teams = mgroup.group_get_m(("type", "=", mgroup.Group.Types.cc_auto)) # reload the cc-teams (clean list)
-        meta_teams = {sgc: {dct.get_klasgroep_code(): MetaTeam(dct) for dct in db_cc_teams if dct.get_staff_code() == sgc} for sgc in staff_groep_codes}
-        # { "a": {"1A": MetaTeam(1A, a), "1B": MetaTeam(1B, a), ...}, "b": {"1A": MetaTeam(1A, b), ...}, ...}
 
-        # new students, append them to the appropriate meta_team objects add-list (MetaTeam::append_member_to_add), i.e. once for every staff-groep-code
-        db_students = mstudent.student_get_m(("new", "=", True))
+        # iterate over all students, retrieve all the teams a student belong to, add to or delete from a team depending on klascode
+        # and current schoolyear
+        db_cc_teams = mgroup.group_get_m(("type", "=", mgroup.Group.Types.cc_auto)) # reload the cc-teams (clean list)
+        db_cc_meta_teams = [MetaTeam(t) for t in db_cc_teams]
+        sgc_meta_teams = {sgc: {dct.team.get_klasgroep_code(): dct for dct in db_cc_meta_teams if dct.team.get_staff_code() == sgc} for sgc in staff_groep_codes}
+        # { "a": {"1A": MetaTeam(1A, a), "1B": MetaTeam(1B, a), ...}, "b": {"1A": MetaTeam(1A, b), ...}, ...}
+        id_meta_teams = {mt.team.entra_id: mt for mt in db_cc_meta_teams}
+        nbr_processed = 0
+        delete_student_from_meta_teams = {}
+        current_schoolyear = get_current_schoolyear(format=3)
+        def __get_meta_team(team):
+            id = team["id"]
+            if id not in delete_student_from_meta_teams:
+                delete_student_from_meta_teams[id] = MetaTeam(team)
+            return delete_student_from_meta_teams[id]
+
+        db_students = mstudent.student_get_m()
         for student in db_students:
+            teams = entra.get_user_teams(student.entra_id)
+            student_found_in_cc_team = [] #a list of staff-group-codes the student is a member of
             if student.klascode in klassen:
                 kgc = klassen[student.klascode]
-                for staff_groep_code in staff_groep_codes:
-                    meta_teams[staff_groep_code][kgc].append_members_to_add(student)
             else:
                 log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
-
-        # deleted students, append them to the appropriate meta_team objects remove-list (MetaTeam::append_member_to_remove), i.e. once for every staff-groep-code
-        db_students = mstudent.student_get_m(("delete", "=", True))
-        for student in db_students:
-            if student.klascode in klassen:
-                kgc = klassen[student.klascode]
-                for staff_groep_code in staff_groep_codes:
-                    if kgc in meta_teams[staff_groep_code]:
-                        meta_teams[staff_groep_code][kgc].append_members_to_remove(student)
-            else:
-                log.info(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
-
-
-        # students that changed klas, append them to the meta_team objects add-list (MetaTeam::append_member_to_add), for the new klas
-        # and append them to the meta_team objects remove-list (MetaTeam::append_member_to_remove), for the previous klas
-        db_students = mstudent.student_get_m(("changed", "!", ""))
-        for student in db_students:
-            if "klascode" in student.changed:
-                if student.klascode in klassen:
-                    kgc = klassen[student.klascode]
-                    prev_klascode = json.loads(student.changed_old)["klascode"]
-                    prev_klasgroep_code = klassen[prev_klascode] if prev_klascode in klassen else None
-                    for staff_groep_code in staff_groep_codes:
-                        meta_teams[staff_groep_code][kgc].append_members_to_add(student)
-                        if prev_klasgroep_code in meta_teams[staff_groep_code]:
-                            meta_teams[staff_groep_code][prev_klasgroep_code].append_members_to_remove(student)
-                else:
-                    log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
+                continue
+            for team in teams:
+                if team["name"][:3] == "cc-":
+                    if kgc in team["name"]:
+                        student_found_in_cc_team.append(team["name"][3]) # student found in cc-team with given staff-group-code
+                    else:
+                        if team["id"] in id_meta_teams:
+                            id_meta_teams[team["id"]].append_members_to_remove(student)
+                        else:
+                            __get_meta_team(team).append_members_to_remove(student)
+                elif team["name"][:3] == "[20" and current_schoolyear not in team["name"]:
+                    __get_meta_team(team).append_members_to_remove(student)
+            for sgc in staff_groep_codes:
+                if sgc not in student_found_in_cc_team:
+                    sgc_meta_teams[sgc][kgc].append_members_to_add(student)
+            nbr_processed += 1
+            if nbr_processed % 100 == 0:
+                log.info(f'{sys._getframe().f_code.co_name}: from ENTRA, collect student and team info, processed students: {nbr_processed} ')
 
         # append new staff to the meta_team objects add-list (MetaTeam::append_owner_to_add)
         # append deleted staff to the meta_team objects remove-list (MetaTeam::append_owner_to_remove)
         if _check_if_not_empty(new_staffs) or _check_if_not_empty(delete_staffs):
-            for sgc, klasgroep_meta_teams in meta_teams.items():
+            for sgc, klasgroep_meta_teams in sgc_meta_teams.items():
                 for kgc, meta_team in klasgroep_meta_teams.items():
                     meta_team.append_owners_to_add(new_staffs[sgc])
                     meta_team.append_owners_to_remove(delete_staffs[sgc])
 
-        # at this point, the meta_teams are up-to-date, i.e. they contain, if appropriate, lists of owners/members to be added to or removed from the team
-        team_list = [t for _, sg in meta_teams.items() for _, t in sg.items()]
+        # at this point, sgc_meta_teams contain teams with staff (to be added or deleted) or students (to be added or removed )
+        team_list = [t for _, sg in sgc_meta_teams.items() for _, t in sg.items()]
         _update_entra_cc_teams(team_list)
+
+        # delete_student_meta_teams, if not empty, contains team-ids (non-cc-teams) and student-ids of students to be deleted from said teams
+        team_list = delete_student_from_meta_teams.values()
+        _update_entra_non_cc_teams(team_list)
+        commit()
 
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')

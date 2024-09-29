@@ -16,7 +16,7 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
     new_students = []
     try:
         db_students = mstudent.student_get_m()
-        db_leerlingnummer_to_student = {s.leerlingnummer: s for s in db_students} if db_students else {}
+        llnnr2student = {s.leerlingnummer: s for s in db_students} if db_students else {}
         sdh_student_url = flask_app.config["SDH_GET_STUDENT_URL"]
         sdh_key = flask_app.config["SDH_GET_KEY"]
 
@@ -28,9 +28,9 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
                 log.info(f'{sys._getframe().f_code.co_name}, retrieved {len(sdh_students["data"])} students from SDH')
                 for sdh_student in sdh_students["data"]:
                     if int(sdh_student["leerlingnummer"]) < 0: continue
-                    if sdh_student["leerlingnummer"] in db_leerlingnummer_to_student:
+                    if sdh_student["leerlingnummer"] in llnnr2student:
                         # check for changed rfid or classgroup
-                        db_student = db_leerlingnummer_to_student[sdh_student["leerlingnummer"]]
+                        db_student = llnnr2student[sdh_student["leerlingnummer"]]
                         update = {}
                         changed_old = {}
                         if db_student.klascode != sdh_student["klascode"]:
@@ -44,7 +44,7 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
                             updated_students.append(update)
                             log.info(f'{sys._getframe().f_code.co_name}, Update student {db_student.leerlingnummer}, update {update}')
                             nbr_updated += 1
-                        del(db_leerlingnummer_to_student[sdh_student["leerlingnummer"]])
+                        del(llnnr2student[sdh_student["leerlingnummer"]])
                     else:
                         new_students.append({"leerlingnummer": sdh_student["leerlingnummer"], "klascode": sdh_student["klascode"], "naam": sdh_student["naam"],
                                              "voornaam": sdh_student["voornaam"], "klasnummer": sdh_student["klasnummer"], "username": sdh_student["username"],
@@ -58,9 +58,21 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
         else:
             log.error(f'{sys._getframe().f_code.co_name}: api call to {sdh_student_url} returned {res.status_code}')
 
+        # students, present in database but not present in SDH are deactivated
+        students_to_deactivate = []
+        nbr_deactived = 0
+        for student in llnnr2student.values():
+            students_to_deactivate.append({'changed': '', 'active': False, 'new': False, 'student': student})
+            log.info(f'{sys._getframe().f_code.co_name}: deactivate, {student.leerlingnummer}, {student.naam} {student.voornaam}')
+            nbr_deactived += 1
+        mstudent.student_flag_m(students_to_deactivate)
+        log.info(f'{sys._getframe().f_code.co_name}: nbr deactivated students {nbr_deactived}')
+
         # check for inactive students, with devices that need to be removed from entra/intune/autopilot
         # mark these students for deletion
         deleted_students = []
+        deactivated_students = mstudent.student_get_m(active=False)
+        llnnr2not_active_student = {s.leerlingnummer: s for s in deactivated_students} if deactivated_students else {}
         res = requests.get(f"{sdh_student_url}&filters=active$=$false,status$=$EOL-REMOVE-DEVICE", headers={'x-api-key': sdh_key})
         if res.status_code == 200:
             sdh_students = res.json()
@@ -68,11 +80,11 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
                 log.info(f'{sys._getframe().f_code.co_name}, retrieved {len(sdh_students["data"])} inactive students from SDH')
                 for sdh_student in sdh_students["data"]:
                     if int(sdh_student["leerlingnummer"]) < 0: continue
-                    if sdh_student["leerlingnummer"] in db_leerlingnummer_to_student:
-                        student = db_leerlingnummer_to_student[sdh_student["leerlingnummer"]]
+                    if sdh_student["leerlingnummer"] in llnnr2not_active_student:
+                        student = llnnr2not_active_student[sdh_student["leerlingnummer"]]
                         deleted_students.append({"student": student, "delete": True, "changed": ["delete"]})
                         log.info(f'{sys._getframe().f_code.co_name}, Delete student {student.leerlingnummer}')
-                        del(db_leerlingnummer_to_student[sdh_student["leerlingnummer"]])
+                        del(llnnr2not_active_student[sdh_student["leerlingnummer"]])
                 mstudent.student_change_m(deleted_students)
                 log.info(f'{sys._getframe().f_code.co_name}, students delete {len(deleted_students)}')
             else:

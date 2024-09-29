@@ -1,7 +1,9 @@
 from azure.identity import ClientSecretCredential
 from msgraph.core import GraphClient
+from requests import ReadTimeout
+
 from app import flask_app
-import sys, re, copy
+import sys, re, copy, time
 
 #logging on file level
 import logging
@@ -88,31 +90,46 @@ class Graph:
                 if owner != "":
                     values.append({"@odata.type": "microsoft.graph.aadUserConversationMember", "roles":["owner"], "user@odata.bind": f"https://graph.microsoft.com/v1.0/users('{owner}')"})
         if values:
-            resp = self.client.post(f"/teams/{data['id']}/members/add", json={"values": values})
-            if resp.status_code == 200:
-                return True
-            log.error(f'{sys._getframe().f_code.co_name}: post.teams {data["id"]}/members/add returned error {resp.text}')
+            retry_ctr = 0
+            delay = 5
+            while retry_ctr < 5:
+                resp = self.client.post(f"/teams/{data['id']}/members/add", json={"values": values})
+                if resp.status_code == 200:
+                    return True
+                retry_ctr += 1
+                log.info(f'{sys._getframe().f_code.co_name}: post.teams retry {retry_ctr}, delay {delay}')
+                time.sleep(delay)
+            log.error(f'{sys._getframe().f_code.co_name}: post.teams {data["id"]}/members/add timeout')
             return False
         return False
 
     def delete_persons(self, data):
-        ret = True
-        for member in data["members"]:
-            resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
-            if resp.status_code != 204:
-                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
-                ret = False
+        retry_ctr = 0
+        delay = 5
+        while retry_ctr < 5:
+            try:
+                ret = True
+                for member in data["members"]:
+                    resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
+                    if resp.status_code != 204:
+                        log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
+                        ret = False
 
-        for member in data["owners"]:
-            resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
-            if resp.status_code != 204:
-                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
-                ret = False
-            resp = self.client.delete(f"/groups/{data['id']}/owners/{member}/$ref")
-            if resp.status_code != 204:
-                log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/owners/{member} returned error {resp.text}')
-                ret = False
-        return ret
+                for member in data["owners"]:
+                    resp = self.client.delete(f"/groups/{data['id']}/members/{member}/$ref")
+                    if resp.status_code != 204:
+                        log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/members/{member} returned error {resp.text}')
+                        ret = False
+                    resp = self.client.delete(f"/groups/{data['id']}/owners/{member}/$ref")
+                    if resp.status_code != 204:
+                        log.error(f'{sys._getframe().f_code.co_name}: delete.groups/{data["id"]}/owners/{member} returned error {resp.text}')
+                        ret = False
+                return ret
+            except ReadTimeout as e:
+                retry_ctr += 1
+                log.info(f'{sys._getframe().f_code.co_name}: post.teams retry {retry_ctr}, delay {delay}')
+                time.sleep(delay)
+        log.error(f'{sys._getframe().f_code.co_name}: post.teams {data["id"]}/members/delete timeout')
 
     def intune_get_devices(self):
         items = []
@@ -217,6 +234,23 @@ class Graph:
             items += data["value"]
             url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
         return items
+
+
+    def get_user_teams(self, id):
+        items = []
+        url = f'/users/{id}/joinedTeams'
+        while url:
+            resp = self.client.get(url)
+            if resp.status_code != 200:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+                return []
+            data = resp.json()
+            items += data["value"]
+            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        data = [{"id": i["id"], "name": i["displayName"], "description": i["description"]} for i in items]
+        return data
+
+
 
     def get_team_activity_details(self):
         url = "/reports/getTeamsTeamActivityDetail(period='D180')"
