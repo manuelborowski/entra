@@ -28,6 +28,8 @@ class Device(db.Model, SerializerMixin):
     user_klascode = db.Column(db.String(256), default='')
     user_username = db.Column(db.String(256), default='')
 
+    do_not_delete = db.Column(db.Boolean, default=False)
+
     active = db.Column(db.Boolean, default=True)    # long term
 
 

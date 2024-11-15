@@ -8,7 +8,7 @@ from app.data.entra import entra
 
 #logging on file level
 import logging
-from app import MyLogFilter, top_log_handle
+from app import MyLogFilter, top_log_handle, flask_app
 from app.data.utils import get_current_schoolyear
 
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
@@ -480,6 +480,10 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
 def cron_sync_devices(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     try:
+        # mark devices, of certain groups, that may not be deleted
+        entra_do_not_delete_groups = flask_app.config["DO_NOT_DELETE_DEVICE_ENTRA_GROUPS"]
+        entra_do_not_delete_devices = [dev["id"] for grp in [entra.get_group_members(id) for id in entra_do_not_delete_groups] for dev in grp]
+
         intune_devices = entra.intune_get_devices()
         intune_device_cache = {d["id"]: d for d in intune_devices}
         autopilot_devices = entra.autopilot_get_devices()
@@ -515,6 +519,7 @@ def cron_sync_devices(opaque=None, **kwargs):
                 if enrolled_date[0] == "0":
                     enrolled_date = "2000-01-01T00:00:00Z"
                 dd.enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ")
+                dd.do_not_delete = dd.entra_id in entra_do_not_delete_devices
                 __update_user_devices(dd.user_entra_id, dd)
                 del(intune_device_cache[dd.intune_id])
             else:
@@ -545,7 +550,8 @@ def cron_sync_devices(opaque=None, **kwargs):
                 "user_entra_id": intune_device["userId"],
                 "enrolled_date": enrolled_date,
                 "lastsync_date": lastsync_date,
-                "active": False
+                "active": False,
+                "do_not_delete": entra_id in entra_do_not_delete_devices
             }
             new_devices.append(new_device)
 

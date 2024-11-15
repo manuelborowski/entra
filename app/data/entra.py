@@ -222,6 +222,19 @@ class Graph:
         data = resp.json()
         return data
 
+    def get_group_members(self, id):
+        items = []
+        url = f"/groups/{id}/members?$select=id"
+        while url:
+            resp = self.client.get(url)
+            if resp.status_code != 200:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+                return []
+            data = resp.json()
+            items += data["value"]
+            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        return items
+
     def get_users(self):
         items = []
         url = f'/users?$select=id,userPrincipalName'

@@ -20,8 +20,11 @@ def cron_remove_devices(opaque=None, **kwargs):
             log.info(f'{sys._getframe().f_code.co_name}: Deleting student {student.leerlingnummer}, {student.naam} {student.voornaam}')
             devices = mdevice.device_get_m(("user_entra_id", "=", student.entra_id))
             for device in devices:
-                entra.delete_device(device)
-                log.info(f'{sys._getframe().f_code.co_name}: Deleting device {device.device_name}, {device.serial_number}')
+                if device.do_not_delete:
+                    log.info(f'{sys._getframe().f_code.co_name}: Device NOT deleted, belongs to do-not-delete-group {device.device_name}, {device.serial_number}')
+                else:
+                    entra.delete_device(device)
+                    log.info(f'{sys._getframe().f_code.co_name}: Deleting device {device.device_name}, {device.serial_number}')
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
