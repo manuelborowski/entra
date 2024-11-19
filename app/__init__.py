@@ -43,8 +43,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.17: merged from 0.16-save_non_active_devices-0.4
 # 0.18: for each student, check team membership in entra and update accordingly.  When accessing entra, take retry/timeout in consideration.  Update handling of deleted students
 # 0.19: devices in specific groups may never be deleted from entra
+# 0.20: small bugfix
 
-version = "V0.19"
+
+version = "V0.20"
 
 
 db = SQLAlchemy()
@@ -71,7 +73,7 @@ class MyLogFilter(logging.Filter):
         record.username = current_user.username if current_user and current_user.is_active else 'NONE'
         return True
 
-LOG_FILENAME = os.path.join(sys.path[0], app_config[config_name].STATIC_PATH, f'log/{flask_app.config["LOG_FILE"]}.txt')
+LOG_FILENAME = os.path.join(sys.path[0], f'log/{flask_app.config["LOG_FILE"]}.txt')
 try:
     log_level = getattr(logging, app_config[config_name].LOG_LEVEL)
 except:
