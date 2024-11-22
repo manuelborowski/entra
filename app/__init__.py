@@ -44,10 +44,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.18: for each student, check team membership in entra and update accordingly.  When accessing entra, take retry/timeout in consideration.  Update handling of deleted students
 # 0.19: devices in specific groups may never be deleted from entra
 # 0.20: small bugfix
+# 0.21: remove deactivated students from their teams
 
-
-version = "V0.20"
-
+version = "V0.21"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

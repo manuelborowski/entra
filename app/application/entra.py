@@ -294,6 +294,7 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
                 delete_student_from_meta_teams[id] = MetaTeam(team)
             return delete_student_from_meta_teams[id]
 
+        # Check for active students if they're in the correct team
         db_students = mstudent.student_get_m()
         for student in db_students:
             teams = entra.get_user_teams(student.entra_id)
@@ -319,7 +320,21 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
                     sgc_meta_teams[sgc][kgc].append_members_to_add(student)
             nbr_processed += 1
             if nbr_processed % 100 == 0:
-                log.info(f'{sys._getframe().f_code.co_name}: from ENTRA, collect student and team info, processed students: {nbr_processed} ')
+                log.info(f'{sys._getframe().f_code.co_name}: from ENTRA, check active student team-membership, processed students: {nbr_processed} ')
+
+        # Check for deactived students if they're still in teams.  If so, remove them
+        nbr_processed = 0
+        db_deactivated_students = mstudent.student_get_m(active=False)
+        for student in db_deactivated_students:
+            teams = entra.get_user_teams(student.entra_id)
+            for team in teams:
+                if team["id"] in id_meta_teams:
+                    id_meta_teams[team["id"]].append_members_to_remove(student)
+                else:
+                    __get_meta_team(team).append_members_to_remove(student)
+            nbr_processed += 1
+            if nbr_processed % 100 == 0:
+                log.info(f'{sys._getframe().f_code.co_name}: from ENTRA, check deactived student, remove from teams, processed students: {nbr_processed} ')
 
         # append new staff to the meta_team objects add-list (MetaTeam::append_owner_to_add)
         # append deleted staff to the meta_team objects remove-list (MetaTeam::append_owner_to_remove)
