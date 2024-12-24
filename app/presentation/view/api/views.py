@@ -1,5 +1,5 @@
 from flask import request, render_template
-from app.application import  user as muser, settings as msettings, group as mgroup, device as mdevice
+from app.application import  user as muser, settings as msettings, group as mgroup, device as mdevice, student as mstudent
 from app import log
 import json, sys, html, itertools
 from functools import wraps
@@ -81,6 +81,13 @@ def user_delete():
 def user_get():
     options = request.args
     ret = muser.api_user_get(options)
+    return(json.dumps(ret))
+
+@api.route('/api/student/get', methods=['GET'])
+@supervisor_key_required
+def student_get():
+    options = request.args
+    ret = mstudent.api_student_get(options)
     return(json.dumps(ret))
 
 

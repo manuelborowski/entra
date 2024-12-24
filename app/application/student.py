@@ -1,5 +1,6 @@
 from app.data import student as mstudent, settings as msettings, person as mperson
-
+import app.application.api
+import sys
 #logging on file level
 import logging
 from app import MyLogFilter, top_log_handle
@@ -7,9 +8,15 @@ log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
 
+def api_student_get(options):
+    try:
+        return app.application.api.api_get_model_data(mstudent.Student, options)
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": str(e)}
+
 def student_delete(ids):
     mstudent.student_delete_m(ids)
-
 
 def klassen_get_unique():
     klassen = mstudent.student_get_m(fields=['klascode'])

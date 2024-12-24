@@ -45,8 +45,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.19: devices in specific groups may never be deleted from entra
 # 0.20: small bugfix
 # 0.21: remove deactivated students from their teams
+# 0.22: api filters, added active.  Added student/get
 
-version = "V0.21"
+version = "V0.22"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

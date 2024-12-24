@@ -17,18 +17,23 @@ filter_operators = ["$=$", "$!$", "$>$", "$<$", "$>=$", "$<=$"]
 # start and stop (if not none) indicate the slice that needs to be taken from the data
 def api_process_options(options):
     try:
+        active = True
         fields = options['fields'].split(',') if 'fields' in options else []
         filters = []
         if 'filters' in options:
             for filter in options['filters'].split(','):
                 for operator in filter_operators:
                     if operator in filter:
-                        k_v = filter.split(operator)
-                        filters.append((k_v[0], operator[1:-1], k_v[1]))
+                        [k, v] = filter.split(operator)
+                        v = None if v == "null" else True if v == "true" else False if v == "false" else v
+                        if k == "active" and operator == "$=$":
+                            active = v
+                        else:
+                            filters.append((k, operator[1:-1], v))
                         break
         start = int(options["start"]) if "start" in options else None
         stop = int(options["stop"]) if "stop"in options else None
-        return fields, filters, start, stop
+        return fields, filters, start, stop, active
     except Exception as e:
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return {"status": True, "data": e}
@@ -39,8 +44,8 @@ def api_process_options(options):
 # options is a string with fields and filters (see above)
 def api_get_model_data(model, options=None):
     try:
-        fields, filters, start, stop = api_process_options(options)
-        items = mmodels.get_multiple(model, filters=filters, fields=fields, start=start, stop=stop)
+        fields, filters, start, stop, active = api_process_options(options)
+        items = mmodels.get_multiple(model, filters=filters, fields=fields, start=start, stop=stop, active=active)
         if fields:
             # if only a limited number of properties is required, it is possible that some properties must be converted to a string (e.g. datetime and date) because these cannot be
             # serialized to json
