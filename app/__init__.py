@@ -48,8 +48,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.22: api filters, added active.  Added student/get
 # 0.23: added m4s info
 # 0.24: bugfix m4s, consider non-active devices as well
+# 0.25: sync devices from entra, use the enrolled date iso lastsyned to determine the active device.
 
-version = "V0.24"
+version = "V0.25"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

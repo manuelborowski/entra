@@ -576,21 +576,25 @@ def cron_sync_devices(opaque=None, **kwargs):
         for dd in db_new_devices:
             __update_user_devices(dd.user_entra_id, dd)
 
-        #for all users, update most-recent-used device, i.e. check lastsync_date
+        #for all users, update most-recent-used device, i.e. check enrolled_date
         for user_id, devices in user_devices.items():
             if user_id not in user_cache:
                 continue
             user = user_cache[user_id]
             if user.computer_lastsync_date == None:
                 user.computer_lastsync_date = datetime.datetime(2000, 1, 1)
-            for device in devices:
-                if device.lastsync_date >= user.computer_lastsync_date:
-                    if user.computer_intune_id and user.computer_intune_id in db_device_cache:
-                        db_device_cache[user.computer_intune_id].active = False
-                    device.active = True
-                    user.computer_lastsync_date = device.lastsync_date
-                    user.computer_intune_id = device.intune_id
 
+            last_enrolled_date = datetime.datetime(2000, 1, 1)
+            last_enrolled_device = None
+            for device in devices:
+                device.active = False # default
+                if device.enrolled_date >= last_enrolled_date:
+                    last_enrolled_date = device.enrolled_date
+                    last_enrolled_device = device
+            if last_enrolled_device:
+                last_enrolled_device.active = True
+                user.computer_lastsync_date = last_enrolled_device.lastsync_date
+                user.computer_intune_id = last_enrolled_device.intune_id
         mdevice.commit()
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
