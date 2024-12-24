@@ -40,9 +40,12 @@ var menu = [
     ["logging.show", "Logging", 3],
     ["user.show", "Gebruikers", 5],
     ["settings.show", "Instellingen", 5],
+        ["divider", "", 0],
+    [[
+        [() => upload_m4s(), "Upload M4S-devices bestand", 5, "student.show"],
+    ], "Extra", 3],
+
 ]
-
-
 var buttons = [
 ]
 
@@ -150,3 +153,22 @@ $(document).ready(async () => {
     }
 
 });
+
+async function upload_m4s() {
+    const form = document.createElement("form")
+    const input = document.createElement('input');
+    form.appendChild(input)
+    input.type = 'file';
+    input.name = "m4s_file";
+    input.multiple = true;
+    input.accept = ".csv,.xlsx,.xls"
+    input.onchange = e => {
+        var file = e.target.files[0];
+        const form_data = new FormData(form);
+        const ret = fetch(Flask.url_for('api.m4s_upload'), {
+            headers: {'x-api-key': api_key,},
+            method: 'POST', body: form_data
+        });
+    }
+    input.click();
+}

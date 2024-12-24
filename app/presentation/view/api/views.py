@@ -113,3 +113,11 @@ def device_get():
     return json.dumps(ret, ensure_ascii=False)
 
 
+@api.route('/api/m4s/upload', methods=['POST'])
+@supervisor_key_required
+def m4s_upload():
+    files = [f for f in request.files.getlist("m4s_file")]
+    ret = mdevice.api_upload_m4s(files)
+    return json.dumps(ret, ensure_ascii=False)
+
+
