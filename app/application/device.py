@@ -41,7 +41,7 @@ def api_upload_m4s(files):
             m4s_devices += m4s.to_dict("records")
 
         if m4s_devices:
-            db_devices = mdevice.device_get_m()
+            db_devices = mdevice.device_get_m(active=None)
             db_device_cache = {d.serial_number: d for d in db_devices}
             not_found = []
             for device in m4s_devices:
@@ -52,7 +52,7 @@ def api_upload_m4s(files):
                     del db_device_cache[device["SerialNumber"]]
                 else:
                     not_found.append(device["InstitutionLabel"])
-                    if len(not_found) > 6:
+                    if len(not_found) > 5:
                         log.info(f'{sys._getframe().f_code.co_name}: NOT in DB {", ".join(not_found)}')
                         not_found = []
             if len(not_found) > 0:

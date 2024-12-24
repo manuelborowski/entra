@@ -47,8 +47,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.21: remove deactivated students from their teams
 # 0.22: api filters, added active.  Added student/get
 # 0.23: added m4s info
+# 0.24: bugfix m4s, consider non-active devices as well
 
-version = "V0.23"
+version = "V0.24"
 
 db = SQLAlchemy()
 login_manager = LoginManager()
