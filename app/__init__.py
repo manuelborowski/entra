@@ -1,4 +1,5 @@
 from flask import Flask, render_template, abort
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, current_user
 from flask_migrate import Migrate
@@ -11,6 +12,7 @@ from flask_apscheduler import APScheduler
 from flask_mail import Mail
 
 flask_app = Flask(__name__, instance_relative_config=True, template_folder='presentation/templates/')
+CORS(flask_app)
 
 # Configuration files...
 from config import app_config
@@ -49,8 +51,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.23: added m4s info
 # 0.24: bugfix m4s, consider non-active devices as well
 # 0.25: sync devices from entra, use the enrolled date iso lastsyned to determine the active device.
+# 0.26: enable cors
 
-version = "V0.25"
+version = "V0.26"
 
 db = SQLAlchemy()
 login_manager = LoginManager()
