@@ -1,4 +1,5 @@
 from app.data import staff as mstaff
+import app.application.api, sys
 
 #logging on file level
 import logging
@@ -6,6 +7,12 @@ from app import MyLogFilter, top_log_handle
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
+def api_staff_get(options):
+    try:
+        return app.application.api.api_get_model_data(mstaff.Staff, options)
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        return {"status": False, "data": str(e)}
 
 def staff_delete_m(ids):
     mstaff.staff_delete_m(ids)

@@ -1,5 +1,5 @@
 from flask import request, render_template
-from app.application import  user as muser, settings as msettings, group as mgroup, device as mdevice, student as mstudent
+from app.application import  user as muser, settings as msettings, group as mgroup, device as mdevice, student as mstudent, staff as mstaff
 from app import log
 import json, sys, html, itertools
 from functools import wraps
@@ -88,6 +88,14 @@ def user_get():
 def student_get():
     options = request.args
     ret = mstudent.api_student_get(options)
+    return(json.dumps(ret))
+
+
+@api.route('/api/staff/', methods=['GET'])
+@supervisor_key_required
+def student():
+    options = request.args
+    ret = mstaff.api_staff_get(options)
     return(json.dumps(ret))
 
 
