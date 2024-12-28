@@ -83,17 +83,17 @@ def user_get():
     ret = muser.api_user_get(options)
     return(json.dumps(ret))
 
-@api.route('/api/student/get', methods=['GET'])
+@api.route('/api/student', methods=['GET'])
 @supervisor_key_required
-def student_get():
+def student():
     options = request.args
     ret = mstudent.api_student_get(options)
     return(json.dumps(ret))
 
 
-@api.route('/api/staff/', methods=['GET'])
+@api.route('/api/staff', methods=['GET'])
 @supervisor_key_required
-def student():
+def staff():
     options = request.args
     ret = mstaff.api_staff_get(options)
     return(json.dumps(ret))

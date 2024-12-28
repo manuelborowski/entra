@@ -53,8 +53,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.25: sync devices from entra, use the enrolled date iso lastsyned to determine the active device.
 # 0.26: enable cors
 # 0.27: api, staff added
+# 0.28: bugfix in api
 
-version = "V0.27"
+version = "V0.28"
 
 db = SQLAlchemy()
 login_manager = LoginManager()
