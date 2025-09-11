@@ -54,8 +54,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.26: enable cors
 # 0.27: api, staff added
 # 0.28: bugfix in api
+# 0.29: bugfix in case of empty staff-code-group
 
-version = "V0.28"
+version = "V0.29"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

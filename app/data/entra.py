@@ -40,7 +40,7 @@ class Graph:
         if resp.status_code == 202:
             location = resp.headers.get("location")
             team_id = re.match("/teams\('(.*)'\)/oper", location)[1]
-            log.info(f'{sys._getframe().f_code.co_name}: New cc-team {team_id}')
+            log.info(f'{sys._getframe().f_code.co_name}: New cc-team {team_id}, {data["name"]}')
             return team_id
         else:
             log.error(f'{sys._getframe().f_code.co_name}: post.teams returned error {resp.text}')

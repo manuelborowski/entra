@@ -240,6 +240,20 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
         current_staffs = mstaff.staff_get_m([("delete", "=", False), ("new", "=", False)]) # [staff[1], staff[2], ...]
         current_staffs = {sgc : [s for s in current_staffs if s.groep_code == sgc ] for sgc in staff_groep_codes} # {"a": [staff[1], staff[2], ...], "b": [staff[47], ..], ...}
 
+        # Very exceptional, a sgc in current_staffs can be empty, e.g. sgc "f" is empty because in the database, all the staff of this sgc are marked new, i.e. they're
+        # in new_staffs.  But nevertheless sgc does exist (in staff_groep_codes) because it contains staff members in the database.
+        # If this happens, move one staff member of new_staffs (from the corresponding sgc) to current_staffs.
+        # Since this cron task is after "sync-users-from-entra" it is certain said staff has a valid entra-id.
+        for sgc, staffs in current_staffs.items():
+            if not staffs and new_staffs[sgc]:
+                # find staff with valid entra id
+                staffs_with_entra_id = list(filter(lambda x: x.entra_id != "", new_staffs[sgc]))
+                if staffs_with_entra_id:
+                    staffs.append(staffs_with_entra_id[0])
+                    new_staffs[sgc].pop(new_staffs[sgc].index(staffs_with_entra_id[0]))
+                else:
+                    log.error(f'{sys._getframe().f_code.co_name}: new_staffs[{sgc}] has no valid staff (with entra-id)')
+
         delete_cc_teams = []
         new_cc_teams = []
         team_ids = []
@@ -266,7 +280,7 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
                 team_id = entra.create_team(data)
                 if team_id:
                     team_ids.append((sgc, team_id)) # [("a", "234zé234é"), ("b", "23423zf"), ...]
-                    new_cc_teams.append({"entra_id": team_id, "display_name": data["name"], "description": data["description"],
+                    mgroup.group_add({"entra_id": team_id, "display_name": data["name"], "description": data["description"],
                                       "created": datetime.datetime.now(), "type": mgroup.Group.Types.cc_auto, "owners": json.dumps([o.code for o in current_staffs[sgc]])})
         # for the newly created teams, add all staff (per staff-groep-code) as owner
         for item in team_ids:
@@ -274,9 +288,6 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
             team_id = item[1]
             add_persons_data = {"owners": [o.entra_id for o in current_staffs[sgc]], "id": team_id}
             entra.add_persons(add_persons_data)
-
-        # save new teams/groups in database
-        mgroup.group_add_m(new_cc_teams)
 
         # iterate over all students, retrieve all the teams a student belong to, add to or delete from a team depending on klascode
         # and current schoolyear
