@@ -606,6 +606,7 @@ def cron_sync_devices(opaque=None, **kwargs):
                 last_enrolled_device.active = True
                 user.computer_lastsync_date = last_enrolled_device.lastsync_date
                 user.computer_intune_id = last_enrolled_device.intune_id
+                user.computer_name = last_enrolled_device.device_name
         mdevice.commit()
         log.info(f"{sys._getframe().f_code.co_name}, STOP")
     except Exception as e:
