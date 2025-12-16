@@ -15,9 +15,9 @@ log.addFilter(MyLogFilter())
 def cron_remove_devices(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     try:
-        students = mstudent.student_get_m(("delete", "=", True))
+        students = mstudent.student_get_m(("delete", "=", True), active=False)
         for student in students:
-            log.info(f'{sys._getframe().f_code.co_name}: Deleting student {student.leerlingnummer}, {student.naam} {student.voornaam}')
+            log.info(f'{sys._getframe().f_code.co_name}: Remove devives: {student.leerlingnummer}, {student.naam} {student.voornaam}')
             devices = mdevice.device_get_m(("user_entra_id", "=", student.entra_id))
             for device in devices:
                 if device.do_not_delete:

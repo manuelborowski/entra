@@ -1,7 +1,7 @@
 from azure.identity import ClientSecretCredential
 from msgraph.core import GraphClient
 from requests import ReadTimeout
-
+from functools import partial
 from app import flask_app
 import sys, re, copy, time
 
@@ -10,8 +10,6 @@ import logging
 from app import MyLogFilter, top_log_handle
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
-
-
 
 class Graph:
     client_credential: ClientSecretCredential
@@ -26,6 +24,32 @@ class Graph:
         self.client_credential = ClientSecretCredential(tenant_id, client_id, client_secret)
         self.client = GraphClient(credential=self.client_credential, scopes=['https://graph.microsoft.com/.default'])
 
+    def command_core(self, command, ok_code, info=""):
+        tries = 5
+        resp = None
+        while tries > 0:
+            resp = command()
+            if resp.status_code == ok_code:
+                break
+            log.info(f'{sys._getframe().f_code.co_name}: ENTRA returned error: (tries){tries}, (error){resp.text}, (info){info}')
+            tries -= 1
+            time.sleep(2)
+        if tries == 0: return None
+        return resp
+
+    def get(self, url, info):
+        items = []
+        while url:
+            resp = self.command_core(partial(self.client.get, url), 200, info)
+            if resp is None: return items
+            data = resp.json()
+            items += data["value"]
+            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        return items
+
+    def post(self, url, body, info):
+        return self.command_core(partial(self.client.port, url, body), 202, info)
+
     def create_team(self, data):
         body = {
             "template@odata.bind": "https://graph.microsoft.com/v1.0/teamsTemplates('educationClass')",
@@ -36,15 +60,12 @@ class Graph:
                 }
             ]
         }
-        resp = self.client.post("/teams", json=body)
-        if resp.status_code == 202:
-            location = resp.headers.get("location")
-            team_id = re.match("/teams\('(.*)'\)/oper", location)[1]
-            log.info(f'{sys._getframe().f_code.co_name}: New cc-team {team_id}, {data["name"]}')
-            return team_id
-        else:
-            log.error(f'{sys._getframe().f_code.co_name}: post.teams returned error {resp.text}')
-        return None
+        resp = self.post("/teams", body, data)
+        if resp is None: return None
+        location = resp.headers.get("location")
+        team_id = re.match("/teams\('(.*)'\)/oper", location)[1]
+        log.info(f'{sys._getframe().f_code.co_name}: New cc-team {team_id}, {data["name"]}')
+        return team_id
 
     def create_team_with_members(self, data):
         body = {
@@ -132,44 +153,18 @@ class Graph:
         log.error(f'{sys._getframe().f_code.co_name}: post.teams {data["id"]}/members/delete timeout')
 
     def intune_get_devices(self):
-        items = []
         select = "lastSyncDateTime,enrolledDateTime,deviceName,userId,id,serialNumber,complianceState,deviceEnrollmentType,azureADDeviceId"
         order_by = 'deviceName'
         url = f'/deviceManagement/managedDevices?$select={select}&$orderBy={order_by}'
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        items = self.get(url, f"intune_get_devices")
         return items
 
     def entra_get_devices(self):
-        items = []
-        url = "https://graph.microsoft.com/v1.0/devices?$select=id,deviceId"
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        items = self.get("https://graph.microsoft.com/v1.0/devices?$select=id,deviceId", f"entra_get_devices")
         return items
 
     def autopilot_get_devices(self):
-        items = []
-        url = f'/deviceManagement/windowsAutopilotDeviceIdentities'
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        items = self.get(f'/deviceManagement/windowsAutopilotDeviceIdentities', f"autopilot_get_devices")
         return items
 
     def delete_device(self, device):
@@ -192,85 +187,34 @@ class Graph:
                 log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
 
     def get_teams(self):
-        items = []
-        url = f'/groups?$select=id,createdDateTime,creationOptions,description,displayName'
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        items = self.get(f'/groups?$select=id,createdDateTime,creationOptions,description,displayName', f"get_teams")
         return items
 
     def get_team_details(self, id):
-        url = f"/teams/{id}?$select=isArchived"
-        resp = self.client.get(url, timeout=200)
-        if resp.status_code != 200:
-            log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-            return None
-        data = resp.json()
-        return data
+        items = self.get(f"/teams/{id}?$select=isArchived", f"get_team_details for {id}")
+        return items
 
     def get_team_members(self, id):
-        url = f"/groups/{id}/members?$select=id,officeLocation"
-        resp = self.client.get(url, timeout=200)
-        if resp.status_code != 200:
-            log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-            return None
-        data = resp.json()
-        return data
+        items = self.get(f"/groups/{id}/members?$select=id,officeLocation", f"get_team_members for {id}")
+        return items
 
     def get_group_members(self, id):
-        items = []
-        url = f"/groups/{id}/members?$select=id"
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        items = self.get(f"/groups/{id}/members?$select=id", f"get_group_members for {id}")
         return items
 
     def get_users(self):
-        items = []
-        url = f'/users?$select=id,userPrincipalName'
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        items = self.get(f'/users?$select=id,userPrincipalName', "get_users")
         return items
 
-
     def get_user_teams(self, id):
-        items = []
-        url = f'/users/{id}/joinedTeams'
-        while url:
-            resp = self.client.get(url)
-            if resp.status_code != 200:
-                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-                return []
-            data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+        items = self.get(f'/users/{id}/joinedTeams', f"get_user_teams for {id}")
         data = [{"id": i["id"], "name": i["displayName"], "description": i["description"]} for i in items]
         return data
 
-
-
     def get_team_activity_details(self):
         url = "/reports/getTeamsTeamActivityDetail(period='D180')"
-        resp = self.client.get(url)
-        if resp.status_code != 200:
-            log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
-            return []
+        resp = self.command_core(partial(self.client.get, url), 200, "get_team_activity_details")
+        if resp is None: return []
         data = re.sub("\".*\"", "", resp.text)
         list_of_list = [i.split(",") for i in data.split("\n")]
         data = [dict(zip(list_of_list[0], i)) for i in list_of_list]

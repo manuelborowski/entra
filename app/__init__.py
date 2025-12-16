@@ -56,8 +56,10 @@ flask_app.config.from_pyfile('config.py')
 # 0.28: bugfix in api
 # 0.29: bugfix in case of empty staff-code-group
 # 0.30: bugfix, update name of last-enrolled-device
+# 0.31: deleted student, take into account that student is also inactive.  Preempt cc- team already in intune, but not in database (database out of sync).
+# Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take deactivated students into account when syncing from SDH
 
-version = "V0.30"
+version = "V0.31"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

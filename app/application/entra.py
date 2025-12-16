@@ -38,6 +38,9 @@ def cron_sync_groups(opaque=None, **kwargs):
                 del(group_cache[group["id"]])
             else: # new
                 ng = Group()
+                if "cc-" in group["description"]:
+                    log.error(f'{sys._getframe().f_code.co_name}: group {group["description"]} in entra but not in database')
+                    continue
                 if "classAssignments" in group["creationOptions"]:
                     type = Group.Types.klas
                     props = entra.get_team_details(group["id"])
@@ -99,9 +102,12 @@ def cron_sync_users(opaque=None, **kwargs):
             if staff.code.lower() in user_cache:
                 staff.entra_id = user_cache[staff.code.lower()]["id"]
                 found.append(staff)
+        not_found = []
         for staff in db_staffs:
             if staff not in found:
-                log.info(f'{sys._getframe().f_code.co_name}: Staff not found in Entra {staff.code}, {staff.naam} {staff.voornaam}')
+                log.info(f'{sys._getframe().f_code.co_name}: Staff not found in Entra {staff.code}, {staff.naam} {staff.voornaam}, remove from database')
+                not_found.append(staff)
+        mstaff.staff_delete_m(staffs=not_found)
 
         commit()
     except Exception as e:
@@ -257,9 +263,9 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
         delete_cc_teams = []
         new_cc_teams = []
         team_ids = []
-        for sgc in staff_groep_codes:
+        for sgc in staff_groep_codes: # a, b, c, ...
             # check if a cc-team is still needed (i.e. klasgroep still exists), else put in delete-list
-            for cc_team in db_cc_teams[sgc]:
+            for cc_team in db_cc_teams[sgc]: # 1A, 1B, ...
                 kgc = cc_team.get_klasgroep_code()
                 if kgc in klasgroepen[sgc]:
                     klasgroepen[sgc].remove(kgc)
@@ -299,6 +305,7 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
         nbr_processed = 0
         delete_student_from_meta_teams = {}
         current_schoolyear = get_current_schoolyear(format=3)
+
         def __get_meta_team(team):
             id = team["id"]
             if id not in delete_student_from_meta_teams:
@@ -308,44 +315,52 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
         # Check for active students if they're in the correct team
         db_students = mstudent.student_get_m()
         for student in db_students:
-            teams = entra.get_user_teams(student.entra_id)
+            entra_teams = entra.get_user_teams(student.entra_id) # get list of teams from entra
             student_found_in_cc_team = [] #a list of staff-group-codes the student is a member of
             if student.klascode in klassen:
                 kgc = klassen[student.klascode]
             else:
                 log.error(f'{sys._getframe().f_code.co_name}: klascode {student.klascode} not found in klassentable')
                 continue
-            for team in teams:
-                if team["name"][:3] == "cc-":
-                    if kgc in team["name"]:
-                        student_found_in_cc_team.append(team["name"][3]) # student found in cc-team with given staff-group-code
+            for entra_team in entra_teams:
+                if entra_team["name"][:3] == "cc-":
+                    # it is a classroomcloud team
+                    if kgc in entra_team["name"]:
+                        # student already in correct CLC team
+                        student_found_in_cc_team.append(entra_team["name"][3]) # student found in cc-team with given staff-group-code
                     else:
-                        if team["id"] in id_meta_teams:
-                            id_meta_teams[team["id"]].append_members_to_remove(student)
+                        # student in different CLC team
+                        if entra_team["id"] in id_meta_teams:
+                            # entra team is also present in database
+                            id_meta_teams[entra_team["id"]].append_members_to_remove(student)
                         else:
-                            __get_meta_team(team).append_members_to_remove(student)
-                elif team["name"][:3] == "[20" and current_schoolyear not in team["name"]:
-                    __get_meta_team(team).append_members_to_remove(student)
+                            # entra team is not in database, create separate list
+                            __get_meta_team(entra_team).append_members_to_remove(student)
+                elif entra_team["name"][:3] == "[20" and current_schoolyear not in entra_team["name"]:
+                    # remove student from archived team
+                    __get_meta_team(entra_team).append_members_to_remove(student)
             for sgc in staff_groep_codes:
                 if sgc not in student_found_in_cc_team:
+                    # student should be member of team with given staff-group-code, but is not, so add student to given meta team.
                     sgc_meta_teams[sgc][kgc].append_members_to_add(student)
             nbr_processed += 1
             if nbr_processed % 100 == 0:
                 log.info(f'{sys._getframe().f_code.co_name}: from ENTRA, check active student team-membership, processed students: {nbr_processed} ')
 
+        # Disabled, there are a lot of duplicated students in the database (left and came back).  This disturbs following code
         # Check for deactived students if they're still in teams.  If so, remove them
-        nbr_processed = 0
-        db_deactivated_students = mstudent.student_get_m(active=False)
-        for student in db_deactivated_students:
-            teams = entra.get_user_teams(student.entra_id)
-            for team in teams:
-                if team["id"] in id_meta_teams:
-                    id_meta_teams[team["id"]].append_members_to_remove(student)
-                else:
-                    __get_meta_team(team).append_members_to_remove(student)
-            nbr_processed += 1
-            if nbr_processed % 100 == 0:
-                log.info(f'{sys._getframe().f_code.co_name}: from ENTRA, check deactived student, remove from teams, processed students: {nbr_processed} ')
+        # nbr_processed = 0
+        # db_deactivated_students = mstudent.student_get_m(active=False)
+        # for student in db_deactivated_students:
+        #     entra_teams = entra.get_user_teams(student.entra_id)
+        #     for entra_team in entra_teams:
+        #         if entra_team["id"] in id_meta_teams:
+        #             id_meta_teams[entra_team["id"]].append_members_to_remove(student)
+        #         else:
+        #             __get_meta_team(entra_team).append_members_to_remove(student)
+        #     nbr_processed += 1
+        #     if nbr_processed % 100 == 0:
+        #         log.info(f'{sys._getframe().f_code.co_name}: from ENTRA, check deactived student, remove from teams, processed students: {nbr_processed} ')
 
         # append new staff to the meta_team objects add-list (MetaTeam::append_owner_to_add)
         # append deleted staff to the meta_team objects remove-list (MetaTeam::append_owner_to_remove)
@@ -360,8 +375,9 @@ def cron_sync_cc_auto_teams(opaque=None, **kwargs):
         _update_entra_cc_teams(team_list)
 
         # delete_student_meta_teams, if not empty, contains team-ids (non-cc-teams) and student-ids of students to be deleted from said teams
-        team_list = delete_student_from_meta_teams.values()
-        _update_entra_non_cc_teams(team_list)
+        # TO DO: skip for now, this function assumes students are always a member of a team, never an owner.  Many teams are made by students, who are owner.
+        # team_list = delete_student_from_meta_teams.values()
+        # _update_entra_non_cc_teams(team_list)
         commit()
 
     except Exception as e:
@@ -623,7 +639,7 @@ def cron_cleanup_db(opaque=None, **kwargs):
             student.changed = ""
             student.changed_old = ""
         mstudent.commit()
-        db_students = mstudent.student_get_m(("delete", "=", True))
+        db_students = mstudent.student_get_m(("delete", "=", True), active=False)
         mstudent.student_delete_m(students=db_students)
 
         db_staffs = mstaff.staff_get_m(("changed", "!", ""))

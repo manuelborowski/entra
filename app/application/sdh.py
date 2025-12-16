@@ -17,6 +17,8 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
     try:
         db_students = mstudent.student_get_m()
         llnnr2student = {s.leerlingnummer: s for s in db_students} if db_students else {}
+        db_inactive_students = mstudent.student_get_m(active=False)
+        inactive_llnnr2student = {s.leerlingnummer: s for s in db_inactive_students} if db_inactive_students else {}
         sdh_student_url = flask_app.config["SDH_GET_STUDENT_URL"]
         sdh_key = flask_app.config["SDH_GET_KEY"]
 
@@ -27,11 +29,16 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
             if sdh_students['status']:
                 log.info(f'{sys._getframe().f_code.co_name}, retrieved {len(sdh_students["data"])} students from SDH')
                 for sdh_student in sdh_students["data"]:
-                    if int(sdh_student["leerlingnummer"]) < 0: continue
-                    if sdh_student["leerlingnummer"] in llnnr2student:
-                        # check for changed rfid or classgroup
-                        db_student = llnnr2student[sdh_student["leerlingnummer"]]
-                        update = {}
+                    if int(sdh_student["leerlingnummer"]) < 0: continue # consider only valid students
+                    if sdh_student["leerlingnummer"] in llnnr2student or sdh_student["leerlingnummer"] in inactive_llnnr2student:
+                        # check for changed rfid or classgroup or...
+                        if sdh_student["leerlingnummer"] in inactive_llnnr2student:
+                            # Student went to other school for a short period, and returned
+                            db_student = inactive_llnnr2student[sdh_student["leerlingnummer"]]
+                            update = {"active": True}
+                        else:
+                            db_student = llnnr2student[sdh_student["leerlingnummer"]]
+                            update = {}
                         changed_old = {}
                         if db_student.klascode != sdh_student["klascode"]:
                             update["klascode"] = sdh_student["klascode"]
@@ -97,7 +104,6 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
         return 0, 0, 0
     return len(new_students), nbr_updated, len(deleted_students)
 
-
 def cron_staff_load_from_sdh(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
     updated_staffs = []
@@ -117,7 +123,7 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
                 db_code_to_staff = {s.code: s for s in db_staffs}
                 for sdh_staff in sdh_staffs["data"]:
                     if sdh_staff["code"] in db_code_to_staff:
-                        # check for changed rfid or classgroup
+                        # check for changed rfid or ...
                         db_staff = db_code_to_staff[sdh_staff["code"]]
                         update = {}
                         if db_staff.voornaam != sdh_staff["voornaam"]:
@@ -151,8 +157,6 @@ def cron_staff_load_from_sdh(opaque=None, **kwargs):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return 0, 0, 0
     return len(new_staffs), nbr_updated, len(deleted_staffs)
-
-
 
 def cron_klas_load_from_sdh(opaque=None, **kwargs):
     log.info(f"{sys._getframe().f_code.co_name}, START")
@@ -191,7 +195,6 @@ def cron_klas_load_from_sdh(opaque=None, **kwargs):
         log.error(f'{sys._getframe().f_code.co_name}: {e}')
         return 0, 0
     return len(new_klassen), len(deleted_klassen)
-
 
 def cron_push_devices(opaque=None, **kwargs):
 
