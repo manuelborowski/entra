@@ -21,6 +21,7 @@ class Graph:
         client_id = flask_app.config['ENTRA_CLIENT_ID']
         tenant_id = flask_app.config['ENTRA_TENANT_ID']
         client_secret = flask_app.config['ENTRA_CLIENT_SECRET']
+        self.user_id = flask_app.config["ENTRA_USER_ID"]
         self.client_credential = ClientSecretCredential(tenant_id, client_id, client_secret)
         self.client = GraphClient(credential=self.client_credential, scopes=['https://graph.microsoft.com/.default'])
 
@@ -220,6 +221,25 @@ class Graph:
         data = [dict(zip(list_of_list[0], i)) for i in list_of_list]
         data.pop(0)
         return data
+
+    def send_mail(self, to_list, subject, content):
+        url = f"/users/{self.user_id}/sendMail"
+        if type(to_list) is not list:
+            to_list = [to_list]
+        recipients = []
+        for to in to_list:
+            if to is not None and to != "":
+                recipients.append({"emailAddress": {"address": to}})
+        if recipients:
+            body = {
+                "message": {"subject": subject, "body": {"contentType": "html", "content": content}, "toRecipients": recipients
+                }
+            }
+            resp = self.client.post(url, json=body)
+            if resp.status_code != 202:
+                log.error(f'{sys._getframe().f_code.co_name}: {url} returned status_code {resp.text}')
+                return False
+        return True
 
 
 entra = Graph()

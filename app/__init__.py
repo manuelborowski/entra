@@ -10,6 +10,7 @@ from functools import wraps
 from flask_socketio import SocketIO
 from flask_apscheduler import APScheduler
 from flask_mail import Mail
+from typing import Callable, Optional
 
 flask_app = Flask(__name__, instance_relative_config=True, template_folder='presentation/templates/')
 CORS(flask_app)
@@ -58,8 +59,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.30: bugfix, update name of last-enrolled-device
 # 0.31: deleted student, take into account that student is also inactive.  Preempt cc- team already in intune, but not in database (database out of sync).
 # Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take deactivated students into account when syncing from SDH
+# 0.32: send email via entra
 
-version = "V0.31"
+version = "V0.32"
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -98,7 +100,7 @@ log_handler.setFormatter(log_formatter)
 log.addHandler(log_handler)
 
 
-email_log_handler = None
+email_log_handler: Optional[Callable[[str], None]] = None
 def subscribe_email_log_handler_cb(cb):
     global email_log_handler
     email_log_handler = cb

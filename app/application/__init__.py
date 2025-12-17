@@ -1,4 +1,4 @@
-__all__ = ['tables', 'datatables', 'socketio', 'settings', 'logging', 'cron', 'student', 'staff', "entra", "sdh", "device"]
+__all__ = ['tables', 'datatables', 'socketio', 'settings', 'logging', 'cron', 'student', 'staff', "entra", "sdh", "device", "email"]
 
 from app import flask_app
 from app.application.sdh import cron_staff_load_from_sdh, cron_student_load_from_sdh, cron_klas_load_from_sdh, cron_push_devices
@@ -32,3 +32,5 @@ if flask_app.testmode:
         if setting[4]:
             cron_settings[setting[0]] = False
     app.data.settings.set_configuration_setting("cron-enable-modules", cron_settings)
+
+import app.application.email

@@ -1,35 +1,25 @@
 from app import email, flask_app, subscribe_email_log_handler_cb
 from app.data import settings as msettings
 from app.application import util as mutil
-from flask_mail import Message
 import datetime, sys
-
+from app.data.entra import entra
 
 #logging on file level
 import logging
 from app import MyLogFilter, top_log_handle
+
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
 
 def send_email(to_list, subject, content):
-    # to_list = ["emmanuel.borowski@gmail.com"]
     log.info(f'{sys._getframe().f_code.co_name}: send_email to: {to_list}, subject: {subject}')
     enable = msettings.get_configuration_setting('email-enable-send-email')
     if enable:
-        sender = flask_app.config['MAIL_USERNAME']
-        msg = Message(sender=sender, recipients=to_list, subject=subject, html=content)
         try:
-            email.send(msg)
-            return True
+            return entra.send_mail(to_list, subject, content)
         except Exception as e:
             log.error(f'{sys._getframe().f_code.co_name}: send_email: ERROR, could not send email: {e}')
-            if 'Temporary server error. Please try again later' in str(e):
-                try:
-                    email.send(msg)
-                    return True
-                except Exception as e:
-                    log.error(f'{sys._getframe().f_code.co_name}: send_email: ERROR, could not send email: {e}')
         return False
     else:
         log.info('{sys._getframe().f_code.co_name}: email server is not enabled')
@@ -50,9 +40,7 @@ def email_log_handler(message_body):
     if to_list:
         send_inform_message(to_list, "ENTRA ERROR LOG", message_body)
 
-
 subscribe_email_log_handler_cb(email_log_handler)
-
 
 #send message to new staff
 def send_new_staff_message(staff, default_password):
