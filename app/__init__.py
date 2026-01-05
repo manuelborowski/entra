@@ -60,8 +60,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.31: deleted student, take into account that student is also inactive.  Preempt cc- team already in intune, but not in database (database out of sync).
 # Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take deactivated students into account when syncing from SDH
 # 0.32: send email via entra
+# 0.33: if students from SUM leave the school, do not delete their associated devices
 
-version = "V0.32"
+version = "V0.33"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

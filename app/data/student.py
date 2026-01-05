@@ -11,7 +11,6 @@ class Student(db.Model, SerializerMixin):
     date_format = '%d/%m/%Y'
     datetime_format = '%d/%m/%Y %H:%M'
 
-
     id = db.Column(db.Integer(), primary_key=True)
     entra_id = db.Column(db.String(256), default='')
     voornaam = db.Column(db.String(256), default='')
@@ -31,6 +30,15 @@ class Student(db.Model, SerializerMixin):
     enable = db.Column(db.Boolean, default=True)    # short term
     changed = db.Column(db.TEXT, default='')
     changed_old = db.Column(db.TEXT, default='')
+
+    @property
+    def school_is_sum(self):
+        if self.klascode == "OKAN":
+            return False
+        elif int(self.klascode[0]) < 3:
+            return True
+        return False
+
 
 def get_columns():
     return [p for p in dir(Student) if not p.startswith('_')]
