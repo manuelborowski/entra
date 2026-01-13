@@ -61,8 +61,9 @@ flask_app.config.from_pyfile('config.py')
 # Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take deactivated students into account when syncing from SDH
 # 0.32: send email via entra
 # 0.33: if students from SUM leave the school, do not delete their associated devices
+# 0.34: bugfix entra, check if "value" is present in response
 
-version = "V0.33"
+version = "V0.34"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

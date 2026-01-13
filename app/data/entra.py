@@ -44,8 +44,11 @@ class Graph:
             resp = self.command_core(partial(self.client.get, url), 200, info)
             if resp is None: return items
             data = resp.json()
-            items += data["value"]
-            url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+            if "value" in data:
+                items += data["value"]
+                url = data["@odata.nextLink"] if "@odata.nextLink" in data else None
+            else:
+                return data
         return items
 
     def post(self, url, body, info):
