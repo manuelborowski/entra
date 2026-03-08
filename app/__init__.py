@@ -62,8 +62,9 @@ flask_app.config.from_pyfile('config.py')
 # 0.32: send email via entra
 # 0.33: if students from SUM leave the school, do not delete their associated devices
 # 0.34: bugfix entra, check if "value" is present in response
+# 0.35: device, add mac address
 
-version = "V0.34"
+version = "V0.35"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

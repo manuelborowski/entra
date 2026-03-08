@@ -562,6 +562,7 @@ def cron_sync_devices(opaque=None, **kwargs):
                     enrolled_date = "2000-01-01T00:00:00Z"
                 dd.enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ")
                 dd.do_not_delete = dd.entra_id in entra_do_not_delete_devices
+                dd.mac = intune_device["wiFiMacAddress"]
                 __update_user_devices(dd.user_entra_id, dd)
                 del(intune_device_cache[dd.intune_id])
             else:
@@ -589,6 +590,7 @@ def cron_sync_devices(opaque=None, **kwargs):
                 "autopilot_id": autopilot_id,
                 "device_name": intune_device["deviceName"],
                 "serial_number": intune_device["serialNumber"],
+                "mac": intune_device["wiFiMacAddress"],
                 "user_entra_id": intune_device["userId"],
                 "enrolled_date": enrolled_date,
                 "lastsync_date": lastsync_date,

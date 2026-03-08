@@ -19,6 +19,7 @@ class Device(db.Model, SerializerMixin):
 
     device_name = db.Column(db.String(256), default='')
     serial_number = db.Column(db.String(256), default='')
+    mac = db.Column(db.String(256), default='')
     enrolled_date = db.Column(db.DateTime)
     lastsync_date = db.Column(db.DateTime)
 

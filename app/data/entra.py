@@ -157,7 +157,7 @@ class Graph:
         log.error(f'{sys._getframe().f_code.co_name}: post.teams {data["id"]}/members/delete timeout')
 
     def intune_get_devices(self):
-        select = "lastSyncDateTime,enrolledDateTime,deviceName,userId,id,serialNumber,complianceState,deviceEnrollmentType,azureADDeviceId"
+        select = "lastSyncDateTime,enrolledDateTime,deviceName,userId,id,serialNumber,complianceState,deviceEnrollmentType,azureADDeviceId,wiFiMacAddress"
         order_by = 'deviceName'
         url = f'/deviceManagement/managedDevices?$select={select}&$orderBy={order_by}'
         items = self.get(url, f"intune_get_devices")
