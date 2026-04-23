@@ -38,7 +38,7 @@ def cron_sync_groups(opaque=None, **kwargs):
                 del(group_cache[group["id"]])
             else: # new
                 ng = Group()
-                if "cc-" in group["description"]:
+                if "cc-" in group["displayName"]:
                     log.error(f'{sys._getframe().f_code.co_name}: group {group["description"]} in entra but not in database')
                     continue
                 if "classAssignments" in group["creationOptions"]:

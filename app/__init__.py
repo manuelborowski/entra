@@ -22,49 +22,7 @@ config_name = config_name if config_name else 'production'
 flask_app.config.from_object(app_config[config_name])
 flask_app.config.from_pyfile('config.py')
 
-# 0.1: copy of school-data-hub V1.80
-# 0.2: auto update of cc-teams is ok
-# 0.3: added last_activity to groups.  Possible to cc-teams.
-# 0.4: added links to entra for students/staff
-# 0.5: replaced background picture
-# 0.6: update api
-# 0.7: cc-auto: only 50 staff per team are allowed, so split up the teams
-# 0.8: first create all teams and then add members
-# 0.9: sync devices with entra
-# 0.10: bugfixed wrong date format
-# 0.11: copy device info into staff/student table
-# 0.12: added api to get devices.  Update student/staff lastsync_date
-# 0.13: push devices to sdh
-# 0.14: bugfix, wrong propertyname in search function
-# 0.15: entra device, added fields for better checking
-# 0.16: add cc-teams verify to check the differences between database and entra
-# 0.16-save_non_active_devices-0.1: save non-active devices
-# 0.16-save_non_active_devices-0.2: renamed device entra-id to intune-id
-# 0.16-save_non_active_devices-0.3: added entra-id
-# 0.16-save_non_active_devices-0.4: reworked entra-sync-devices.  All found devices are stored.
-# Lastsync_date is taken into account to determine active device per user.  Add function to remove devices from intune/entra/autopilot
-# 0.17: merged from 0.16-save_non_active_devices-0.4
-# 0.18: for each student, check team membership in entra and update accordingly.  When accessing entra, take retry/timeout in consideration.  Update handling of deleted students
-# 0.19: devices in specific groups may never be deleted from entra
-# 0.20: small bugfix
-# 0.21: remove deactivated students from their teams
-# 0.22: api filters, added active.  Added student/get
-# 0.23: added m4s info
-# 0.24: bugfix m4s, consider non-active devices as well
-# 0.25: sync devices from entra, use the enrolled date iso lastsyned to determine the active device.
-# 0.26: enable cors
-# 0.27: api, staff added
-# 0.28: bugfix in api
-# 0.29: bugfix in case of empty staff-code-group
-# 0.30: bugfix, update name of last-enrolled-device
-# 0.31: deleted student, take into account that student is also inactive.  Preempt cc- team already in intune, but not in database (database out of sync).
-# Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take deactivated students into account when syncing from SDH
-# 0.32: send email via entra
-# 0.33: if students from SUM leave the school, do not delete their associated devices
-# 0.34: bugfix entra, check if "value" is present in response
-# 0.35: device, add mac address
-
-version = "V0.35"
+version = "V0.36"
 
 db = SQLAlchemy()
 login_manager = LoginManager()
