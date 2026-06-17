@@ -40,3 +40,4 @@ Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take de
 0.34: bugfix entra, check if "value" is present in response
 0.35: device, add mac address
 0.36: sync entra groups, use displayName iso description (can be None)
+0.37: Graph, "post" iso "port"

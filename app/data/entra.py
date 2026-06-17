@@ -52,7 +52,7 @@ class Graph:
         return items
 
     def post(self, url, body, info):
-        return self.command_core(partial(self.client.port, url, body), 202, info)
+        return self.command_core(partial(self.client.post, url, body), 202, info)
 
     def create_team(self, data):
         body = {
