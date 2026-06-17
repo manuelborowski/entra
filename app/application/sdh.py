@@ -32,14 +32,17 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
                     if int(sdh_student["leerlingnummer"]) < 0: continue # consider only valid students
                     if sdh_student["leerlingnummer"] in llnnr2student or sdh_student["leerlingnummer"] in inactive_llnnr2student:
                         # check for changed rfid or classgroup or...
+                        changed_old = {}
                         if sdh_student["leerlingnummer"] in inactive_llnnr2student:
                             # Student went to other school for a short period, and returned
                             db_student = inactive_llnnr2student[sdh_student["leerlingnummer"]]
+                            del (inactive_llnnr2student[sdh_student["leerlingnummer"]])
                             update = {"active": True}
+                            changed_old["active"] = db_student.active
                         else:
                             db_student = llnnr2student[sdh_student["leerlingnummer"]]
+                            del (llnnr2student[sdh_student["leerlingnummer"]])
                             update = {}
-                        changed_old = {}
                         if db_student.klascode != sdh_student["klascode"]:
                             update["klascode"] = sdh_student["klascode"]
                             changed_old["klascode"] = db_student.klascode
@@ -51,7 +54,6 @@ def cron_student_load_from_sdh(opaque=None, **kwargs):
                             updated_students.append(update)
                             log.info(f'{sys._getframe().f_code.co_name}, Update student {db_student.leerlingnummer}, update {update}')
                             nbr_updated += 1
-                        del(llnnr2student[sdh_student["leerlingnummer"]])
                     else:
                         new_students.append({"leerlingnummer": sdh_student["leerlingnummer"], "klascode": sdh_student["klascode"], "naam": sdh_student["naam"],
                                              "voornaam": sdh_student["voornaam"], "klasnummer": sdh_student["klasnummer"], "username": sdh_student["username"],
