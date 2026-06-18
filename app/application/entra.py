@@ -39,7 +39,7 @@ def cron_sync_groups(opaque=None, **kwargs):
             else: # new
                 ng = Group()
                 if "cc-" in group["displayName"]:
-                    log.error(f'{sys._getframe().f_code.co_name}: group {group["description"]} in entra but not in database')
+                    # log.error(f'{sys._getframe().f_code.co_name}: group {group["description"]} in entra but not in database')
                     continue
                 if "classAssignments" in group["creationOptions"]:
                     type = Group.Types.klas
@@ -469,7 +469,7 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                     new_students.append(leerlingnummer)
                 else:
                     log.error(f'{sys._getframe().f_code.co_name}: {db_team.description}, student {leerlingnummer} is not present in DB')
-            db_team.students = json.dumps(sorted(new_students))
+            db_team.members = json.dumps(sorted(new_students))
         commit()
 
         log.info(f"{sys._getframe().f_code.co_name}, Sync teams in Entra with DB")
