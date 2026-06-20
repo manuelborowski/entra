@@ -22,7 +22,7 @@ config_name = config_name if config_name else 'production'
 flask_app.config.from_object(app_config[config_name])
 flask_app.config.from_pyfile('config.py')
 
-version = "V0.39"
+version = "V0.40"
 
 db = SQLAlchemy()
 login_manager = LoginManager()

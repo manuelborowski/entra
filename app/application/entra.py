@@ -483,7 +483,7 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
             db_members = json.loads(db_cc_team.members)
             entra_team_members = entra.get_team_members(db_cc_team.entra_id)
             meta_team = MetaTeam(db_cc_team)
-            for member_data in entra_team_members["value"]:
+            for member_data in entra_team_members:
                 id = member_data["id"]
                 if member_data["officeLocation"] in klassen:
                     if id in id2student:
