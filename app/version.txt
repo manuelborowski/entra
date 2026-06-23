@@ -44,3 +44,4 @@ Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take de
 0.38: student import, inactive students where not correctly processed.  GraphClient, fixed error in post
 0.39: small bugfix
 0.40: small bugfix
+0.41: verify-cc-teams, remove zombie owners and members

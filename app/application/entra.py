@@ -495,6 +495,7 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                             meta_team.append_members_to_remove(student)
                     else:
                         log.error(f'{sys._getframe().f_code.co_name}: Entra student {id} NOT found in DB')
+                        meta_team.append_members_to_remove(mstudent.Student(entra_id=id, leerlingnummer=id, naam="NVT", voornaam="NVT"))
                 else:
                     if id in id2staff:
                         staff = id2staff[id]
@@ -505,6 +506,7 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                             meta_team.append_owners_to_remove(staff)
                     else:
                         log.error(f'{sys._getframe().f_code.co_name}: Entra staff {id} NOT found in DB')
+                        meta_team.append_owners_to_remove(mstaff.Staff(entra_id=id, code=id))
             for code in db_owners:
                 staff = code2staffs[code]
                 meta_team.append_owners_to_add(staff)
