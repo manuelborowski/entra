@@ -9,3 +9,8 @@ app/static/photos/*
 app/static/mapped_photos/**
 **/*.xlsx
 **/*.pdf
+.venv/
+.tools/
+.python/
+.uv-cache/
+log/**

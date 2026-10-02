@@ -67,7 +67,7 @@ class Graph:
         resp = self.post("/teams", body, data)
         if resp is None: return None
         location = resp.headers.get("location")
-        team_id = re.match("/teams\('(.*)'\)/oper", location)[1]
+        team_id = re.match(r"/teams\('(.*)'\)/oper", location)[1]
         log.info(f'{sys._getframe().f_code.co_name}: New cc-team {team_id}, {data["name"]}')
         return team_id
 
@@ -84,7 +84,7 @@ class Graph:
         resp = self.client.post("/teams", json=body)
         if resp.status_code == 202:
             location = resp.headers.get("location")
-            team_id = re.match("/teams\('(.*)'\)/oper", location)[1]
+            team_id = re.match(r"/teams\('(.*)'\)/oper", location)[1]
             data["id"] = team_id
             persons_data = copy.deepcopy(data)
             persons_data["owners"].pop(0)

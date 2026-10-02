@@ -414,12 +414,12 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                 description = f"cc-{staff.groep_code}-{klasgroep}"
                 if description in db_description_cc_teams:
                     if staff.code not in db_description_cc_teams[description].owners:
-                        log.error(f'{sys._getframe().f_code.co_name}: staff {staff.code} NOT found in DB cc-team {description}')
+                        log.info(f'{sys._getframe().f_code.co_name}: staff {staff.code} NOT found in DB cc-team {description}')
                         owners = json.loads(db_description_cc_teams[description].owners)
                         owners.append(staff.code)
                         db_description_cc_teams[description].owners = json.dumps(owners)
                 else:
-                    log.error(f'{sys._getframe().f_code.co_name}: cc-team {description} NOT found in ENTRA')
+                    log.info(f'{sys._getframe().f_code.co_name}: cc-team {description} NOT found in ENTRA')
         log.info(f'{sys._getframe().f_code.co_name}: processed {len(staffs)} nbr of staff')
 
         # Check if all students are present in the cc-teams
@@ -429,12 +429,12 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                 description = f"cc-{staff_groep_code}-{db_klasgroep_klassen[student.klascode]}"
                 if description in db_description_cc_teams:
                     if student.leerlingnummer not in db_description_cc_teams[description].members:
-                        log.error(f'{sys._getframe().f_code.co_name}: student {student.leerlingnummer}, {student.naam} {student.voornaam} NOT found in DB cc-team {description}')
+                        log.info(f'{sys._getframe().f_code.co_name}: student {student.leerlingnummer}, {student.naam} {student.voornaam} NOT found in DB cc-team {description}')
                         members = json.loads(db_description_cc_teams[description].members)
                         members.append(student.leerlingnummer)
                         db_description_cc_teams[description].members = json.dumps(members)
                 else:
-                    log.error(f'{sys._getframe().f_code.co_name}: cc-team {description} NOT found in ENTRA')
+                    log.info(f'{sys._getframe().f_code.co_name}: cc-team {description} NOT found in ENTRA')
         log.info(f'{sys._getframe().f_code.co_name}: processed {len(students)} nbr of students')
 
         # find obsolete teams in database (based on staff-group-code and klasgroepcode)
@@ -445,7 +445,7 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                 if description in db_description_cc_teams:
                     del(db_description_cc_teams[description])
         for description, team in db_description_cc_teams.items():
-            log.error(f'{sys._getframe().f_code.co_name}: cc-team {description} NOT found in database')
+            log.info(f'{sys._getframe().f_code.co_name}: cc-team {description} NOT found in database')
             delete(team)
         commit()
 
@@ -459,7 +459,7 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                 if code in code2staffs:
                     new_owners.append(code)
                 else:
-                    log.error(f'{sys._getframe().f_code.co_name}: {db_team.description}, staff {code} is not present in DB')
+                    log.info(f'{sys._getframe().f_code.co_name}: {db_team.description}, staff {code} is not present in DB')
             db_team.owners = json.dumps(sorted(new_owners))
 
             students = json.loads(db_team.members)
@@ -468,7 +468,7 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                 if leerlingnummer in leerlingnummer2student:
                     new_students.append(leerlingnummer)
                 else:
-                    log.error(f'{sys._getframe().f_code.co_name}: {db_team.description}, student {leerlingnummer} is not present in DB')
+                    log.info(f'{sys._getframe().f_code.co_name}: {db_team.description}, student {leerlingnummer} is not present in DB')
             db_team.members = json.dumps(sorted(new_students))
         commit()
 
@@ -491,10 +491,10 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                         if student.leerlingnummer in db_members:
                             db_members.remove(student.leerlingnummer)
                         else:
-                            log.error(f'{sys._getframe().f_code.co_name}: Entra student {student.leerlingnummer}, {student.naam} {student.voornaam} NOT found in DB team {db_cc_team.description}')
+                            log.info(f'{sys._getframe().f_code.co_name}: Entra student {student.leerlingnummer}, {student.naam} {student.voornaam} NOT found in DB team {db_cc_team.description}')
                             meta_team.append_members_to_remove(student)
                     else:
-                        log.error(f'{sys._getframe().f_code.co_name}: Entra student {id} NOT found in DB')
+                        log.info(f'{sys._getframe().f_code.co_name}: Entra student {id} NOT found in DB')
                         meta_team.append_members_to_remove(mstudent.Student(entra_id=id, leerlingnummer=id, naam="NVT", voornaam="NVT"))
                 else:
                     if id in id2staff:
@@ -502,19 +502,19 @@ def cron_verify_cc_auto_teams(opaque=None, **kwargs):
                         if staff.code in db_owners:
                             db_owners.remove(staff.code)
                         else:
-                            log.error(f'{sys._getframe().f_code.co_name}: Entra staff {staff.code}, {staff.naam} {staff.voornaam} NOT found in DB team {db_cc_team.description}')
+                            log.info(f'{sys._getframe().f_code.co_name}: Entra staff {staff.code}, {staff.naam} {staff.voornaam} NOT found in DB team {db_cc_team.description}')
                             meta_team.append_owners_to_remove(staff)
                     else:
-                        log.error(f'{sys._getframe().f_code.co_name}: Entra staff {id} NOT found in DB')
+                        log.info(f'{sys._getframe().f_code.co_name}: Entra staff {id} NOT found in DB')
                         meta_team.append_owners_to_remove(mstaff.Staff(entra_id=id, code=id))
             for code in db_owners:
                 staff = code2staffs[code]
                 meta_team.append_owners_to_add(staff)
-                log.error(f'{sys._getframe().f_code.co_name}: DB staff {staff.code} NOT found in Entra team {db_cc_team.description}')
+                log.info(f'{sys._getframe().f_code.co_name}: DB staff {staff.code} NOT found in Entra team {db_cc_team.description}')
             for leerlingnummer in db_members:
                 student = leerlingnummer2student[leerlingnummer]
                 meta_team.append_members_to_add(student)
-                log.error(f'{sys._getframe().f_code.co_name}: DB student {student.leerlingnummer}, {student.naam} {student.voornaam} NOT found in Entra team {db_cc_team.description}')
+                log.info(f'{sys._getframe().f_code.co_name}: DB student {student.leerlingnummer}, {student.naam} {student.voornaam} NOT found in Entra team {db_cc_team.description}')
             team_list.append(meta_team)
         _update_entra_cc_teams(team_list)
     except Exception as e:
