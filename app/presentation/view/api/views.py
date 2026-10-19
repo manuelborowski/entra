@@ -107,6 +107,14 @@ def team_add():
     return(json.dumps(ret))
 
 
+@api.route('/api/team/populate', methods=['POST'])
+@supervisor_key_required
+def team_populate():
+    data = json.loads(request.data)
+    ret = mgroup.api_team_populate(data)
+    return json.dumps(ret)
+
+
 @api.route('/api/warning/get', methods=['GET'])
 def get_warning():
     warning = warning_get_message()

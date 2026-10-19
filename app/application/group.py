@@ -83,6 +83,65 @@ def api_team_add(data):
         return {"status": False, "data": f'fout, {e}'}
 
 
+def api_team_populate(data):
+    """Make Entra team membership match a list of student numbers."""
+    try:
+        team_name = data["team_name"]
+        leerlingnummers = data["members"]
+        if not isinstance(team_name, str) or not team_name.strip():
+            return {"status": 400, "data": "team_name is required"}
+        if not isinstance(leerlingnummers, list):
+            return {"status": 400, "data": "members must be a list of leerlingnummers"}
+
+        team = mgroup.group_get(("display_name", "=", team_name.strip()))
+        if not team or not team.entra_id:
+            return {"status": 404, "data": f'Team {team_name} not found'}
+
+        requested_numbers = list(dict.fromkeys(str(n).strip() for n in leerlingnummers if str(n).strip()))
+        students = mstudent.student_get_m()
+        students_by_number = {s.leerlingnummer: s for s in students}
+        missing = [number for number in requested_numbers if number not in students_by_number]
+        if missing:
+            return {"status": 404, "data": f'Students not found: {", ".join(missing)}'}
+
+        requested_students = [students_by_number[number] for number in requested_numbers]
+        if any(not student.entra_id for student in requested_students):
+            missing_entra = [s.leerlingnummer for s in requested_students if not s.entra_id]
+            return {"status": 422, "data": f'Students have no Entra ID: {", ".join(missing_entra)}'}
+
+        current_members = entra.get_group_members(team.entra_id)
+        current_ids = {member["id"] for member in current_members if "id" in member}
+        desired_by_id = {student.entra_id: student for student in requested_students}
+        to_add = [student for entra_id, student in desired_by_id.items() if entra_id not in current_ids]
+        to_remove_ids = current_ids - set(desired_by_id)
+
+        add_ok = True
+        if to_add:
+            add_ok = bool(entra.add_persons({
+                "id": team.entra_id,
+                "members": [student.entra_id for student in to_add],
+            }))
+
+        remove_ok = True
+        if to_remove_ids:
+            remove_ok = bool(entra.delete_persons({
+                "id": team.entra_id,
+                "members": list(to_remove_ids),
+                "owners": [],
+            }))
+
+        if not add_ok or not remove_ok:
+            return {"status": 502, "data": "Entra membership update failed"}
+
+        team.members = json.dumps(requested_numbers)
+        mgroup.commit()
+        return {"status": 200, "data": f'Team {team_name} populated with {len(requested_numbers)} students'}
+    except Exception as e:
+        log.error(f'{sys._getframe().f_code.co_name}: {e}')
+        log.error(data)
+        return {"status": 500, "data": f'Error populating team: {e}'}
+
+
 ############ datatables: group overview list #########
 def format_data(db_list, total_count=None, filtered_count=None):
     out = []
