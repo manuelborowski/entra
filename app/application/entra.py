@@ -565,6 +565,8 @@ def cron_sync_devices(opaque=None, **kwargs):
                 dd.enrolled_date = datetime.datetime.strptime(enrolled_date, "%Y-%m-%dT%H:%M:%SZ")
                 dd.do_not_delete = dd.entra_id in entra_do_not_delete_devices
                 dd.mac = intune_device["wiFiMacAddress"]
+                # if a device is moved from one student (enrolled user) to another (primary user), the device-user-entra-id must be updated
+                dd.user_entra_id = intune_device["userId"]
                 __update_user_devices(dd.user_entra_id, dd)
                 del(intune_device_cache[dd.intune_id])
             else:

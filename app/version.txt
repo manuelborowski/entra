@@ -47,3 +47,4 @@ Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take de
 0.41: verify-cc-teams, remove zombie owners and members
 0.42: update to 3.14
 0.43: add api to populate teams
+0.44: devices, owner is primary user, not enrolled user
