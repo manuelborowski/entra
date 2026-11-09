@@ -4,7 +4,7 @@ from app.application.sdh import log
 from app.data import group as mgroup, staff as mstaff, student as mstudent, klas as mklas, device as mdevice
 from app.data.group import Group
 from app.data.models import add, commit, delete
-from app.data.entra import entra
+from app.data.entra import entra, PasswordPolicyError
 
 #logging on file level
 import logging
@@ -13,6 +13,59 @@ from app.data.utils import get_current_schoolyear
 
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
+
+
+def api_user_change_password(data):
+    if not isinstance(data, dict):
+        return {"status": False, "data": "Verwacht een JSON-object."}
+    username = data.get("username")
+    password = data.get("password")
+    change_password_next_login = data.get("change_password_next_login", False)
+    if not isinstance(username, str) or not username.strip():
+        return {"status": False, "data": "Gebruikersnaam is verplicht."}
+    if not isinstance(password, str) or not password:
+        return {"status": False, "data": "Wachtwoord is verplicht."}
+    if not isinstance(change_password_next_login, bool):
+        return {"status": False, "data": "change_password_next_login moet true of false zijn."}
+
+    try:
+        username = username.strip()
+        students = mstudent.student_get_m(("username", "=", username))
+        staff = mstaff.staff_get_m(("code", "=", username))
+        if students is None or staff is None:
+            log.error("Password change: database lookup failed for %r", username)
+            return {"status": False, "data": "De gebruiker kon niet worden opgezocht."}
+        users = students + staff
+        if len(users) > 1:
+            log.warning("Password change: multiple database matches for %r", username)
+            return {"status": False, "data": "De gebruikersnaam komt overeen met meerdere gebruikers in de database."}
+        if users:
+            user_id = users[0].entra_id
+            if not user_id or not user_id.strip():
+                log.warning("Password change: database match has no Entra ID for %r", username)
+                return {"status": False, "data": "De gebruiker heeft geen Entra-ID."}
+            source = "database"
+        else:
+            log.info("Password change: no database match for %r, looking up in Entra", username)
+            user_ids = entra.find_user_ids(username)
+            if not user_ids:
+                log.warning("Password change: no Entra match for %r", username)
+                return {"status": False, "data": "De gebruiker is niet gevonden in de database of in Entra."}
+            if len(user_ids) > 1:
+                log.warning("Password change: multiple Entra matches for %r", username)
+                return {"status": False, "data": "De gebruikersnaam komt overeen met meerdere Entra-gebruikers. Gebruik de volledige aanmeldnaam."}
+            user_id = user_ids[0]
+            source = "Entra"
+        if entra.change_user_password(user_id, password, change_password_next_login):
+            log.info("Password changed for %r using %s lookup", username, source)
+            return {"status": True, "data": "Entra password changed"}
+        log.warning("Password change failed for %r after %s lookup", username, source)
+    except PasswordPolicyError as e:
+        log.warning("Password change rejected for %r. %s", username, e)
+        return {"status": False, "data": str(e)}
+    except Exception as e:
+        log.error("Password change failed for %r (%s)", username, type(e).__name__)
+    return {"status": False, "data": "Het wachtwoord kon niet worden gewijzigd in Entra."}
 
 
 def cron_sync_groups(opaque=None, **kwargs):

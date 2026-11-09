@@ -1,5 +1,6 @@
 from flask import request, render_template
 from app.application import  user as muser, settings as msettings, group as mgroup, device as mdevice, student as mstudent, staff as mstaff
+from app.application.entra import api_user_change_password
 from app import log
 import json, sys, html, itertools
 from functools import wraps
@@ -74,6 +75,13 @@ def user_delete():
     data = json.loads(request.data)
     ret = muser.api_user_delete(data)
     return(json.dumps(ret))
+
+
+@api.route('/api/user/change_password', methods=['POST'])
+@admin_key_required
+def user_change_password():
+    data = request.get_json(force=True, silent=True)
+    return json.dumps(api_user_change_password(data))
 
 
 @api.route('/api/user/get', methods=['GET'])

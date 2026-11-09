@@ -11,6 +11,10 @@ from app import MyLogFilter, top_log_handle
 log = logging.getLogger(f"{top_log_handle}.{__name__}")
 log.addFilter(MyLogFilter())
 
+class PasswordPolicyError(Exception):
+    pass
+
+
 class Graph:
     client_credential: ClientSecretCredential
     client: GraphClient
@@ -209,6 +213,45 @@ class Graph:
     def get_users(self):
         items = self.get(f'/users?$select=id,userPrincipalName', "get_users")
         return items
+
+    def find_user_ids(self, username):
+        escaped_username = username.replace("'", "''")
+        if "@" in username:
+            user_filter = f"userPrincipalName eq '{escaped_username}'"
+        else:
+            user_filter = f"startswith(userPrincipalName,'{escaped_username}@')"
+        url = "/users"
+        params = {"$select": "id", "$filter": user_filter, "$top": 2}
+        user_ids = []
+        while url and len(user_ids) < 2:
+            resp = self.client.get(url, params=params)
+            resp.raise_for_status()
+            data = resp.json()
+            user_ids.extend(user["id"] for user in data["value"])
+            url = data.get("@odata.nextLink")
+            params = None
+        return user_ids
+
+    def change_user_password(self, user_id, password, change_password_next_login=False):
+        body = {"passwordProfile": {"password": password, "forceChangePasswordNextSignIn": change_password_next_login}}
+        # GraphClient.patch does not translate per-request retry options into middleware headers.
+        resp = self.client.patch(f"/users/{user_id}", json=body, headers={"middleware_control": '{"max_retries": 0}'}, allow_redirects=False)
+        if resp.status_code == 204:
+            log.info(f"change_user_password: {user_id}, change-password: {change_password_next_login}")
+            return True
+        log.error(f"change_user_password: Entra returned HTTP {resp.status_code}")
+        if resp.status_code == 400:
+            try:
+                error = resp.json()["error"]
+                codes = [error.get("code")] + [detail.get("code") for detail in error.get("details", [])]
+            except (ValueError, KeyError, TypeError, AttributeError):
+                return False
+            if "PasswordShouldNotContainUpn" in codes:
+                raise PasswordPolicyError("Het nieuwe wachtwoord mag de aanmeldnaam van de gebruiker niet bevatten.")
+            message = error.get("message")
+            if error.get("code") == "Request_BadRequest" and isinstance(message, str) and message.startswith("The specified password does not comply with password complexity requirements."):
+                raise PasswordPolicyError("Het nieuwe wachtwoord voldoet niet aan de complexiteitsvereisten van Entra. Kies een ander wachtwoord.")
+        return False
 
     def get_user_teams(self, id):
         items = self.get(f'/users/{id}/joinedTeams', f"get_user_teams for {id}")
