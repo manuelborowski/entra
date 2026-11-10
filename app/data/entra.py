@@ -175,6 +175,25 @@ class Graph:
         items = self.get(f'/deviceManagement/windowsAutopilotDeviceIdentities', f"autopilot_get_devices")
         return items
 
+    def autopilot_add_device(self, serial_number, hardware_hash, group_tag):
+        body = {
+            "@odata.type": "#microsoft.graph.importedWindowsAutopilotDeviceIdentity",
+            "serialNumber": serial_number,
+            "hardwareIdentifier": hardware_hash,
+            "groupTag": group_tag,
+            "productKey": "",
+            "assignedUserPrincipalName": "",
+            "state": {"deviceImportStatus": "pending"},
+        }
+        # Disable automatic retries because a repeated POST can submit a duplicate import.
+        response = self.client.post("/deviceManagement/importedWindowsAutopilotDeviceIdentities", json=body, headers={"middleware_control": '{"max_retries": 0}'}, allow_redirects=False)
+        if response.status_code == 201:
+            imported_device = response.json()
+            log.info(f'{sys._getframe().f_code.co_name}: Submitted Autopilot import {imported_device["id"]}')
+            return imported_device
+        log.error(f'{sys._getframe().f_code.co_name}: ENTRA returned HTTP {response.status_code}')
+        return None
+
     def delete_device(self, device):
         if device.intune_id:
             url = f'https://graph.microsoft.com/v1.0/deviceManagement/managedDevices/{device.intune_id}'

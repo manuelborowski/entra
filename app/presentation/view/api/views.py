@@ -1,4 +1,4 @@
-from flask import request, render_template
+from flask import jsonify, request, render_template
 from app.application import  user as muser, settings as msettings, group as mgroup, device as mdevice, student as mstudent, staff as mstaff
 from app.application.entra import api_user_change_password
 from app import log
@@ -135,6 +135,12 @@ def device_get():
     options = request.args
     ret = mdevice.api_device_get(options)
     return json.dumps(ret, ensure_ascii=False)
+
+
+@api.route('/api/device/autopilot/add', methods=['POST'])
+@admin_key_required
+def device_autopilot_add():
+    return jsonify(mdevice.api_device_autopilot_add(request.get_json(silent=True)))
 
 
 @api.route('/api/m4s/upload', methods=['POST'])

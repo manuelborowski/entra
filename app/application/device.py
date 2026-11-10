@@ -1,3 +1,5 @@
+from base64 import b64decode
+
 from app.data import device as mdevice, student as mstudent
 from app.data.entra import entra
 import app.application.api
@@ -79,6 +81,27 @@ def api_upload_m4s(files):
 
 
 ################# API ######################
+def api_device_autopilot_add(data):
+    if not isinstance(data, dict):
+        return {"status": False, "data": "Expected a JSON object."}
+
+    for field in ("serial_number", "hardware_hash", "group_tag"):
+        value = data.get(field)
+        if not isinstance(value, str) or not value.strip():
+            return {"status": False, "data": f"{field} must be a non-empty string."}
+
+    hardware_hash = data["hardware_hash"].strip()
+    try:
+        b64decode(hardware_hash, validate=True)
+    except ValueError:
+        return {"status": False, "data": "hardware_hash must be Base64-encoded."}
+
+    imported_device = entra.autopilot_add_device(data["serial_number"].strip(), hardware_hash, data["group_tag"].strip())
+    if imported_device is None:
+        return {"status": False, "data": "Microsoft Graph did not accept the Autopilot import."}
+    return {"status": True, "data": {"id": imported_device["id"], "state": imported_device.get("state")}}
+
+
 def api_device_get(options=None):
     try:
         return app.application.api.api_get_model_data(mdevice.Device, options)
