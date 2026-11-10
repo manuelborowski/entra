@@ -1,5 +1,6 @@
 from flask import jsonify, request, render_template
 from app.application import  user as muser, settings as msettings, group as mgroup, device as mdevice, student as mstudent, staff as mstaff
+from app.application.email import api_email_send
 from app.application.entra import api_user_change_password
 from app import log
 import json, sys, html, itertools
@@ -149,5 +150,11 @@ def m4s_upload():
     files = [f for f in request.files.getlist("m4s_file")]
     ret = mdevice.api_upload_m4s(files)
     return json.dumps(ret, ensure_ascii=False)
+
+
+@api.route('/api/email/send', methods=['POST'])
+@admin_key_required
+def email_send():
+    return jsonify(api_email_send(request.get_json(silent=True)))
 
 

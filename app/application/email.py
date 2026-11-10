@@ -22,8 +22,31 @@ def send_email(to_list, subject, content):
             log.error(f'{sys._getframe().f_code.co_name}: send_email: ERROR, could not send email: {e}')
         return False
     else:
-        log.info('{sys._getframe().f_code.co_name}: email server is not enabled')
+        log.info(f'{sys._getframe().f_code.co_name}: email server is not enabled')
         return False
+
+
+def api_email_send(data):
+    if not isinstance(data, dict):
+        return {"status": False, "data": "Expected a JSON object."}
+
+    recipients = data.get("recipients")
+    if isinstance(recipients, str):
+        recipients = [recipients]
+    if not isinstance(recipients, list) or not recipients or any(not isinstance(address, str) or not address.strip() or "\r" in address or "\n" in address for address in recipients):
+        return {"status": False, "data": "recipients must be an email address or a non-empty list of email addresses."}
+
+    subject = data.get("subject")
+    if not isinstance(subject, str) or not subject.strip() or "\r" in subject or "\n" in subject:
+        return {"status": False, "data": "subject must be a non-empty single-line string."}
+
+    content = data.get("content")
+    if not isinstance(content, str) or not content.strip():
+        return {"status": False, "data": "content must be a non-empty string."}
+
+    if send_email([address.strip() for address in recipients], subject, content):
+        return {"status": True, "data": "Email accepted for sending."}
+    return {"status": False, "data": "Email could not be sent."}
 
 
 def send_inform_message(email_to, subject, message):

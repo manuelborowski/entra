@@ -50,3 +50,4 @@ Remove staff (from database) that is not in entra.  Clean up cc- teams.  Take de
 0.44: devices, owner is primary user, not enrolled user
 0.45: added api to change password
 0.46: added api to import device into autopilot
+0.47: added api to send email
